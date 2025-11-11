@@ -4,6 +4,7 @@ spring:
   profiles:
     active: local
 
+
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USER}
@@ -15,9 +16,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        highlight_sql: true  # (Spring Boot 3.1+) SQL 색상 강조
+    show-sql: true        # SQL 쿼리 출력
+
 
 server:
   error:
     include-message: always
     include-stacktrace: never
     include-binding-errors: never
+
+
+

@@ -1,10 +1,15 @@
-package com.masterpiece.IPiece.domain.account;
+package com.masterpiece.IPiece.common.domain.account;
 
 
+import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
+import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.offering.domain.OfferingSubscriptions;
 import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,23 +41,16 @@ public class VirtualAccount {
     @Column(name = "wallet_address", nullable = false, unique = true, length = 255)
     private String walletAddress;
 
-    @Column(name = "updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
     private LocalDateTime updateAt;
 
-    @Column(name = "create_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
     private LocalDateTime createAt;
 
     @Column(name = "pending_price")
     private Long pendingPrice;
-
-    @OneToMany(mappedBy = "virtualAccount", fetch = FetchType.LAZY,
-    cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Holdings> holdings = new ArrayList<>();
-
-    public void addHolding(Holdings holding) {
-        holdings.add(holding);
-        holding.setVirtualAccount(this);
-    }
 
 
 

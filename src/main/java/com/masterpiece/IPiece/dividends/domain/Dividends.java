@@ -1,7 +1,10 @@
 package com.masterpiece.IPiece.dividends.domain;
 
+import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,12 +22,9 @@ public class Dividends {
     @Column(name = "dividend_id")
     private Long dividendId;
 
-    /*
-    *******************상품 연결*********************
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", unique = true)
     private Product product;
-    * */
 
     // 배당 기준일 (언제 보유자 확인할지)
     @Column(name = "record_date", nullable = false)
@@ -38,18 +38,12 @@ public class Dividends {
     @Column(name = "total_amount", nullable = false)
     private Long totalAmount;
 
-    @Column(name = "create_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
     private LocalDateTime createAt;
 
-    @Column(name = "update_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
     private LocalDateTime updateAt;
 
-    @OneToMany(mappedBy = "dividends", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DividendPayouts> payouts = new ArrayList<>();
-
-    // 양방향 편의 메서드
-    public void addPayout(DividendPayouts payout) {
-        payouts.add(payout);
-        payout.setDividends(this);
-    }
 }

@@ -1,8 +1,10 @@
 package com.masterpiece.IPiece.dividends.domain;
 
-import com.masterpiece.IPiece.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -38,17 +40,12 @@ public class DividendPayouts {
     @Column(name = "payout_date", nullable = false)
     private LocalDateTime payoutDate;
 
-    @Column(name = "create_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
     private LocalDateTime createAt;
 
-    @Column(name = "update_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
     private LocalDateTime updateAt;
 
-    // 양방향 관계 편의 메서드
-    public void setDividends(Dividends dividends) {
-        this.dividends = dividends;
-        if (!dividends.getPayouts().contains(this)) {
-            dividends.getPayouts().add(this);
-        }
-    }
 }

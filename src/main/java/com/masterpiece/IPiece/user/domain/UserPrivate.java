@@ -2,6 +2,8 @@ package com.masterpiece.IPiece.user.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,9 +40,11 @@ public class UserPrivate {
     @Column(name = "id_card_img", nullable = false)
     private String idCardImg;
 
-    @Column(name = "create_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "update_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
     private LocalDateTime updateAt;
 }

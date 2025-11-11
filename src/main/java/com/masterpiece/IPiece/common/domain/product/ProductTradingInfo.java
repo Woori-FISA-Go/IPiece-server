@@ -1,11 +1,11 @@
-package com.masterpiece.IPiece.domain.product;
+package com.masterpiece.IPiece.common.domain.product;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -33,9 +33,9 @@ public class ProductTradingInfo {
 
     @CreationTimestamp
     @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private OffsetDateTime createAt;
+    private LocalDateTime createAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
 }

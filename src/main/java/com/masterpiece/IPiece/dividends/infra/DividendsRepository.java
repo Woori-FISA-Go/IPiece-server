@@ -1,7 +1,6 @@
 package com.masterpiece.IPiece.dividends.infra;
 
 import com.masterpiece.IPiece.dividends.domain.Dividends;
-import com.masterpiece.IPiece.offering.domain.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 

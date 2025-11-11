@@ -1,12 +1,19 @@
-package com.masterpiece.IPiece.domain.product;
+package com.masterpiece.IPiece.common.domain.product;
 
+import com.masterpiece.IPiece.dividends.domain.Dividends;
+import com.masterpiece.IPiece.favorite.domain.FavoriteList;
+import com.masterpiece.IPiece.market.domain.OrderBook;
+import com.masterpiece.IPiece.market.domain.TradeExecution;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
 import jakarta.persistence.*;
         import lombok.*;
         import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * DDL과 1:1 매핑된 Product 엔티티
@@ -49,7 +56,7 @@ public class Product {
     private String projectName;
 
     @Column(name = "issue_date", columnDefinition = "timestamptz", nullable = false)
-    private OffsetDateTime issueDate;
+    private LocalDateTime issueDate;
 
     @Column(name = "issue_amount", nullable = false)
     private Long issueAmount;
@@ -74,9 +81,13 @@ public class Product {
 
     @CreationTimestamp
     @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private OffsetDateTime createAt;
+    private LocalDateTime createAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
+
+
+
+
 }

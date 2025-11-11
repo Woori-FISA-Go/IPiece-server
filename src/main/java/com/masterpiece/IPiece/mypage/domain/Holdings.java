@@ -2,9 +2,12 @@ package com.masterpiece.IPiece.mypage.domain;
 
 
 
-import com.masterpiece.IPiece.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -23,7 +26,7 @@ public class Holdings {
 
     @Setter
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
+    @JoinColumn(name = "account_id", nullable = false, referencedColumnName = "account_id")
     private VirtualAccount virtualAccount;
 
     @Column(name = "quantity", nullable = false)
@@ -32,19 +35,17 @@ public class Holdings {
     @Column(name = "avg_price", nullable = false)
     private Long avgBuyPrice;
 
-    /*
-    ******************product 연결부분******************
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id", referencedColumnName = "product_id", nullable = false)
     private Product product;
-    */
 
-    @Column(name = "create_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
     private LocalDateTime createAt;
 
-    @Column(name = "updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
     private LocalDateTime updatedAt;
-
 
 
 }
