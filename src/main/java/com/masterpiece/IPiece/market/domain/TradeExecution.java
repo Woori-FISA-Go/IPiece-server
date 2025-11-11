@@ -3,8 +3,10 @@ package com.masterpiece.IPiece.market.domain;
 
 import com.masterpiece.IPiece.domain.product.Product;
 import jakarta.persistence.*;
-        import lombok.*;
-        import java.time.OffsetDateTime;
+import java.time.OffsetDateTime;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @Setter
