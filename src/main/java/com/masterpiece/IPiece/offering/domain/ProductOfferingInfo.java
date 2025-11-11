@@ -1,0 +1,57 @@
+package com.masterpiece.IPiece.offering.domain;
+
+import com.masterpiece.IPiece.domain.product.Product;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.OffsetDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "product_offering_info")
+public class ProductOfferingInfo {
+
+    @Id
+    @Column(name = "product_id")
+    private Long productId; // product 테이블과 PK 공유
+
+    @OneToOne(optional = false, fetch = FetchType.LAZY)
+    @MapsId // 공유 PK 매핑 (FK=PK)
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    @Column(name = "progress_rate")
+    private Integer progressRate;
+
+    @Column(name = "detail_img", length = 255, nullable = false)
+    private String detailImg;
+
+    @Column(name = "offering_start_date", columnDefinition = "timestamptz", nullable = false)
+    private OffsetDateTime offeringStartDate;
+
+    @Column(name = "offering_end_date", columnDefinition = "timestamptz", nullable = false)
+    private OffsetDateTime offeringEndDate;
+
+    @Column(name = "offering_amount", nullable = false)
+    private Long offeringAmount;
+
+    @Column(name = "offering_price", nullable = false)
+    private Long offeringPrice;
+
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
+    private OffsetDateTime createAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
+    private OffsetDateTime updatedAt;
+}
+
+
+

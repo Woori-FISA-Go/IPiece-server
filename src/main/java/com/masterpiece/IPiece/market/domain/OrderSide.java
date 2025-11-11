@@ -1,4 +1,7 @@
 package com.masterpiece.IPiece.market.domain;
 
-public class OrderSide {
+/** 매수/매도 방향 */
+public enum OrderSide {
+    BUY, SELL
 }
+
