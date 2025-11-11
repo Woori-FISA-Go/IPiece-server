@@ -22,7 +22,7 @@ public class User {
     @Column(name = "user_made_id", nullable = false,  unique = true)
     private String userMadeId;  //사용자 ID
 
-    @Column(name = "password_hash", nullable = false, unique = true)
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;    //해시값으로 들어온 비밀번호
 
     @Column(name = "is_verified", nullable = false)
