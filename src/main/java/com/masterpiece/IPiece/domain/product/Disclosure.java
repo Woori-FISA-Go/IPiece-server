@@ -33,9 +33,11 @@ public class Disclosure {
     @JoinColumn(name = "product_id", referencedColumnName = "product_id")
     private ProductTradingInfo productTradingInfo;
 
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false)
+    @CreationTimestamp
+    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
     private OffsetDateTime createAt;
 
-    @Column(name = "updated_at", columnDefinition = "timestamptz", nullable = false)
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
     private OffsetDateTime updatedAt;
 }
