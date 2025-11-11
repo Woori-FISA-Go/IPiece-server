@@ -11,7 +11,6 @@ import java.time.OffsetDateTime;
 /**
  * DDL과 1:1 매핑된 Product 엔티티
  * - 테이블: "product"
- * - 주의: divideend_ratio 컬럼명(오타) 그대로 매핑
  */
 @Getter
 @Setter
