@@ -21,16 +21,10 @@ public class Holdings {
     @Column(name = "holding_id")
     private Long holdingId;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
     private VirtualAccount virtualAccount;
-
-    public void setVirtualAccount(VirtualAccount virtualAccount) {
-        this.virtualAccount = virtualAccount;
-        if (!virtualAccount.getHoldings().contains(this)) {
-            virtualAccount.getHoldings().add(this);
-        }
-    }
 
     @Column(name = "quantity", nullable = false)
     private Long quantity;

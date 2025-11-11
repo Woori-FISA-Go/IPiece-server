@@ -37,7 +37,7 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt; //마지막 수정시간
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserPrivate userPrivate;
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
