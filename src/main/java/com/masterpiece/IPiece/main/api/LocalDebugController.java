@@ -34,7 +34,6 @@ public class LocalDebugController {
     @PostMapping("/created")
     public ResponseEntity<Map<String, Object>> created() {
         String id = "demo-123";
-        URI location = URI.create("/v1/_debug/resource/" + id);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(Map.of("id", id, "status", "created"));
