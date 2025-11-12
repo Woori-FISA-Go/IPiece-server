@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.market.domain;
 
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 
@@ -15,7 +16,7 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "trade_execution")
-public class TradeExecution {
+public class TradeExecution extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // DDL: BIGSERIAL
@@ -53,10 +54,4 @@ public class TradeExecution {
     @JoinColumn(name = "sell_order_id", referencedColumnName = "order_id")
     private OrderBook sellOrder;
 
-
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
 }

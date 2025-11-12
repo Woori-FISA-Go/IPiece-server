@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.user.domain;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-public class UserPrivate {
+public class UserPrivate extends BaseEntity {
 
     @Id
     @Column(name = "user_id")
@@ -40,11 +41,4 @@ public class UserPrivate {
     @Column(name = "id_card_img", nullable = false)
     private String idCardImg;
 
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updateAt;
 }

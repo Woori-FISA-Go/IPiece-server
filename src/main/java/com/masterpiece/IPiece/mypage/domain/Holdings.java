@@ -2,6 +2,7 @@ package com.masterpiece.IPiece.mypage.domain;
 
 
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Holdings {
+public class Holdings extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,14 +39,5 @@ public class Holdings {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", referencedColumnName = "product_id", nullable = false)
     private Product product;
-
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
-
 
 }

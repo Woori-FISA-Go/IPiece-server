@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.offering.domain;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(name = "product_offering_info")
-public class ProductOfferingInfo {
+public class ProductOfferingInfo extends BaseEntity {
 
     @Id
     @Column(name = "product_id")
@@ -44,13 +45,7 @@ public class ProductOfferingInfo {
     @Column(name = "offering_price", nullable = false)
     private Long offeringPrice;
 
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
 }
 
 

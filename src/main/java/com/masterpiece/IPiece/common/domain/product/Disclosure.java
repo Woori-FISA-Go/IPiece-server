@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.common.domain.product;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -15,7 +16,7 @@ import java.time.OffsetDateTime;
 @Builder
 @Entity
 @Table(name = "disclosure")
-public class Disclosure {
+public class Disclosure extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // BIGSERIAL
@@ -36,11 +37,4 @@ public class Disclosure {
     @JoinColumn(name = "product_id", referencedColumnName = "product_id")
     private ProductTradingInfo productTradingInfo;
 
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
 }

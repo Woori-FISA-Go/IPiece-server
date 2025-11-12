@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.favorite.domain;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class FavoriteList {
+public class FavoriteList extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,14 +31,6 @@ public class FavoriteList {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
-
-    @CreationTimestamp
-    @Column(name = "create_at", nullable = false, updatable = false, columnDefinition = "timestamptz")
-    private LocalDateTime createAt;
-
-    @UpdateTimestamp
-    @Column(name = "update_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
 
 
 }

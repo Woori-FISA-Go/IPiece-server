@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.market.domain;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(name = "order_book")
-public class OrderBook {
+public class OrderBook extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,14 +40,6 @@ public class OrderBook {
 
     @Column(name = "createtime", columnDefinition = "timestamptz", nullable = false)
     private LocalDateTime createTime;
-
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
 
     @Column(name = "pending_status")
     private Boolean pendingStatus;

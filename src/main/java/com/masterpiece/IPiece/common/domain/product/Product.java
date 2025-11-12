@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.common.domain.product;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.dividends.domain.Dividends;
 import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import com.masterpiece.IPiece.market.domain.OrderBook;
@@ -26,7 +27,7 @@ import java.util.List;
 @Builder
 @Entity
 @Table(name = "product")
-public class Product {
+public class Product extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // BIGSERIAL
@@ -78,15 +79,6 @@ public class Product {
 
     @Column(name = "token_name", length = 100, nullable = false)
     private String tokenName;
-
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
-
 
 
 

@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.common.domain.product;
 
+import com.masterpiece.IPiece.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(name = "product_trading_info")
-public class ProductTradingInfo {
+public class ProductTradingInfo extends BaseEntity {
 
     @Id
     @Column(name = "product_id")
@@ -31,11 +32,4 @@ public class ProductTradingInfo {
     @Column(name = "ip_description", length = 255)
     private String ipDescription;
 
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private LocalDateTime createAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private LocalDateTime updatedAt;
 }
