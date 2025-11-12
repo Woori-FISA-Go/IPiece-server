@@ -1,8 +1,11 @@
 package com.masterpiece.IPiece.dividends.domain;
 
-import com.masterpiece.IPiece.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.BaseEntity;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class DividendPayouts {
+public class DividendPayouts extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,17 +41,5 @@ public class DividendPayouts {
     @Column(name = "payout_date", nullable = false)
     private LocalDateTime payoutDate;
 
-    @Column(name = "create_at", nullable = false)
-    private LocalDateTime createAt;
 
-    @Column(name = "update_at")
-    private LocalDateTime updateAt;
-
-    // 양방향 관계 편의 메서드
-    public void setDividends(Dividends dividends) {
-        this.dividends = dividends;
-        if (!dividends.getPayouts().contains(this)) {
-            dividends.getPayouts().add(this);
-        }
-    }
 }

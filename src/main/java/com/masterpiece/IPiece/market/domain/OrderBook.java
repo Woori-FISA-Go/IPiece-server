@@ -1,10 +1,14 @@
 package com.masterpiece.IPiece.market.domain;
 
-import com.masterpiece.IPiece.domain.product.Product;
+import com.masterpiece.IPiece.common.domain.BaseEntity;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -13,16 +17,17 @@ import java.time.OffsetDateTime;
 @Builder
 @Entity
 @Table(name = "order_book")
-public class OrderBook {
+public class OrderBook extends BaseEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
-    private Long orderId; // DDL: BIGINT (자동증가 아님)
+    private Long orderId;
 
     // DDL: order_status (BUY/SELL) ← OrderSide로 매핑
     @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", length = 16, nullable = false)
-    private OrderSide side;
+    @Column(name = "order_type", length = 16, nullable = false)
+    private OrderType orderType;
 
     @Column(name = "order_price", nullable = false)
     private Long orderPrice;
@@ -34,23 +39,19 @@ public class OrderBook {
     private Long remainQuantity;
 
     @Column(name = "createtime", columnDefinition = "timestamptz", nullable = false)
-    private OffsetDateTime createTime;
-
-    // 스키마상 VARCHAR(20)이라 관계 매핑 안 함 — 그대로 보관
-    @Column(name = "account_id", length = 20, nullable = false)
-    private String accountId;
-
-    // product_id FK
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_id", referencedColumnName = "product_id")
-    private Product product;
-
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false)
-    private OffsetDateTime createdAt;
-
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private OffsetDateTime updatedAt;
+    private LocalDateTime createTime;
 
     @Column(name = "pending_status")
     private Boolean pendingStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "account_id", referencedColumnName = "account_id", nullable = false)
+    private VirtualAccount virtualAccount;
+
+    // product_id FK
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id", referencedColumnName = "product_id", nullable = false)
+    private Product product;
+
+
 }

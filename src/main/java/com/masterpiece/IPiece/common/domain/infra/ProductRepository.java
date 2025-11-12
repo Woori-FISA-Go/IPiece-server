@@ -1,7 +1,7 @@
-package com.masterpiece.IPiece.domain.infra;
+package com.masterpiece.IPiece.common.domain.infra;
 
-import com.masterpiece.IPiece.domain.product.Product;
-import com.masterpiece.IPiece.domain.product.ProductStatus;
+import com.masterpiece.IPiece.common.domain.product.Product;
+import com.masterpiece.IPiece.common.domain.product.ProductStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

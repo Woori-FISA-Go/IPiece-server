@@ -1,6 +1,6 @@
-package com.masterpiece.IPiece.domain.infra;
+package com.masterpiece.IPiece.common.domain.infra;
 
-import com.masterpiece.IPiece.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

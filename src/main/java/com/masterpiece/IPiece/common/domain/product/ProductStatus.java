@@ -1,4 +1,4 @@
-package com.masterpiece.IPiece.domain.product;
+package com.masterpiece.IPiece.common.domain.product;
 
 public enum ProductStatus {
     OFFERING, // 공모

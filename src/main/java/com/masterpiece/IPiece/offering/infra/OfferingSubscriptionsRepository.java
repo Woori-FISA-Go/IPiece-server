@@ -12,5 +12,5 @@ public interface OfferingSubscriptionsRepository extends JpaRepository<OfferingS
 
     Page<OfferingSubscriptions> findByProductIdAndStatus(Long productId, OfferingStatus status, Pageable pageable);
 
-    boolean existsByProductIdAndAccountId(Long productId, String accountId);
+    boolean existsByProductIdAndVirtualAccount_AccountId(Long productId, Long accountId);
 }

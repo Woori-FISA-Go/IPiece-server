@@ -1,10 +1,16 @@
 package com.masterpiece.IPiece.user.domain;
 
-import com.masterpiece.IPiece.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.BaseEntity;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users") //DB테이블명 명시(PostgreSQL은 user가 예약어기 때문에 "" 명시)
@@ -12,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED) //외부 직접 생성 방지
 @AllArgsConstructor
 @Builder
-public class User {
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //auto_increment
@@ -31,15 +37,10 @@ public class User {
     @Column(name = "join_date", nullable = false)
     private LocalDateTime joinDate; //가입일
 
-    @Column(name = "create_at", nullable = false)
-    private LocalDateTime createAt; //데이터 생성시간
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt; //마지막 수정시간
-
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserPrivate userPrivate;
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private VirtualAccount virtualAccount;
+
 }

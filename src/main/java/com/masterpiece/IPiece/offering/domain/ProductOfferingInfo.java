@@ -1,12 +1,13 @@
 package com.masterpiece.IPiece.offering.domain;
 
-import com.masterpiece.IPiece.domain.product.Product;
+import com.masterpiece.IPiece.common.domain.BaseEntity;
+import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -15,7 +16,7 @@ import java.time.OffsetDateTime;
 @Builder
 @Entity
 @Table(name = "product_offering_info")
-public class ProductOfferingInfo {
+public class ProductOfferingInfo extends BaseEntity {
 
     @Id
     @Column(name = "product_id")
@@ -33,10 +34,10 @@ public class ProductOfferingInfo {
     private String detailImg;
 
     @Column(name = "offering_start_date", columnDefinition = "timestamptz", nullable = false)
-    private OffsetDateTime offeringStartDate;
+    private LocalDateTime offeringStartDate;
 
     @Column(name = "offering_end_date", columnDefinition = "timestamptz", nullable = false)
-    private OffsetDateTime offeringEndDate;
+    private LocalDateTime offeringEndDate;
 
     @Column(name = "offering_amount", nullable = false)
     private Long offeringAmount;
@@ -44,13 +45,7 @@ public class ProductOfferingInfo {
     @Column(name = "offering_price", nullable = false)
     private Long offeringPrice;
 
-    @CreationTimestamp
-    @Column(name = "create_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
-    private OffsetDateTime createAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamptz")
-    private OffsetDateTime updatedAt;
 }
 
 
