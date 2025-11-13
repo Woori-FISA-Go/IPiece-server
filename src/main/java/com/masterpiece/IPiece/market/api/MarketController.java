@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.market.api;
 
+import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
 import com.masterpiece.IPiece.market.application.MarketService;
 import jakarta.validation.constraints.Min;
@@ -10,10 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 // import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/market")
@@ -33,5 +32,15 @@ public class MarketController {
         Long userId = null;
 
         return ResponseEntity.ok(marketService.getProducts(pageable, userId));
+    }
+
+    @GetMapping("/{product_id}/details")
+    public ResponseEntity<ProductDetailsResponse> getDetails(
+            @PathVariable("product_id") Long productId
+            // TODO: 추후 인증(JWT) 구현 후 활성화 예정
+            // @AuthenticationPrincipal(expression = "id") Long userId
+    ) {
+        Long userId = null; // MEMO: 로그인 미구현이므로 null
+        return ResponseEntity.ok(marketService.getDetails(productId, userId));
     }
 }
