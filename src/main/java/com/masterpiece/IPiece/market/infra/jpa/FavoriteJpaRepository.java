@@ -16,4 +16,13 @@ public interface FavoriteJpaRepository extends JpaRepository<Product, Long> {
         WHERE fl.user_id = :userId
     """, nativeQuery = true)
     Set<Long> findProductIdsByUserId(@Param("userId") Long userId);
+
+    @Query(value = """
+        SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
+          FROM favorite_list
+         WHERE user_id = :userId
+           AND product_id = :productId
+    """, nativeQuery = true)
+    boolean existsByUserIdAndProductId(@Param("userId") Long userId,
+                                       @Param("productId") Long productId);
 }

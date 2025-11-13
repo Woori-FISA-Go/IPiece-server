@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class ProductQueryAdapter implements ProductQueryPort {
@@ -17,5 +19,10 @@ public class ProductQueryAdapter implements ProductQueryPort {
     public Page<Product> findActiveProducts(Pageable pageable) {
         // (이전) ACTIVE -> (변경) TRADE 기준으로 조회
         return repo.findTradeProducts(pageable);
+    }
+
+    @Override
+    public Optional<Product> findById(Long productId) {
+        return repo.findById(productId);
     }
 }

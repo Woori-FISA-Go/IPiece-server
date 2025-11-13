@@ -16,4 +16,10 @@ public class FavoriteQueryAdapter implements FavoriteQueryPort {
     public Set<Long> findProductIdsByUserId(Long userId) {
         return (userId == null) ? Set.of() : repo.findProductIdsByUserId(userId);
     }
+
+    @Override
+    public boolean existsByUserIdAndProductId(Long userId, Long productId) {
+        if (userId == null) return false;
+        return repo.existsByUserIdAndProductId(userId, productId);
+    }
 }

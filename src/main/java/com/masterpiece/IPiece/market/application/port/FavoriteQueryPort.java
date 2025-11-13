@@ -4,4 +4,6 @@ import java.util.Set;
 
 public interface FavoriteQueryPort {
     Set<Long> findProductIdsByUserId(Long userId);
+
+    boolean existsByUserIdAndProductId(Long userId, Long productId);
 }

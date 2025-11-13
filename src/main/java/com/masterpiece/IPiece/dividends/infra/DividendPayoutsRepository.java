@@ -7,5 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface DividendPayoutsRepository extends JpaRepository<DividendPayouts, Long> {
-    List<DividendPayouts> findByVirtualAccount(VirtualAccount account);
+    List<DividendPayouts> findByDividends_Product_ProductIdAndPayoutStatusOrderByPayoutDateDesc(
+            Long productId,
+            String payoutStatus
+    );
 }

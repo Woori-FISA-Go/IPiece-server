@@ -24,9 +24,21 @@ public interface TradeExecutionJpaRepository extends JpaRepository<TradeExecutio
            AND created_at <  :endAt
          ORDER BY product_id, created_at DESC
         """, nativeQuery = true)
-    List<PrevCloseProjection> findYesterdaysPrevClose(
+    List<PrevCloseProjection> findAllPrevClosePrices(
             @Param("productIds") Collection<Long> productIds,
             @Param("startAt") OffsetDateTime startAt,
-            @Param("endAt")   OffsetDateTime endAt
-    );
+            @Param("endAt")   OffsetDateTime endAt);
+
+    @Query(value = """
+        SELECT trade_price
+          FROM trade_execution
+         WHERE product_id = :productId
+           AND matchtime >= :startAt
+           AND matchtime <  :endAt
+         ORDER BY matchtime DESC
+         LIMIT 1
+        """, nativeQuery = true)
+    Long findPrevClosePrice(@Param("productId") Long productId,
+                            @Param("startAt") OffsetDateTime startAt,
+                            @Param("endAt")   OffsetDateTime endAt);
 }
