@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Set;
 
 @Repository
-public interface FavoriteJpaRepository extends JpaRepository<Product, Long> {
+public interface FavoriteRepository extends JpaRepository<Product, Long> {
 
     @Query(value = """
         SELECT fl.product_id 

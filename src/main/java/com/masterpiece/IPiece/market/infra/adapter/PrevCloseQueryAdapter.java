@@ -1,7 +1,7 @@
 package com.masterpiece.IPiece.market.infra.adapter;
 
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
-import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionJpaRepository;
+import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.market.infra.jpa.projection.PrevCloseProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
-    private final TradeExecutionJpaRepository repo;
+    private final TradeExecutionRepository tradeExecutionRepository;
 
     @Override
     public Map<Long, Long> findPrevCloseMap(Collection<Long> productIds, ZoneId zoneId) {
@@ -31,7 +31,7 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
         ZonedDateTime todayNine = today.atTime(9, 0, 0).atZone(effectiveZone);
         ZonedDateTime yesterdayNine = todayNine.minusDays(1);
 
-        var rows = repo.findAllPrevClosePrices(
+        var rows = tradeExecutionRepository.findAllPrevClosePrices(
                 productIds,
                 yesterdayNine.toOffsetDateTime(),
                 todayNine.toOffsetDateTime()
@@ -55,7 +55,7 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
         ZonedDateTime todayStart = today.atStartOfDay(effectiveZone);
         ZonedDateTime ydayStart  = todayStart.minusDays(1);
 
-        Long price = repo.findPrevClosePrice(
+        Long price = tradeExecutionRepository.findPrevClosePrice(
                 productId,
                 ydayStart.toOffsetDateTime(),
                 todayStart.toOffsetDateTime()

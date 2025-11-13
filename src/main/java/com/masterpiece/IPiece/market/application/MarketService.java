@@ -5,7 +5,6 @@ import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import com.masterpiece.IPiece.common.domain.product.policy.PriceChangePolicy;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
-import com.masterpiece.IPiece.dividends.infra.DividendsRepository;
 import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
@@ -35,7 +34,6 @@ public class MarketService {
     private final FavoriteQueryPort favoriteQueryPort;
     private final PrevCloseQueryPort prevCloseQueryPort;
     private final TradingInfoQueryPort tradingInfoPort;
-    private final DividendsRepository dividendsRepo;
     private final DividendPayoutsRepository dividendPayoutsRepository;
     private final ProductMapper productMapper;
 

@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Repository
-public interface TradeExecutionJpaRepository extends JpaRepository<TradeExecution, Long> {
+public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
     @Query(value = """
         SELECT DISTINCT ON (product_id) 
                product_id,

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface DisclosureJpaRepository extends JpaRepository<Disclosure, Long> {
+public interface DisclosureRepository extends JpaRepository<Disclosure, Long> {
 
     @Query("""
         SELECT d
