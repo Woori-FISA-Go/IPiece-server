@@ -54,6 +54,6 @@ public class MypageService {
                 : List.of();
 
         // 5. MyhomeResponse 생성
-        return mypageMapper.toMyhomeResponse(userId, account, allHoldings, pagedAssets);
+        return mypageMapper.toMyhomeResponse(userId, account, allHoldings, allAssets, pagedAssets);
     }
 }

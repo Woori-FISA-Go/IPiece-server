@@ -127,15 +127,16 @@ public class MypageMapper {
             Long userId,
             VirtualAccount account,
             List<Holdings> holdings,
-            List<AssetDto> assetList
+            List<AssetDto> allAssets,
+            List<AssetDto> pagedAssets
     ) {
         // 1. 총 매수금액 (평균매수가 × 보유수량의 합)
-        long totalBuyAmount = assetList.stream()
+        long totalBuyAmount = allAssets.stream()
                 .mapToLong(AssetDto::getTotalBuyPrice)
                 .sum();
 
         // 2. 총 평가금액 (현재주가 × 보유수량의 합)
-        long totalEvaluation = assetList.stream()
+        long totalEvaluation = allAssets.stream()
                 .mapToLong(AssetDto::getCurrentValue)
                 .sum();
 
@@ -157,7 +158,7 @@ public class MypageMapper {
         List<PortfolioRatioDto> portfolioRatio = toPortfolioRatioDtos(holdings);
 
         // 8. 보유 상품 개수
-        int holdingCount = assetList.size();
+        int holdingCount = allAssets.size();
 
         // 9. 주문가능 금액 (보유 KRW와 동일)
         long availableKrw = totalKrw;
@@ -173,7 +174,7 @@ public class MypageMapper {
                 .availableKrw(availableKrw)            // 주문가능 금액
                 .holdingCount(holdingCount)            // 보유 IP 개수
                 .portfolioRatio(portfolioRatio)        // 포트폴리오 비중
-                .assetList(assetList)                  // 자산 목록
+                .assetList(pagedAssets)                  // 자산 목록
                 .build();
     }
 }
