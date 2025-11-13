@@ -18,7 +18,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/v1/_debug/**"))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v1/_debug/**", "/error").permitAll()
+                        .requestMatchers("/v1/_debug/**", "/error", "/v1/mypage/myhome/test").permitAll() // /v1/mypage/myhome/test는 테스트용이라 추후 삭제
                         .anyRequest().authenticated()
                 );
         return http.build();
