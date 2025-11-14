@@ -29,7 +29,7 @@ public enum ErrorCode {
     UNVERIFIED_USER(HttpStatus.BAD_REQUEST, "본인인증이 완료되지 않았습니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
     LOGOUT_FAILED(HttpStatus.BAD_REQUEST, "로그아웃 실패"),
-    TOO_MANY_VERIFICATION_ATTEMPTS(HttpStatus.BAD_REQUEST, "인증번호 입력 횟수 초과"),
+    TOO_MANY_VERIFICATION_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "인증번호 입력 횟수를 초과했습니다."),
 
 
     /* 공통 - 5xx */

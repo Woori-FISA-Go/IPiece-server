@@ -48,7 +48,9 @@ public class LocalStorageService implements StorageService{
             Files.createDirectories(userDir);
 
             // 저장 파일명 생성
-            String fileName = "idcard_" + UUID.randomUUID() + "." + ext;
+            String fileName = ext.isEmpty()
+                    ? "idcard_" + UUID.randomUUID()
+                    : "idcard_" + UUID.randomUUID() + "." + ext;
 
             // 최종 파일 경로
             Path filePath = userDir.resolve(fileName);
