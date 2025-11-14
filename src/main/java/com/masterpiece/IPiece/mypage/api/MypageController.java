@@ -1,10 +1,12 @@
 package com.masterpiece.IPiece.mypage.api;
 
+import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.MypageService;
 import com.masterpiece.IPiece.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +30,19 @@ public class MypageController {
             @RequestParam(defaultValue = "1") int page
     ) {
         MyhomeResponse response = mypageService.getMyHome(userId, page);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 관심목록 조회
+     * GET /v1/mypage/favorites
+     */
+    @GetMapping("/favorites")
+    public ResponseEntity<FavoriteListResponse> getFavorites(
+            Authentication authentication
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        FavoriteListResponse response = mypageService.getFavorites(userId);
         return ResponseEntity.ok(response);
     }
 
