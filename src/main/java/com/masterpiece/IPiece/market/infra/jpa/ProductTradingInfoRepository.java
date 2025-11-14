@@ -1,7 +1,9 @@
-package com.masterpiece.IPiece.common.domain.infra;
+package com.masterpiece.IPiece.market.infra.jpa;
 
 import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface ProductTradingInfoRepository extends JpaRepository<ProductTradingInfo, Long> {
 }
