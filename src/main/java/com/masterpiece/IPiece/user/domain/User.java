@@ -4,8 +4,12 @@ import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 @Entity
 @Table(name = "users") //DB테이블명 명시(PostgreSQL은 user가 예약어기 때문에 "" 명시)
@@ -13,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED) //외부 직접 생성 방지
 @AllArgsConstructor
 @Builder
-public class User extends BaseEntity {
+public class User extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //auto_increment
@@ -44,4 +48,5 @@ public class User extends BaseEntity {
     public void updateRefreshToken(String token) {
         this.refreshToken = token;
     }
+
 }

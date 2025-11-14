@@ -32,7 +32,7 @@ public class AuthService {
         }
 
         // Access Token 생성
-        String accessToken = jwtTokenProvider.generateToken(user.getUserMadeId());
+        String accessToken = jwtTokenProvider.generateToken(String.valueOf(user.getUserId()));
 
         // Refresh Token 생성
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserMadeId());

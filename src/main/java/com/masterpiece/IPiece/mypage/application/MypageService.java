@@ -38,8 +38,10 @@ public class MypageService {
         VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
+
         // 2. 전체 보유자산 조회
         List<Holdings> allHoldings = holdingsRepository.findAllByVirtualAccount(account);
+
 
         // 3. Holdings → AssetDto 변환
         List<AssetDto> allAssets = mypageMapper.toMergedAssetDtos(allHoldings);

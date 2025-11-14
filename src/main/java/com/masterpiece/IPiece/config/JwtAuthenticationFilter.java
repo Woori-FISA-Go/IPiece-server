@@ -1,19 +1,23 @@
 package com.masterpiece.IPiece.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.util.JwtTokenProvider;
+import com.masterpiece.IPiece.user.application.TokenBlacklistService;
+import com.masterpiece.IPiece.user.domain.User;
+import com.masterpiece.IPiece.user.infra.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 import java.util.Map;
 
@@ -27,8 +31,9 @@ import java.util.Map;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -54,18 +59,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
 
+        // 먼저 블랙리스트(로그아웃된 토큰)인지 확인
+        if (tokenBlacklistService.isBlacklisted(token)) {
+            // 블랙리스트면 더 볼 것도 없이 바로 401 응답
+            sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
+            return;
+        }
+
         ErrorCode error = jwtTokenProvider.validateToken(token);
         if (error != null) {
             sendErrorResponse(response, request, error);
             return;
         }
 
-        // 인증정보 SecurityContext에 등록
-        String username = jwtTokenProvider.getSubject(token);
+        /// 1) 토큰에서 userId 추출
+        String userIdStr = jwtTokenProvider.getSubject(token);
+        Long userId = Long.valueOf(userIdStr);
+
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(username, null, null);
+                new UsernamePasswordAuthenticationToken(userId, null, null);
 
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);

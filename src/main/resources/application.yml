@@ -10,6 +10,11 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASS}
 
+  data:
+    redis:
+      host: 192.168.0.122
+      port: 6379
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -28,7 +33,7 @@ server:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration-ms: 3600000          # AccessToken 1시간
+  expiration-ms: 241920000          # AccessToken 28일 -> 개발 완료 후 조정 필요
   refresh-expiration-ms: 604800000 # RefreshToken 7일
 
 
