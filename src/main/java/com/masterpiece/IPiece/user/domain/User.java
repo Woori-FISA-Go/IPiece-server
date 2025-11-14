@@ -2,15 +2,10 @@ package com.masterpiece.IPiece.user.domain;
 
 import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
-import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "users") //DB테이블명 명시(PostgreSQL은 user가 예약어기 때문에 "" 명시)
@@ -43,4 +38,10 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private VirtualAccount virtualAccount;
 
+    @Column(name = "refresh_token")
+    private String refreshToken;
+
+    public void updateRefreshToken(String token) {
+        this.refreshToken = token;
+    }
 }
