@@ -6,6 +6,7 @@ import com.masterpiece.IPiece.common.util.JwtTokenProvider;
 import com.masterpiece.IPiece.common.util.PasswordHasher;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     /** 로그인 API */
+    @Transactional
     public Map<String, String> login(String loginId, String password) {
 
         User user = userRepository.findByUserMadeId(loginId)
@@ -47,7 +49,7 @@ public class AuthService {
     }
 
     /* 로그아웃 API */
-
+    @Transactional
     public void logout(String accessToken) {
         // JWT 유효성 검사
         ErrorCode error = jwtTokenProvider.validateToken(accessToken);

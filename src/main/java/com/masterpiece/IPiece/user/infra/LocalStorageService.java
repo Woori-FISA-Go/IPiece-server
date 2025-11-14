@@ -24,11 +24,18 @@ public class LocalStorageService implements StorageService{
     @Override
     public String saveIdCard(MultipartFile file, String userId) {
         try {
-
-            // 원본 파일명에서 확장자만 추출
-            String ext = file.getOriginalFilename()
-                    .substring(file.getOriginalFilename().lastIndexOf(".") + 1);
-
+            //NPE 방지
+            String originalName = file.getOriginalFilename();
+            if (originalName == null || originalName.isBlank()) {
+                throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
+            }
+            //확장자 추출
+            String ext = "";
+            int dotIdx = originalName.lastIndexOf('.');
+            if (dotIdx >= 0) {
+                ext = originalName.substring(dotIdx + 1);
+            }
+            
             // 연도/월/userId 구조로 폴더 생성
             String folder = String.format("%s/%s/%s",
                     LocalDate.now().getYear(),

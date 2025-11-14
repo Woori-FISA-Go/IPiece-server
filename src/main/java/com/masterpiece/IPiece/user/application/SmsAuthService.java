@@ -2,16 +2,15 @@ package com.masterpiece.IPiece.user.application;
 
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
-
 import com.solapi.sdk.NurigoApp;
-import com.solapi.sdk.message.dto.response.MultipleDetailMessageSentResponse;
-import com.solapi.sdk.message.dto.response.MultipleMessageSentResponse;
-import com.solapi.sdk.message.dto.response.SingleMessageSentResponse;
 import com.solapi.sdk.message.model.Message;
 import com.solapi.sdk.message.service.DefaultMessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +21,11 @@ public class SmsAuthService {
     private final Map<String, VerificationData> store = new ConcurrentHashMap<>(); // 폰번호 - 인증번호 매칭
     private final Map<String, VerifiedUserData> verifiedUsers = new ConcurrentHashMap<>(); // 인증 완료 사용자
     private final DefaultMessageService messageService;
+    private final SecureRandom secureRandom = new SecureRandom();
+    private static final Logger log = LoggerFactory.getLogger(SmsAuthService.class);
+    private final Map<String, Integer> verificationAttempts = new ConcurrentHashMap<>();
+    private static final int MAX_VERIFICATION_ATTEMPTS = 5;
+
 
     @Value("${solapi.sender}")
     private String senderNumber; // 발신번호
@@ -56,7 +60,7 @@ public class SmsAuthService {
 
     // ✅ 인증번호 발송
     public void sendVerificationCode(String phone) {
-        String code = String.valueOf((int) (Math.random() * 900000) + 100000);
+        String code = String.format("%06d", secureRandom.nextInt(1000000));
         store.put(phone, new VerificationData(code, LocalDateTime.now()));
 
 
@@ -67,8 +71,7 @@ public class SmsAuthService {
         try {
             messageService.send(message);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("❌ Solapi send failed: " + e.getMessage());
+            log.error("SMS 전송 실패 - phone: {}, error: {}", phone, e.getMessage(), e);
             throw new BusinessException(ErrorCode.SMS_SEND_FAILED);
         }
     }
@@ -78,17 +81,28 @@ public class SmsAuthService {
         VerificationData data = store.get(phone);
         if (data == null) throw new BusinessException(ErrorCode.INVALID_VERIFICATION_CODE);
 
+        // 시도 횟수 확인
+        int attempts = verificationAttempts.getOrDefault(phone, 0);
+        if (attempts >= MAX_VERIFICATION_ATTEMPTS) {
+            store.remove(phone);
+            verificationAttempts.remove(phone);
+            throw new BusinessException(ErrorCode.TOO_MANY_VERIFICATION_ATTEMPTS);
+        }
+
         if (data.createdAt.isBefore(LocalDateTime.now().minusMinutes(3))) {
             store.remove(phone);
+            verificationAttempts.remove(phone);
             throw new BusinessException(ErrorCode.EXPIRED_VERIFICATION_CODE);
         }
 
         if (!data.code.equals(code)) {
+            verificationAttempts.put(phone, attempts + 1);
             throw new BusinessException(ErrorCode.INVALID_VERIFICATION_CODE);
         }
 
         verifiedUsers.put(phone, new VerifiedUserData(phone, birth));
         store.remove(phone);
+        verificationAttempts.remove(phone);
     }
 
     public VerifiedUserData getVerifiedUser(String phone) {
