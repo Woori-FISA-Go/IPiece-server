@@ -29,6 +29,8 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
                       AND te2.matchTime >= :startAt
                       AND te2.matchTime <  :endAt
                )
+             ORDER BY te.tradeId DESC
+             LIMIT 1
             """)
     List<PrevCloseProjection> findAllPrevClosePrices(
             @Param("productIds") Collection<Long> productIds,
@@ -48,6 +50,8 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
                   AND te2.matchTime >= :startAt
                   AND te2.matchTime <  :endAt
            )
+         ORDER BY te.tradeId DESC
+         LIMIT 1
         """)
     Long findPrevClosePrice(@Param("productId") Long productId,
                             @Param("startAt") LocalDateTime startAt,
