@@ -35,7 +35,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateToken(String.valueOf(user.getUserId()));
 
         // Refresh Token 생성
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserMadeId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(String.valueOf(user.getUserId()));
 
         // Refresh Token DB 저장
         user.updateRefreshToken(refreshToken);
