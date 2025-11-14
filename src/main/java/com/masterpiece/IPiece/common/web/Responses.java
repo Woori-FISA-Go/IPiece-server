@@ -3,6 +3,7 @@ package com.masterpiece.IPiece.common.web;
 import org.springframework.http.*;
 import java.net.URI;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -105,15 +106,16 @@ public final class Responses {
             String type, String title, String detail, String instance,
             HttpHeaders extraHeaders
     ) {
-        Map<String, Object> body = Map.of(
-                "type", type,
-                "title", title,
-                "status", status.value(),
-                "detail", detail,
-                "instance", instance
-        );
+        Map<String, Object> body = new HashMap<>();
+        body.put("type", type);
+        body.put("title", title);
+        body.put("status", status.value());
+        body.put("detail", detail);
+        body.put("instance", instance);
+
         HttpHeaders headers = (extraHeaders != null) ? extraHeaders : new HttpHeaders();
         headers.setContentType(PROBLEM_JSON);
+
         return new ResponseEntity<>(body, headers, status);
     }
 }

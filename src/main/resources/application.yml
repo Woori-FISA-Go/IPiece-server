@@ -26,5 +26,17 @@ server:
     include-stacktrace: never
     include-binding-errors: never
 
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 3600000          # AccessToken 1시간
+  refresh-expiration-ms: 604800000 # RefreshToken 7일
+
+
+  solapi:
+    api-key: ${SOLAPI_API_KEY}
+    api-secret: ${SOLAPI_API_SECRET}
+    sender: ${SOLAPI_SENDER}
+
+
 
 

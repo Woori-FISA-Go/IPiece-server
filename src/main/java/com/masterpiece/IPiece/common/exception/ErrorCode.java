@@ -25,6 +25,11 @@ public enum ErrorCode {
     SMS_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "인증번호 발송 실패"),
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "인증번호가 일치하지 않습니다."),
     EXPIRED_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "인증번호가 만료되었습니다."),
+    FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 저장에 실패했습니다."),
+    UNVERIFIED_USER(HttpStatus.BAD_REQUEST, "본인인증이 완료되지 않았습니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
+    LOGOUT_FAILED(HttpStatus.BAD_REQUEST, "로그아웃 실패"),
+    TOO_MANY_VERIFICATION_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "인증번호 입력 횟수를 초과했습니다."),
 
 
     /* 공통 - 5xx */
