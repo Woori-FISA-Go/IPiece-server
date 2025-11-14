@@ -24,10 +24,10 @@ public class MypageController {
      */
     @GetMapping("/myhome")
     public ResponseEntity<MyhomeResponse> getMyHome(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal Long userId,
             @RequestParam(defaultValue = "1") int page
     ) {
-        MyhomeResponse response = mypageService.getMyHome(user.getUserId(), page);
+        MyhomeResponse response = mypageService.getMyHome(userId, page);
         return ResponseEntity.ok(response);
     }
 

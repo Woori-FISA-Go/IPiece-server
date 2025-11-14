@@ -35,7 +35,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateToken(String.valueOf(user.getUserId()));
 
         // Refresh Token 생성
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUserMadeId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(String.valueOf(user.getUserId()));
 
         // Refresh Token DB 저장
         user.updateRefreshToken(refreshToken);
@@ -61,7 +61,7 @@ public class AuthService {
         String userId = jwtTokenProvider.getSubject(accessToken);
 
         // 사용자 조회
-        User user = userRepository.findByUserMadeId(userId)
+        User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
 
         // refreshToken 삭제
