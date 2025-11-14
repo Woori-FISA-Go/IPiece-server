@@ -1,13 +1,17 @@
 package com.masterpiece.IPiece.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.util.JwtTokenProvider;
+import com.masterpiece.IPiece.user.domain.User;
+import com.masterpiece.IPiece.user.infra.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -30,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenBlacklistService tokenBlacklistService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -71,9 +75,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 인증정보 SecurityContext에 등록
         String username = jwtTokenProvider.getSubject(token);
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(username, null, null);
 
+        User user = userRepository.findByUserMadeId(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
+
+        // User를 Principal로 설정
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

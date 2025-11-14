@@ -18,7 +18,7 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.expiration-ms:3600000}") long expirationMs,     // 1시간
+            @Value("${jwt.expiration-ms:241920000}") long expirationMs,     // 28일
             @Value("${jwt.refresh-expiration-ms:604800000}") long refreshExpirationMs // 7일
     ) {
         this.secret = secretKey.getBytes(StandardCharsets.UTF_8);
