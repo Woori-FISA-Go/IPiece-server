@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.masterpiece.IPiece.auth.application.TokenBlacklistService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
 
@@ -53,6 +55,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+
+        // 먼저 블랙리스트(로그아웃된 토큰)인지 확인
+        if (tokenBlacklistService.isBlacklisted(token)) {
+            // 블랙리스트면 더 볼 것도 없이 바로 401 응답
+            sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
+            return;
+        }
 
         ErrorCode error = jwtTokenProvider.validateToken(token);
         if (error != null) {

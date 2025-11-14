@@ -77,4 +77,32 @@ public class JwtTokenProvider {
             return ErrorCode.INVALID_TOKEN;
         }
     }
+
+    // JwtTokenProvider 안에 추가
+
+    /**
+     * ⏱ JWT 남은 만료 시간(초)을 계산해서 반환
+     * - 로그아웃 시, 이 값을 Redis TTL로 사용하면 됨
+     */
+    public long getRemainingValiditySeconds(String token) {
+        // 토큰에서 클레임(Claims) 꺼내기
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secret)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        // 만료 시각(Expiration)을 밀리초 기준으로 가져옴
+        Date expiration = claims.getExpiration();
+        long now = System.currentTimeMillis();
+
+        // 이미 만료된 토큰이면 0 이하가 나올 수 있으니 max(0, …) 처리
+        long diffMillis = Math.max(0, expiration.getTime() - now);
+
+        // 초 단위로 반환
+        return diffMillis / 1000;
+    }
+
+
+
 }

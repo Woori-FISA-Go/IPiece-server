@@ -10,7 +10,7 @@ import com.masterpiece.IPiece.user.infra.StorageService;
 import com.masterpiece.IPiece.user.infra.UserPrivateRepository;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,8 +27,8 @@ public class UserService {
     private final UserPrivateRepository userPrivateRepository;
     private final PasswordHasher passwordEncoder;
 
+    @Transactional(rollbackFor = Exception.class)
     public void signUp(SignUpRequest request, MultipartFile idCardFile) {
-
         // 1. 본인인증 여부 체크
         if (!request.isVerified()) {
             throw new BusinessException(ErrorCode.UNVERIFIED_USER);
@@ -45,21 +45,20 @@ public class UserService {
                         .joinDate(LocalDateTime.now())
                         .build();
 
-        // DB에 user 저장하고 해당 user정보 저장(이 때 userId 자동 생성됨)
+        // DB에 user 저장
         User savedUser = userRepository.save(user);
 
-        // 신분증 이미지 저장하고 파일 경로 받기
+        // 4. 신분증 이미지 저장
         String idCardPath = storageService.saveIdCard(idCardFile, request.getId());
 
-
-        /** 5) UserPrivate 생성 (민감정보 DB) */
+        // 5. UserPrivate 생성 (민감정보 DB)
         UserPrivate privateInfo = UserPrivate.builder()
-                .user(savedUser)                       // @MapsId 관계로 user_id 공유됨
+                .user(savedUser)
                 .name(request.getName())
-                .birthDate(LocalDate.parse(request.getBirth())) // "19980214" 형식이면 포맷 별도처리 필요
+                .birthDate(LocalDate.parse(request.getBirth()))
                 .phoneNumber(request.getPhone())
                 .address(request.getAddress())
-                .idCardImg(idCardPath)                 // 로컬경로나 S3 key
+                .idCardImg(idCardPath)
                 .build();
 
         userPrivateRepository.save(privateInfo);

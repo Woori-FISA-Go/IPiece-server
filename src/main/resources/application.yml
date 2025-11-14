@@ -10,6 +10,11 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASS}
 
+  data:
+    redis:
+      host: 192.168.0.122
+      port: 6379
+
   jpa:
     hibernate:
       ddl-auto: update
