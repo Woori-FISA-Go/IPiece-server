@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 
 public interface ProductQueryPort {
-    Page<Product> findActiveProducts(Pageable pageable);
+    Page<Product> findTradeProducts(Pageable pageable);
 
     Optional<Product> findById(Long productId);
 }

@@ -39,7 +39,7 @@ public class MarketService {
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
-                productQueryPort.findActiveProducts(pageable);
+                productQueryPort.findTradeProducts(pageable);
 
         Set<Long> favorites = (userId != null)
                 ? favoriteQueryPort.findProductIdsByUserId(userId)
@@ -56,7 +56,7 @@ public class MarketService {
                 .map(p -> productMapper.toProductListItem(p, prevCloseMap, favorites))
                 .toList();
 
-        return new ProductListResponse(items, (int) page.getTotalElements(), page.getNumber()+1);
+        return new ProductListResponse(items, (int) page.getTotalElements(), page.getNumber() + 1);
     }
 
     public ProductDetailsResponse getDetails(Long productId, Long userId) {
@@ -73,7 +73,8 @@ public class MarketService {
                 .orElse(0L);
         double changeRate = PriceChangePolicy.changeRate(currentPrice, prevClose);
 
-        boolean isFavorited = favoriteQueryPort.existsByUserIdAndProductId(userId, productId);
+        boolean isFavorited = (userId != null)
+                && favoriteQueryPort.existsByUserIdAndProductId(userId, productId);
 
         var payouts = dividendPayoutsRepository
                 .findByDividends_Product_ProductIdAndPayoutStatusOrderByPayoutDateDesc(
@@ -85,7 +86,7 @@ public class MarketService {
         var df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         List<ProductDetailsResponse.DividendItem> dividendItems = payouts.stream().map(dp -> {
-            long totalAmount = dp.getDividends().getTotalAmount(); 
+            long totalAmount = dp.getDividends().getTotalAmount();
             long amountPerToken = (tokenQuantity > 0)
                     ? totalAmount / tokenQuantity
                     : 0L;

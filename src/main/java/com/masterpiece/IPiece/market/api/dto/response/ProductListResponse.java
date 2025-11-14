@@ -5,7 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
@@ -16,13 +19,20 @@ public class ProductListResponse {
     private int totalCount;
     private int page;
 
-    public static ProductListResponse of(List<Product> productList, List<Long> favoritedIds) {
+    public static ProductListResponse of(
+            List<Product> productList,
+            List<Long> favoritedIds,
+            int totalCount,
+            int page
+    ) {
+        Set<Long> favoritedSet = favoritedIds != null ? new HashSet<>(favoritedIds) : Collections.emptySet();
         List<ProductListItem> items = productList.stream()
-                .map(p -> ProductListItem.of(p, favoritedIds.contains(p.getProductId())))
+                .map(p -> ProductListItem.of(p, favoritedSet.contains(p.getProductId())))
                 .collect(Collectors.toList());
         return ProductListResponse.builder()
                 .products(items)
-                .totalCount(items.size())
+                .totalCount(totalCount)
+                .page(page)
                 .build();
     }
 

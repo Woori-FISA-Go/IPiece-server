@@ -16,8 +16,7 @@ public class ProductQueryAdapter implements ProductQueryPort {
     private final ProductRepository productRepository;
 
     @Override
-    public Page<Product> findActiveProducts(Pageable pageable) {
-        // (이전) ACTIVE -> (변경) TRADE 기준으로 조회
+    public Page<Product> findTradeProducts(Pageable pageable) {
         return productRepository.findTradeProducts(pageable);
     }
 
