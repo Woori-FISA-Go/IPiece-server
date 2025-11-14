@@ -3,16 +3,26 @@ package com.masterpiece.IPiece.mypage.application.mapper;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
+import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.favorite.domain.FavoriteList;
+import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
+import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor  // ✅ 생성자 주입을 위해 추가
 public class MypageMapper {
+
+    private final ProductOfferingInfoRepository offeringInfoRepository;
 
     /**
      * Holdings → AssetDto 변환 (단일)
@@ -176,5 +186,71 @@ public class MypageMapper {
                 .portfolioRatio(portfolioRatio)        // 포트폴리오 비중
                 .assetList(pagedAssets)                  // 자산 목록
                 .build();
+    }
+
+    /**
+     * FavoriteList → FavoriteItemDto 변환
+     */
+    public FavoriteItemDto toFavoriteItemDto(FavoriteList favorite) {
+        Product product = favorite.getProduct();
+
+        // 상품 상태 판단 ("거래" or "공모")
+        String status = determineProductStatus(product);
+
+        // 가격 변동률 계산 (거래 상태일 때만)
+        Double priceChangeRate = "2차 거래".equals(status)
+                ? calculatePriceChangeRate(product)
+                : null;
+
+        return FavoriteItemDto.builder()
+                .productId(product.getProductId())
+                .productName(product.getProductName())
+                .status(status)
+                .thumbnail(product.getThumbnailImg())
+                .currentPrice(product.getCurrentPrice())
+                .priceChangeRate(priceChangeRate)
+                .isFavorite(true)
+                .build();
+    }
+
+    /**
+     * 상품 상태 판단: "거래" or "공모"
+     */
+    private String determineProductStatus(Product product) {
+        // ProductOfferingInfo 조회
+        Optional<ProductOfferingInfo> offeringInfo =
+                offeringInfoRepository.findById(product.getProductId());
+
+        // ProductOfferingInfo가 없으면 "거래"
+        if (offeringInfo.isEmpty()) {
+            return "2차 거래";
+        }
+
+        // 공모 기간 확인
+        LocalDateTime now = LocalDateTime.now();
+        ProductOfferingInfo info = offeringInfo.get();
+
+        boolean isOfferingPeriod =
+                !now.isBefore(info.getOfferingStartDate()) &&
+                        !now.isAfter(info.getOfferingEndDate());
+
+        return isOfferingPeriod ? "공모" : "2차 거래";
+    }
+
+    /**
+     * 가격 변동률 계산 (전일 대비)
+     * 거래 상태일 때만 계산, 공모일 때는 null
+     */
+    private Double calculatePriceChangeRate(Product product) {
+        Long lastPrice = product.getLastPrice();
+        Long currentPrice = product.getCurrentPrice();
+
+        if (lastPrice == null || lastPrice == 0) {
+            return null;
+        }
+
+        // 등락률 = (현재가 - 전일가) / 전일가 * 100
+        long priceDiff = currentPrice - lastPrice;
+        return Math.round((double) priceDiff / lastPrice * 10000) / 100.0;  // 소수점 2자리
     }
 }

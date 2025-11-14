@@ -4,7 +4,11 @@ import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
+import com.masterpiece.IPiece.favorite.domain.FavoriteList;
+import com.masterpiece.IPiece.favorite.infra.FavoriteListRepository;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
+import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
+import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.mapper.MypageMapper;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
@@ -26,6 +30,7 @@ public class MypageService {
 
     private final VirtualAccountRepository virtualAccountRepository;
     private final HoldingsRepository holdingsRepository;
+    private final FavoriteListRepository favoriteListRepository;
     private final MypageMapper mypageMapper;
 
     private static final int PAGE_SIZE = 10;
@@ -57,5 +62,25 @@ public class MypageService {
 
         // 5. MyhomeResponse 생성
         return mypageMapper.toMyhomeResponse(userId, account, allHoldings, allAssets, pagedAssets);
+    }
+
+    public FavoriteListResponse getFavorites(Long userId) {
+        // 1. 사용자의 가상계좌 조회 (User 정보 획득용)
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+        // 2. 관심목록 조회
+        List<FavoriteList> favorites = favoriteListRepository.findAllByUser(account.getUser());
+
+        // 3. FavoriteList → FavoriteItemDto 변환
+        List<FavoriteItemDto> items = favorites.stream()
+                .map(mypageMapper::toFavoriteItemDto)
+                .collect(Collectors.toList());
+
+        // 4. Response 생성
+        return FavoriteListResponse.builder()
+                .totalCount(items.size())
+                .items(items)
+                .build();
     }
 }

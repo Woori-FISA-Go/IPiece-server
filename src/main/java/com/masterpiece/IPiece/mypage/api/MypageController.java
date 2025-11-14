@@ -1,10 +1,12 @@
 package com.masterpiece.IPiece.mypage.api;
 
+import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.MypageService;
 import com.masterpiece.IPiece.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,13 +33,15 @@ public class MypageController {
         return ResponseEntity.ok(response);
     }
 
-    // 테스트용이라 실제 운영 시 삭제
-    @GetMapping("/myhome/test")
-    public ResponseEntity<MyhomeResponse> getMyHomeTest(
-            @RequestParam Long userId,
-            @RequestParam(defaultValue = "1") int page
+    /**
+     * 관심목록 조회
+     * GET /v1/mypage/favorites
+     */
+    @GetMapping("/favorites")
+    public ResponseEntity<FavoriteListResponse> getFavorites(
+            @AuthenticationPrincipal Long userId
     ) {
-        MyhomeResponse response = mypageService.getMyHome(userId, page);
+        FavoriteListResponse response = mypageService.getFavorites(userId);
         return ResponseEntity.ok(response);
     }
 }
