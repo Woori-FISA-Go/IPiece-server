@@ -52,13 +52,13 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
         ZoneId effectiveZone = (zoneId != null) ? zoneId : ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(effectiveZone);
-        ZonedDateTime todayStart = today.atStartOfDay(effectiveZone);
-        ZonedDateTime ydayStart  = todayStart.minusDays(1);
+        ZonedDateTime todayNine = today.atTime(9, 0, 0).atZone(effectiveZone);
+        ZonedDateTime yesterdayNine = todayNine.minusDays(1);
 
         Long price = tradeExecutionRepository.findPrevClosePrice(
                 productId,
-                ydayStart.toLocalDateTime(),
-                todayStart.toLocalDateTime()
+                yesterdayNine.toLocalDateTime(),
+                todayNine.toLocalDateTime()
         );
 
         return Optional.ofNullable(price);

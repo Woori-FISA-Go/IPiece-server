@@ -23,11 +23,11 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
                AND te.matchTime >= :startAt
                AND te.matchTime <  :endAt
                AND te.matchTime = (
-                   SELECT MAX(te2.createAt)
+                   SELECT MAX(te2.matchTime)
                      FROM TradeExecution te2
                     WHERE te2.product.productId = te.product.productId
-                      AND te2.createAt >= :startAt
-                      AND te2.createAt <  :endAt
+                      AND te2.matchTime >= :startAt
+                      AND te2.matchTime <  :endAt
                )
             """)
     List<PrevCloseProjection> findAllPrevClosePrices(
