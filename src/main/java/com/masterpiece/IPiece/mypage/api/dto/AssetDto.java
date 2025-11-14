@@ -14,7 +14,7 @@ public class AssetDto {
     private Long productId;
     private String productName;
     private String tokenName;
-    private String presentImg;
+    private String thumbnailImg;
     private Long quantity;
     private Long avgBuyPrice;
     private Long totalBuyPrice;      // avg_buy_price * quantity
