@@ -28,6 +28,7 @@ public enum ErrorCode {
     FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "임시 파일 저장에 실패했습니다."),
     UNVERIFIED_USER(HttpStatus.BAD_REQUEST, "본인인증이 완료되지 않았습니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
+    LOGOUT_FAILED(HttpStatus.BAD_REQUEST, "로그아웃 실패"),
 
 
 

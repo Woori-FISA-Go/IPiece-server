@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     //사용자 ID 중복체크용 메서드
-    boolean existsByUserMadeId(String userMadeId);
+    //boolean existsByUserMadeId(String userMadeId);
 
     Optional<User> findByUserMadeId(String loginId);
 }

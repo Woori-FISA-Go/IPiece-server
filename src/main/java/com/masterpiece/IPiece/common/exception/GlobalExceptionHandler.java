@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.common.exception;
 
 import com.masterpiece.IPiece.common.web.Responses;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,16 +26,16 @@ public class GlobalExceptionHandler {
      *  -> 프론트에서는 code.name()으로만 구분하면 됨(ENUM타입이기 때문에 바뀔일x)
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<?> handleBusinessException(BusinessException e) {
+    public ResponseEntity<?> handleBusinessException(BusinessException e, HttpServletRequest request) {
 
         ErrorCode code = e.getErrorCode();
 
         return Responses.problem(
-                code.getStatus(),            // HTTP status
-                code.name(),                 // type (ex: INVALID_LOGIN_ID)
-                code.getMessage(),           // title/detail 동시에 씀
-                e.getMessage(),              // detail
-                null,                        // instance(요청 path) 넣고 싶으면 사용
+                code.getStatus(),
+                code.name(),
+                code.getMessage(),
+                code.getMessage(),
+                request.getRequestURI(), // ← null 아님
                 null
         );
     }

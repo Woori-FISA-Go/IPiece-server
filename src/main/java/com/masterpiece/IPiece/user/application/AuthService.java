@@ -45,4 +45,31 @@ public class AuthService {
                 "refreshToken", refreshToken
         );
     }
+
+    /* 로그아웃 API */
+
+    public void logout(String accessToken) {
+        // JWT 유효성 검사
+        ErrorCode error = jwtTokenProvider.validateToken(accessToken);
+        if (error != null) {    //에러가 있으면(토큰이 유효하지 않거나..)
+            throw new BusinessException(error);
+        }
+
+        // userId 추출
+        String userId = jwtTokenProvider.getSubject(accessToken);
+
+        // 사용자 조회
+        User user = userRepository.findByUserMadeId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
+
+        // refreshToken 삭제
+        user.updateRefreshToken(null);
+        userRepository.save(user);
+
+        /*왜 Access Token을 삭제하지 않는가?
+        * Access Token은 어차피 금방 만료되고 재발급도 하지 못함(Refresh Token이 없으면)
+        * -> 사실상 있어도 쓸 수 없음
+        * */
+    }
+
 }
