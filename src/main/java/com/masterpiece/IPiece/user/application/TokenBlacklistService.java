@@ -1,4 +1,4 @@
-package com.masterpiece.IPiece.auth.application;
+package com.masterpiece.IPiece.user.application;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;

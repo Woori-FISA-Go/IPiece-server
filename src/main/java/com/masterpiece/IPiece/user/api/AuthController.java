@@ -6,13 +6,13 @@ import com.masterpiece.IPiece.common.util.JwtTokenProvider;
 import com.masterpiece.IPiece.common.web.Responses;
 import com.masterpiece.IPiece.user.api.dto.request.LoginRequest;
 import com.masterpiece.IPiece.user.application.AuthService;
+import com.masterpiece.IPiece.user.application.TokenBlacklistService;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.masterpiece.IPiece.auth.application.TokenBlacklistService;
 
 import java.util.Map;
 

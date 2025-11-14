@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.util.JwtTokenProvider;
+import com.masterpiece.IPiece.user.application.TokenBlacklistService;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -17,8 +18,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.masterpiece.IPiece.auth.application.TokenBlacklistService;
-
 import java.io.IOException;
 import java.util.Map;
 
