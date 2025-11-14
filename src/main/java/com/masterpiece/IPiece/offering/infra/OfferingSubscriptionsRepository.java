@@ -8,9 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OfferingSubscriptionsRepository extends JpaRepository<OfferingSubscriptions, Long> {
 
-    /*Page<OfferingSubscriptions> findByProduct_ProductId(Long productId, Pageable pageable);
+    Page<OfferingSubscriptions> findByProductOfferingInfo_ProductId(Long productId, Pageable pageable);
 
-    Page<OfferingSubscriptions> findByProductIdAndStatus(Long productId, OfferingStatus status, Pageable pageable);
+    Page<OfferingSubscriptions> findByProductOfferingInfo_ProductIdAndStatus(Long productId, OfferingStatus status, Pageable pageable);
 
-    boolean existsByProductIdAndVirtualAccount_AccountId(Long productId, Long accountId);*/
+    boolean existsByProductOfferingInfo_ProductIdAndVirtualAccount_AccountId(Long productId, Long accountId);
 }
