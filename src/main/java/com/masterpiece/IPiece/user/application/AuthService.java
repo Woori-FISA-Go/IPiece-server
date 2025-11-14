@@ -61,7 +61,7 @@ public class AuthService {
         String userId = jwtTokenProvider.getSubject(accessToken);
 
         // 사용자 조회
-        User user = userRepository.findByUserId(Long.valueOf(userId))
+        User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
 
         // refreshToken 삭제
