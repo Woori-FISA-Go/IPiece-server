@@ -73,16 +73,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 인증정보 SecurityContext에 등록
-        String username = jwtTokenProvider.getSubject(token);
+        /// 1) 토큰에서 userId 추출
+        String userIdStr = jwtTokenProvider.getSubject(token);
+        Long userId = Long.valueOf(userIdStr);
 
-        User user = userRepository.findByUserMadeId(username)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
-
-        // User를 Principal로 설정
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                new UsernamePasswordAuthenticationToken(userId, null, null);
+
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);

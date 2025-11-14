@@ -52,9 +52,11 @@ public class AuthController {
         }
 
         // 2. user 찾기
-        String userId = jwtTokenProvider.getSubject(refreshToken);
-        User user = userRepository.findByUserMadeId(userId)
+        Long userId = Long.valueOf(jwtTokenProvider.getSubject(refreshToken));
+
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
+
 
         // 3. DB의 refresh_token과 일치하는지 확인
         if (!refreshToken.equals(user.getRefreshToken())) {
@@ -62,7 +64,8 @@ public class AuthController {
         }
 
         // 4. 새 접근 토큰 발급
-        String newAccessToken = jwtTokenProvider.generateToken(userId);
+        String newAccessToken = jwtTokenProvider.generateToken(String.valueOf(userId));
+
 
         return Responses.ok(Map.of(
                 "accessToken", newAccessToken
@@ -75,35 +78,35 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
 
-        // 1Authorization 헤더에서 토큰 꺼내기
         String authHeader = request.getHeader("Authorization");
 
-        // 헤더 없거나 Bearer 아닌 경우 → 잘못된 요청으로 간주
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new BusinessException(ErrorCode.INVALID_TOKEN);  // 또는 별도 에러코드 생성 가능
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }
 
-        // "Bearer " 이후 실제 토큰 부분만 추출
         String accessToken = authHeader.substring(7);
 
-        // 토큰 유효성 검증 (만료/위조 여부 확인)
         var error = jwtTokenProvider.validateToken(accessToken);
         if (error != null) {
-            // 이미 만료된 토큰이라면 굳이 블랙리스트에 넣지 않고 바로 에러 던져도 됨
             throw new BusinessException(error);
         }
 
-        // 토큰 남은 만료 시간(초) 계산
+        // 1) 블랙리스트 등록
         long ttlSeconds = jwtTokenProvider.getRemainingValiditySeconds(accessToken);
-
-        // 안전하게 보려면 0 이하일 때는 그냥 블랙리스트 처리 안 해도 됨
         if (ttlSeconds > 0) {
-            // Redis 블랙리스트에 등록
             tokenBlacklistService.blacklist(accessToken, ttlSeconds);
         }
 
-        // 5️응답 반환 (굳이 body 안 줘도 됨)
-        return Responses.noContent();  // 204 No Content
+        // 2) refreshToken 삭제
+        Long userId = Long.valueOf(jwtTokenProvider.getSubject(accessToken));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_ID));
+
+        user.updateRefreshToken(null);
+        userRepository.save(user);
+
+        return Responses.noContent();
     }
+
 
 }

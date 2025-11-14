@@ -17,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED) //외부 직접 생성 방지
 @AllArgsConstructor
 @Builder
-public class User extends BaseEntity implements UserDetails {
+public class User extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //auto_increment
@@ -49,38 +49,4 @@ public class User extends BaseEntity implements UserDetails {
         this.refreshToken = token;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
-    }
-
-    @Override
-    public String getPassword() {
-        return this.passwordHash;
-    }
-
-    @Override
-    public String getUsername() {
-        return this.getUserMadeId();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
 }
