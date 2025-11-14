@@ -8,37 +8,48 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
-    @Query(value = """
-        SELECT DISTINCT ON (product_id) 
-               product_id,
-               trade_price AS price
-          FROM trade_execution
-         WHERE product_id IN (:productIds)
-           AND created_at >= :startAt
-           AND created_at <  :endAt
-         ORDER BY product_id, created_at DESC
-        """, nativeQuery = true)
+
+    @Query("""
+            SELECT te.product.productId AS productId,
+                   te.tradePrice        AS price
+              FROM TradeExecution te
+             WHERE te.product.productId IN :productIds
+               AND te.matchTime >= :startAt
+               AND te.matchTime <  :endAt
+               AND te.matchTime = (
+                   SELECT MAX(te2.createAt)
+                     FROM TradeExecution te2
+                    WHERE te2.product.productId = te.product.productId
+                      AND te2.createAt >= :startAt
+                      AND te2.createAt <  :endAt
+               )
+            """)
     List<PrevCloseProjection> findAllPrevClosePrices(
             @Param("productIds") Collection<Long> productIds,
-            @Param("startAt") OffsetDateTime startAt,
-            @Param("endAt")   OffsetDateTime endAt);
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt")   LocalDateTime endAt);
 
-    @Query(value = """
-        SELECT trade_price
-          FROM trade_execution
-         WHERE product_id = :productId
-           AND matchtime >= :startAt
-           AND matchtime <  :endAt
-         ORDER BY matchtime DESC
-         LIMIT 1
-        """, nativeQuery = true)
+    @Query("""
+        SELECT te.tradePrice
+          FROM TradeExecution te
+         WHERE te.product.productId = :productId
+           AND te.matchTime >= :startAt
+           AND te.matchTime <  :endAt
+           AND te.matchTime = (
+               SELECT MAX(te2.matchTime)
+                 FROM TradeExecution te2
+                WHERE te2.product.productId = :productId
+                  AND te2.matchTime >= :startAt
+                  AND te2.matchTime <  :endAt
+           )
+        """)
     Long findPrevClosePrice(@Param("productId") Long productId,
-                            @Param("startAt") OffsetDateTime startAt,
-                            @Param("endAt")   OffsetDateTime endAt);
+                            @Param("startAt") LocalDateTime startAt,
+                            @Param("endAt")   LocalDateTime endAt);
 }

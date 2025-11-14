@@ -33,14 +33,14 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
         var rows = tradeExecutionRepository.findAllPrevClosePrices(
                 productIds,
-                yesterdayNine.toOffsetDateTime(),
-                todayNine.toOffsetDateTime()
+                yesterdayNine.toLocalDateTime(),
+                todayNine.toLocalDateTime()
         );
 
         return rows.stream()
-                .filter(r -> r.getProduct_id() != null && r.getPrice() != null)
+                .filter(r -> r.getProductId() != null && r.getPrice() != null)
                 .collect(Collectors.toMap(
-                        PrevCloseProjection::getProduct_id,
+                        PrevCloseProjection::getProductId,
                         PrevCloseProjection::getPrice,
                         (prev, curr) -> prev
                 ));
@@ -57,8 +57,8 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
         Long price = tradeExecutionRepository.findPrevClosePrice(
                 productId,
-                ydayStart.toOffsetDateTime(),
-                todayStart.toOffsetDateTime()
+                ydayStart.toLocalDateTime(),
+                todayStart.toLocalDateTime()
         );
 
         return Optional.ofNullable(price);
