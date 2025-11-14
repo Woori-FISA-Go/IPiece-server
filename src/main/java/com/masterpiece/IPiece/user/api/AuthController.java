@@ -73,8 +73,7 @@ public class AuthController {
     }
 
 
-    // 로그아웃 테스트시 로그인해서 accessToken 저장해놓고, 로그아웃 API 호출시
-
+    
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
 
