@@ -39,20 +39,9 @@ public class MypageController {
      */
     @GetMapping("/favorites")
     public ResponseEntity<FavoriteListResponse> getFavorites(
-            Authentication authentication
+            @AuthenticationPrincipal Long userId
     ) {
-        Long userId = Long.parseLong(authentication.getName());
         FavoriteListResponse response = mypageService.getFavorites(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    // 테스트용이라 실제 운영 시 삭제
-    @GetMapping("/myhome/test")
-    public ResponseEntity<MyhomeResponse> getMyHomeTest(
-            @RequestParam Long userId,
-            @RequestParam(defaultValue = "1") int page
-    ) {
-        MyhomeResponse response = mypageService.getMyHome(userId, page);
         return ResponseEntity.ok(response);
     }
 }

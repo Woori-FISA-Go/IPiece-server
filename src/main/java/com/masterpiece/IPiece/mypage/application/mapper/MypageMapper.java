@@ -198,7 +198,7 @@ public class MypageMapper {
         String status = determineProductStatus(product);
 
         // 가격 변동률 계산 (거래 상태일 때만)
-        Double priceChangeRate = "거래".equals(status)
+        Double priceChangeRate = "2차 거래".equals(status)
                 ? calculatePriceChangeRate(product)
                 : null;
 
@@ -223,7 +223,7 @@ public class MypageMapper {
 
         // ProductOfferingInfo가 없으면 "거래"
         if (offeringInfo.isEmpty()) {
-            return "거래";
+            return "2차 거래";
         }
 
         // 공모 기간 확인
@@ -234,7 +234,7 @@ public class MypageMapper {
                 !now.isBefore(info.getOfferingStartDate()) &&
                         !now.isAfter(info.getOfferingEndDate());
 
-        return isOfferingPeriod ? "공모" : "거래";
+        return isOfferingPeriod ? "공모" : "2차 거래";
     }
 
     /**
