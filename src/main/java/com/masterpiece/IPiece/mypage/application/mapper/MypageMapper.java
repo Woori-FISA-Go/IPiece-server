@@ -2,6 +2,11 @@ package com.masterpiece.IPiece.mypage.application.mapper;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.product.Product;
+import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
+import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
+import com.masterpiece.IPiece.market.domain.TradeExecution;
+import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
+import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
@@ -14,8 +19,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,6 +30,10 @@ import java.util.stream.Collectors;
 public class MypageMapper {
 
     private final ProductOfferingInfoRepository offeringInfoRepository;
+    private final TradeExecutionRepository tradeExecutionRepository;
+    private final DividendPayoutsRepository dividendPayoutsRepository;
+
+
 
     /**
      * Holdings → AssetDto 변환 (단일)
@@ -210,6 +221,107 @@ public class MypageMapper {
                 .currentPrice(product.getCurrentPrice())
                 .priceChangeRate(priceChangeRate)
                 .isFavorite(true)
+                .build();
+    }
+    /**
+     * 계좌 기준 체결 내역 → 거래내역 DTO 리스트로 변환
+     */
+    public List<AccountHistoryItemDto> toAccountTradeHistory(
+            VirtualAccount account,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        List<TradeExecution> executions =
+                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
+
+        return executions.stream()
+                .map(exec -> mapExecutionToHistoryItem(exec, account))
+                // DB에서 이미 account 조건을 걸었으므로 null 필터링 불필요
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 계좌 기준 배당금 지급 내역 → 거래내역 DTO 리스트로 변환
+     */
+    public List<AccountHistoryItemDto> toAccountDividendHistory(
+            VirtualAccount account,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        // 완료된 배당만 보여준다고 가정 (status 값은 네가 INSERT한 값에 맞춰서 바꿔도 됨)
+        List<DividendPayouts> payouts =
+                dividendPayoutsRepository.findByVirtualAccountAndPayoutDateBetweenAndPayoutStatus(
+                        account,
+                        from,
+                        to,
+                        "PAID"
+                );
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        return payouts.stream()
+                .map(payout -> {
+                    Product product = payout.getDividends().getProduct();
+
+                    String createdAt = payout.getPayoutDate().format(formatter);
+
+                    String type = "배당금";
+                    String description = product.getProductName() + " 배당금";
+
+                    Long price = payout.getPayoutAmount();   // 배당금은 현금 + (API에서 + 금액)
+
+                    return AccountHistoryItemDto.builder()
+                            .createdAt(createdAt)
+                            .type(type)
+                            .description(description)
+                            .tokenAmount(null)   // 배당은 토큰 수량 변화 없음
+                            .price(price)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 단일 체결내역 → 이 계좌 기준 history 아이템으로 변환
+     */
+    private AccountHistoryItemDto mapExecutionToHistoryItem(TradeExecution exec, VirtualAccount account) {
+        Product product = exec.getProduct();
+        LocalDateTime time = exec.getMatchTime();
+
+        boolean isBuyAccount = exec.getBuyOrder().getVirtualAccount().equals(account);
+        boolean isSellAccount = exec.getSellOrder().getVirtualAccount().equals(account);
+
+        // 이 계좌와 관련없는 체결이면 무시
+        if (!isBuyAccount && !isSellAccount) {
+            return null;
+        }
+
+        String type;
+        Long tokenAmount = exec.getTradeQuantity();
+        Long tradeAmount = exec.getTradeQuantity() * exec.getTradePrice();
+
+        if (isBuyAccount) {
+            // 구매 : 토큰 +, 현금 -
+            type = "구매";
+            tokenAmount = +tokenAmount;
+            tradeAmount = -tradeAmount;
+        } else {
+            // 판매 : 토큰 -, 현금 +
+            type = "판매";
+            tokenAmount = -tokenAmount;
+            tradeAmount = +tradeAmount;
+        }
+
+        String description = product.getProductName() + " " + type;
+
+        String createdAt = time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+        return AccountHistoryItemDto.builder()
+                .createdAt(createdAt)
+                .type(type)
+                .description(description)
+                .tokenAmount(tokenAmount)
+                .price(tradeAmount)
                 .build();
     }
 

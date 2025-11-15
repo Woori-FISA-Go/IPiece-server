@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.market.infra.jpa;
 
 
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.projection.PrevCloseProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,20 @@ import java.util.List;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
+    // 매칭 시간 기준 기간 조회 -> 특정 계좌 기준 체결 내역 조회
+    @Query("""
+        SELECT te
+          FROM TradeExecution te
+          JOIN te.buyOrder  bo
+          JOIN te.sellOrder so
+         WHERE te.matchTime BETWEEN :from AND :to
+           AND (bo.virtualAccount = :account OR so.virtualAccount = :account)
+        """)
+    List<TradeExecution> findByAccountAndMatchTimeBetween(
+            @Param("account") VirtualAccount account,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 
     @Query("""
             SELECT te.product.productId AS productId,
