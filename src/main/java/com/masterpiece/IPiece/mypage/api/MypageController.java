@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.mypage.api;
 
+import com.masterpiece.IPiece.mypage.api.dto.response.AccountHistoryResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.MypageService;
@@ -42,6 +43,20 @@ public class MypageController {
             @AuthenticationPrincipal Long userId
     ) {
         FavoriteListResponse response = mypageService.getFavorites(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 계좌 거래내역 조회
+     * GET /v1/mypage/account?date_from=2025-09-23&date_to=2025-10-23
+     */
+    @GetMapping("/account")
+    public ResponseEntity<AccountHistoryResponse> getAccountHistory(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam("date_from") String dateFrom,
+            @RequestParam("date_to") String dateTo
+    ) {
+        AccountHistoryResponse response = mypageService.getAccountHistory(userId, dateFrom, dateTo);
         return ResponseEntity.ok(response);
     }
 }

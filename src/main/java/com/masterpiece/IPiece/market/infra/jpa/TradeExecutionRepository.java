@@ -14,6 +14,8 @@ import java.util.List;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
+    // 매칭 시간 기준 기간 조회
+    List<TradeExecution> findByMatchTimeBetween(LocalDateTime from, LocalDateTime to);
 
     @Query("""
             SELECT te.product.productId AS productId,
