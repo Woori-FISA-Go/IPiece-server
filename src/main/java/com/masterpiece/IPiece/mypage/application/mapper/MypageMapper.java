@@ -232,11 +232,11 @@ public class MypageMapper {
             LocalDateTime to
     ) {
         List<TradeExecution> executions =
-                tradeExecutionRepository.findByMatchTimeBetween(from, to);
+                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
 
         return executions.stream()
                 .map(exec -> mapExecutionToHistoryItem(exec, account))
-                .filter(Objects::nonNull)
+                // DB에서 이미 account 조건을 걸었으므로 null 필터링 불필요
                 .collect(Collectors.toList());
     }
 
