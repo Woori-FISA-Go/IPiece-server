@@ -1,10 +1,15 @@
 package com.masterpiece.IPiece.market.application;
 
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Disclosure;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import com.masterpiece.IPiece.common.domain.product.policy.PriceChangePolicy;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
+import com.masterpiece.IPiece.market.api.dto.request.BuyOrderRequest;
+import com.masterpiece.IPiece.market.api.dto.response.BuyOrderResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
@@ -12,17 +17,22 @@ import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
 import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
 import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
+import com.masterpiece.IPiece.market.domain.OrderBook;
+import com.masterpiece.IPiece.market.domain.OrderType;
+import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +46,9 @@ public class MarketService {
     private final TradingInfoQueryPort tradingInfoPort;
     private final DividendPayoutsRepository dividendPayoutsRepository;
     private final ProductMapper productMapper;
+    private final ProductRepository productRepository;
+    private final VirtualAccountRepository virtualAccountRepository;
+    private final OrderBookRepository orderBookRepository;
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
@@ -136,4 +149,58 @@ public class MarketService {
                 .details(details)
                 .build();
     }
+
+    @Transactional(readOnly = false)
+    public BuyOrderResponse buy(Long productId, Long userId, BuyOrderRequest req, String idempotencyKeyHeader) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        long price = req.getOrder_price();
+        long quantity = req.getOrder_quantity();
+        long totalAmount = price * quantity;
+
+        if (account.getBalanceKrw() < totalAmount) {
+            throw new IllegalStateException("잔액이 부족합니다.");
+        }
+
+        account.decreaseBalanceKrw(totalAmount);
+        account.increasePendingPrice(totalAmount);
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OrderBook order = OrderBook.builder()
+                .product(product)
+                .virtualAccount(account)
+                .orderType(OrderType.BUY)
+                .orderPrice(price)
+                .orderQuantity(quantity)
+                .remainQuantity(quantity)
+                .pendingStatus(true)
+                .createTime(now.toLocalDateTime())
+                .build();
+
+        OrderBook saved = orderBookRepository.save(order);
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        return BuyOrderResponse.builder()
+                .status_code(200)
+                .order_id(saved.getOrderId().toString())
+                .product_id(productId)
+                .side("BUY")
+                .order_price(price)
+                .order_quantity(quantity)
+                .total_amount(totalAmount)
+                .filled_quantity(0L)
+                .remaining_quantity(quantity)
+                .created_at(now.toString())
+                .idempotency_key(idempotencyKey)
+                .build();
+    }
+
 }

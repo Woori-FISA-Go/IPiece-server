@@ -39,6 +39,38 @@ public class VirtualAccount extends BaseEntity {
     @Column(name = "pending_price")
     private Long pendingPrice;
 
+    public void increaseBalanceKrw(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Amount to increase must be positive");
+        }
+        this.balanceKrw += amount;
+    }
 
+    public void decreaseBalanceKrw(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Amount to decrease must be positive");
+        }
+        if (this.balanceKrw < amount) {
+            throw new IllegalStateException("Insufficient balance");
+        }
+        this.balanceKrw -= amount;
+    }
+
+    public void increasePendingPrice(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Amount to increase must be positive");
+        }
+        this.pendingPrice = (this.pendingPrice == null ? 0L : this.pendingPrice) + amount;
+    }
+
+    public void decreasePendingPrice(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Amount to decrease must be positive");
+        }
+        if (this.pendingPrice == null || this.pendingPrice < amount) {
+            throw new IllegalStateException("Insufficient pending amount");
+        }
+        this.pendingPrice -= amount;
+    }
 
 }
