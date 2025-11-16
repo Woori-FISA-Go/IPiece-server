@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class BuyOrderRequest {
+public class OrderRequest {
 
     @NotNull
     @Min(0)

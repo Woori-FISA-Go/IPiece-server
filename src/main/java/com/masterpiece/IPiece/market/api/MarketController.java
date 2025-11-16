@@ -1,7 +1,7 @@
 package com.masterpiece.IPiece.market.api;
 
-import com.masterpiece.IPiece.market.api.dto.request.BuyOrderRequest;
-import com.masterpiece.IPiece.market.api.dto.response.BuyOrderResponse;
+import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
+import com.masterpiece.IPiece.market.api.dto.response.OrderResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
 import com.masterpiece.IPiece.market.application.MarketService;
@@ -48,20 +48,36 @@ public class MarketController {
     }
 
     @PostMapping("/{product_id}/buy")
-    public ResponseEntity<BuyOrderResponse> buy(
+    public ResponseEntity<OrderResponse> buy(
             @PathVariable("product_id") Long productId,
-            @Valid @RequestBody BuyOrderRequest request,
+            @Valid @RequestBody OrderRequest request,
             @AuthenticationPrincipal Long userId,
 //            @RequestHeader(value = "X-USER-ID", required = false) Long userId,
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey
     ) {
-        System.out.println("***********************"+userId);
         if (userId == null)
             userId = 1L;
 //            throw new IllegalStateException("User not authenticated");
 
-        BuyOrderResponse response =
+        OrderResponse response =
                 marketService.buy(productId, userId, request, idempotencyKey);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{product_id}/sell")
+    public ResponseEntity<OrderResponse> sell(
+            @PathVariable("product_id") Long productId,
+            @Valid @RequestBody OrderRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @AuthenticationPrincipal Long userId
+//            @RequestHeader(value = "X-USER-ID", required = false) Long userId,
+    ) {
+        if (userId == null)
+            userId = 1L;
+//            throw new IllegalStateException("User not authenticated");
+
+        OrderResponse response = marketService.sell(productId, userId, request, idempotencyKey);
 
         return ResponseEntity.ok(response);
     }

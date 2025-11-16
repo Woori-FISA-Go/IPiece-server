@@ -8,8 +8,8 @@ import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import com.masterpiece.IPiece.common.domain.product.policy.PriceChangePolicy;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
-import com.masterpiece.IPiece.market.api.dto.request.BuyOrderRequest;
-import com.masterpiece.IPiece.market.api.dto.response.BuyOrderResponse;
+import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
+import com.masterpiece.IPiece.market.api.dto.response.OrderResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
@@ -151,7 +151,7 @@ public class MarketService {
     }
 
     @Transactional(readOnly = false)
-    public BuyOrderResponse buy(Long productId, Long userId, BuyOrderRequest req, String idempotencyKeyHeader) {
+    public OrderResponse buy(Long productId, Long userId, OrderRequest req, String idempotencyKeyHeader) {
 
         VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
@@ -188,7 +188,7 @@ public class MarketService {
                 ? UUID.randomUUID().toString()
                 : idempotencyKeyHeader;
 
-        return BuyOrderResponse.builder()
+        return OrderResponse.builder()
                 .status_code(200)
                 .order_id(saved.getOrderId().toString())
                 .product_id(productId)
@@ -203,4 +203,65 @@ public class MarketService {
                 .build();
     }
 
+    @Transactional(readOnly = false)
+    public OrderResponse sell(Long productId,
+                                  Long userId,
+                                  OrderRequest req,
+                                  String idempotencyKeyHeader) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        long price = req.getOrder_price();
+        long quantity = req.getOrder_quantity();
+        long totalAmount = price * quantity;
+
+        // ================================
+        // TODO: 보유자산 테이블에서 해당 IP 토큰 보유 수량 조회
+        //  - 만약 보유 수량 < quantity 이면 예외 던지기
+        //
+        // long holdingQty = holdingRepository
+        //      .findQuantityByAccountAndProduct(account, product);
+        // if (holdingQty < quantity) {
+        //     throw new IllegalStateException("보유 수량이 부족합니다.");
+        // }
+        //
+        // TODO: 보유자산 테이블에서 가용 수량 줄이고, "판매 대기" 수량으로 이동
+        // ================================
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        OrderBook order = OrderBook.builder()
+                .product(product)
+                .virtualAccount(account)
+                .orderType(OrderType.SELL)
+                .orderPrice(price)
+                .orderQuantity(quantity)
+                .remainQuantity(quantity)
+                .pendingStatus(true)
+                .createTime(now.toLocalDateTime())
+                .build();
+
+        OrderBook saved = orderBookRepository.save(order);
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        return OrderResponse.builder()
+                .order_id(saved.getOrderId().toString())
+                .product_id(productId)
+                .side("SELL")
+                .order_price(price)
+                .order_quantity(quantity)
+                .total_amount(totalAmount)
+                .filled_quantity(0L)
+                .remaining_quantity(quantity)
+                .created_at(now.toString())
+                .idempotency_key(idempotencyKey)
+                .build();
+    }
 }

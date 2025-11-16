@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class BuyOrderResponse {
+public class OrderResponse {
 
     private int status_code;
     private String order_id;
