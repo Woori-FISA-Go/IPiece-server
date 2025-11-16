@@ -50,6 +50,27 @@ public class FavoriteService {
                 });
     }
 
+    /**
+     * 즐겨찾기 해제
+     * - (userId, productId)에 해당하는 FavoriteList를 찾아 삭제
+     * - 없으면 FavoriteNotFoundException
+     */
+    @Transactional
+    public FavoriteUnlikeResult unregisterFavorite(Long userId, Long productId) {
+        FavoriteList favorite = favoriteListRepository
+                .findByUser_UserIdAndProduct_ProductId(userId, productId)
+                .orElseThrow(() -> new FavoriteNotFoundException(userId, productId));
+
+        Long favoriteId = favorite.getFavoriteId();
+
+        // 응답용 시간은 "지금" 기준으로 사용 (삭제 직전 기준)
+        OffsetDateTime updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
+
+        favoriteListRepository.delete(favorite);
+
+        return new FavoriteUnlikeResult(favoriteId, updatedAt);
+    }
+
     /* ===== 서비스 결과 ===== */
 
     @Getter
@@ -76,6 +97,17 @@ public class FavoriteService {
         }
     }
 
+    @Getter
+    public static class FavoriteUnlikeResult {
+        private final Long favoriteId;
+        private final OffsetDateTime updatedAt;
+
+        public FavoriteUnlikeResult(Long favoriteId, OffsetDateTime updatedAt) {
+            this.favoriteId = favoriteId;
+            this.updatedAt = updatedAt;
+        }
+    }
+
     /* ===== 예외 ===== */
 
     @Getter
@@ -98,5 +130,17 @@ public class FavoriteService {
             this.userId = userId;
         }
 
+    }
+
+    @Getter
+    public static class FavoriteNotFoundException extends RuntimeException {
+        private final Long userId;
+        private final Long productId;
+
+        public FavoriteNotFoundException(Long userId, Long productId) {
+            super("favorite_id가 존재하지 않습니다. userId=%d, productId=%d".formatted(userId, productId));
+            this.userId = userId;
+            this.productId = productId;
+        }
     }
 }

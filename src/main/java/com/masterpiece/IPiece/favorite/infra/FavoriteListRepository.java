@@ -28,4 +28,6 @@ public interface FavoriteListRepository extends JpaRepository<FavoriteList, Long
     Set<Long> findProductIdsByUserId(@Param("userId") Long userId);
 
     boolean existsByUser_UserIdAndProduct_ProductId(Long userId, Long productId);
+
+    Optional<FavoriteList> findByUser_UserIdAndProduct_ProductId(Long userId, Long productId);
 }
