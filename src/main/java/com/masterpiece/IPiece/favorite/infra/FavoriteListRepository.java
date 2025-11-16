@@ -17,6 +17,9 @@ public interface FavoriteListRepository extends JpaRepository<FavoriteList, Long
 
     Optional<FavoriteList> findByUserAndProduct(User user, Product product);
 
+    // 렌더용 배치 조회: 한 유저가 여러 상품을 즐겨찾기한 목록 조회
+    List<FavoriteList> findByUser_UserIdAndProduct_ProductIdIn(Long userId, List<Long> productIds);
+
     // 특정 유저의 찜 목록 조회
     List<FavoriteList> findAllByUser(User user);
 

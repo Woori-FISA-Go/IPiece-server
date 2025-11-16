@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -71,6 +73,49 @@ public class FavoriteService {
         return new FavoriteUnlikeResult(favoriteId, updatedAt);
     }
 
+    /**
+     * 렌더용 배치 조회
+     * - 하나의 유저에 대해 여러 productId에 대한 즐겨찾기 여부를 한 번에 조회
+     */
+    @Transactional
+    public List<FavoriteStatusItem> getFavoriteStatusBatch(Long userId, List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 1. 해당 유저 + productIds 전체에 대한 즐겨찾기 목록을 한 번에 조회
+        List<FavoriteList> favorites = favoriteListRepository
+                .findByUser_UserIdAndProduct_ProductIdIn(userId, productIds);
+
+        // 2. productId -> FavoriteList 맵 구성
+        Map<Long, FavoriteList> favoriteMap = favorites.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        fl -> fl.getProduct().getProductId(),
+                        fl -> fl
+                ));
+
+        // 3. 요청된 productIds 순서를 유지하며 결과 리스트 생성
+        return productIds.stream()
+                .distinct() // 동일 productId 중복 요청 방지
+                .map(pid -> {
+                    FavoriteList fl = favoriteMap.get(pid);
+                    if (fl != null) {
+                        return new FavoriteStatusItem(
+                                pid,
+                                true,
+                                fl.getFavoriteId()
+                        );
+                    } else {
+                        return new FavoriteStatusItem(
+                                pid,
+                                false,
+                                null
+                        );
+                    }
+                })
+                .toList();
+    }
+
     /* ===== 서비스 결과 ===== */
 
     @Getter
@@ -105,6 +150,19 @@ public class FavoriteService {
         public FavoriteUnlikeResult(Long favoriteId, OffsetDateTime updatedAt) {
             this.favoriteId = favoriteId;
             this.updatedAt = updatedAt;
+        }
+    }
+
+    @Getter
+    public static class FavoriteStatusItem {
+        private final Long productId;
+        private final boolean liked;
+        private final Long favoriteId; // null if not liked
+
+        public FavoriteStatusItem(Long productId, boolean liked, Long favoriteId) {
+            this.productId = productId;
+            this.liked = liked;
+            this.favoriteId = favoriteId;
         }
     }
 
