@@ -2,10 +2,9 @@ package com.masterpiece.IPiece.favorite.api;
 
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.web.Responses;
+import com.masterpiece.IPiece.favorite.api.dto.request.FavoriteBatchStatusRequest;
 import com.masterpiece.IPiece.favorite.api.dto.request.FavoriteRegisterRequest;
-import com.masterpiece.IPiece.favorite.api.dto.response.FavoriteAlreadyLikeResponse;
-import com.masterpiece.IPiece.favorite.api.dto.response.FavoriteRegisterResponse;
-import com.masterpiece.IPiece.favorite.api.dto.response.FavoriteUnlikeResponse;
+import com.masterpiece.IPiece.favorite.api.dto.response.*;
 import com.masterpiece.IPiece.favorite.application.FavoriteService;
 import com.masterpiece.IPiece.favorite.application.FavoriteService.FavoriteRegisterResult;
 import com.masterpiece.IPiece.favorite.application.FavoriteService.ProductNotFoundException;
@@ -16,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/v1")
@@ -169,6 +170,101 @@ public class FavoriteController {
                     "product_id는 양의 정수여야 합니다.",
                     instanceUri
             );
+        } catch (Exception e) {
+            return Responses.internalError(
+                    "https://ipiece.com/errors/" + ErrorCode.INTERNAL_ERROR.name(),
+                    ErrorCode.INTERNAL_ERROR.name(),
+                    ErrorCode.INTERNAL_ERROR.getMessage(),
+                    instanceUri
+            );
+        }
+    }
+
+    /**
+     * 렌더용 배치 조회
+     *
+     * POST /v1/favorites/status
+     * Body: { "product_ids": ["1","2","3"] }
+     */
+    @PostMapping("/favorites/status")
+    public ResponseEntity<?> getFavoriteStatusBatch(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody FavoriteBatchStatusRequest request
+    ) {
+        String instanceUri = "/v1/favorites/status";
+
+        try {
+            // 1. 인증 여부 확인
+            if (userId == null) {
+                return Responses.unauthorized(
+                        "https://ipiece.com/errors/" + ErrorCode.AUTH_REQUIRED.name(),
+                        ErrorCode.AUTH_REQUIRED.name(),
+                        ErrorCode.AUTH_REQUIRED.getMessage(),
+                        instanceUri
+                );
+            }
+
+            // 2. 기본 검증: null/개수 제한
+            if (request == null || request.isEmpty()) {
+                return Responses.badRequest(
+                        "https://ipiece.com/errors/" + ErrorCode.VALIDATION_ERROR.name(),
+                        ErrorCode.VALIDATION_ERROR.name(),
+                        "product_ids는 최소 1개 이상이어야 합니다.",
+                        instanceUri
+                );
+            }
+
+            int size = request.size();
+            if (size < 1 || size > 100) {
+                return Responses.badRequest(
+                        "https://ipiece.com/errors/" + ErrorCode.VALIDATION_ERROR.name(),
+                        ErrorCode.VALIDATION_ERROR.name(),
+                        "product_ids는 1~100개여야 합니다.",
+                        instanceUri
+                );
+            }
+
+            // 3. 문자열 product_id들을 Long 리스트로 변환
+            List<Long> productIds;
+            try {
+                productIds = request.toProductIdLongList();
+            } catch (NumberFormatException e) {
+                return Responses.badRequest(
+                        "https://ipiece.com/errors/" + ErrorCode.VALIDATION_ERROR.name(),
+                        ErrorCode.VALIDATION_ERROR.name(),
+                        "product_ids 항목은 숫자 문자열이어야 합니다.",
+                        instanceUri
+                );
+            }
+
+            // 4. 서비스 호출
+            List<FavoriteService.FavoriteStatusItem> statusItems =
+                    favoriteService.getFavoriteStatusBatch(userId, productIds);
+
+            // 5. 응답 DTO 변환 (문자열 product_id로 다시 변환)
+            Map<Long, String> originalIdMap = new java.util.HashMap<>();
+            for (String pidStr : request.getProductIds()) {
+                Long pid = Long.parseLong(pidStr);
+                originalIdMap.put(pid, pidStr);
+            }
+
+            List<FavoriteStatusItemResponse> resultItems = statusItems.stream()
+                    .map(item -> FavoriteStatusItemResponse.builder()
+                            .productId(originalIdMap.getOrDefault(item.getProductId(),
+                                    String.valueOf(item.getProductId())))
+                            .liked(item.isLiked())
+                            .favoriteId(item.isLiked()
+                                    ? String.valueOf(item.getFavoriteId())
+                                    : null)
+                            .build())
+                    .toList();
+
+            FavoriteBatchStatusResponse body = FavoriteBatchStatusResponse.builder()
+                    .results(resultItems)
+                    .build();
+
+            return Responses.ok(body);
+
         } catch (Exception e) {
             return Responses.internalError(
                     "https://ipiece.com/errors/" + ErrorCode.INTERNAL_ERROR.name(),
