@@ -1,7 +1,9 @@
 package com.masterpiece.IPiece.market.api;
 
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
+import com.masterpiece.IPiece.market.api.dto.request.PendingOrderRequest;
 import com.masterpiece.IPiece.market.api.dto.response.OrderResponse;
+import com.masterpiece.IPiece.market.api.dto.response.PendingOrderListResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
 import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
 import com.masterpiece.IPiece.market.application.MarketService;
@@ -78,6 +80,27 @@ public class MarketController {
 //            throw new IllegalStateException("User not authenticated");
 
         OrderResponse response = marketService.sell(productId, userId, request, idempotencyKey);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{product_id}/orderbook/status=pending")
+    public ResponseEntity<PendingOrderListResponse> pendingOrders(
+            @PathVariable("product_id") Long productId,
+            @AuthenticationPrincipal Long userId,
+//            @RequestHeader(value = "X-USER-ID", required = false) Long userId,
+            @ModelAttribute PendingOrderRequest request
+    ) {
+
+        if (userId == null)
+            userId = 1L;
+//            throw new IllegalStateException("User not authenticated");
+
+        var response = marketService.getPendingOrders(
+                userId,
+                productId,
+                request.getPage()
+        );
 
         return ResponseEntity.ok(response);
     }

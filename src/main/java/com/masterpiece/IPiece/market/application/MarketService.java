@@ -9,9 +9,7 @@ import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import com.masterpiece.IPiece.common.domain.product.policy.PriceChangePolicy;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
-import com.masterpiece.IPiece.market.api.dto.response.OrderResponse;
-import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
-import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
+import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
@@ -22,6 +20,7 @@ import com.masterpiece.IPiece.market.domain.OrderType;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,11 +43,13 @@ public class MarketService {
     private final FavoriteQueryPort favoriteQueryPort;
     private final PrevCloseQueryPort prevCloseQueryPort;
     private final TradingInfoQueryPort tradingInfoPort;
+
     private final DividendPayoutsRepository dividendPayoutsRepository;
-    private final ProductMapper productMapper;
     private final ProductRepository productRepository;
     private final VirtualAccountRepository virtualAccountRepository;
     private final OrderBookRepository orderBookRepository;
+
+    private final ProductMapper productMapper;
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
@@ -262,6 +263,37 @@ public class MarketService {
                 .remaining_quantity(quantity)
                 .created_at(now.toString())
                 .idempotency_key(idempotencyKey)
+                .build();
+    }
+
+    public PendingOrderListResponse getPendingOrders(Long userId, Long productId, int page) {
+
+        int pageIndex = page - 1; // JPA는 0-base 페이지
+        int size = 10;
+
+        var pageable = PageRequest.of(pageIndex, size);
+        var result = orderBookRepository.findPendingOrders(userId, productId, pageable);
+
+        var items = result.getContent().stream().map(ob ->
+                PendingOrderItem.builder()
+                        .order_id(String.valueOf(ob.getOrderId()))
+                        .product_id(productId)
+                        .product_name(ob.getProduct().getProductName())
+                        .order_type(ob.getOrderType().name())
+                        .price(ob.getOrderPrice())
+                        .quantity(ob.getOrderQuantity())
+                        .filled_quantity(ob.getOrderQuantity() - ob.getRemainQuantity())
+                        .remaining_quantity(ob.getRemainQuantity())
+                        .amount(ob.getOrderPrice() * ob.getOrderQuantity())
+                        .placed_at(ob.getCreateTime().toString())
+                        .build()
+        ).collect(Collectors.toList());
+
+        return PendingOrderListResponse.builder()
+                .items(items)
+                .page(page)
+                .total(result.getTotalElements())
+                .has_next(result.hasNext())
                 .build();
     }
 }
