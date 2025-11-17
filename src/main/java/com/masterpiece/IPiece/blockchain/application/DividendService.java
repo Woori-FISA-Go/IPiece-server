@@ -92,7 +92,7 @@ public class DividendService {
         // 4. `Dividend` 엔티티 생성 및 저장
         Dividends dividend = Dividends.builder()
                 .product(product)
-                .recordDate(OffsetDateTime.from(request.getRecordDate()))
+                .recordDate(request.getRecordDate())
                 .payoutDate(request.getPaymentDate())
                 .totalAmount(request.getTotalAmount())
                 .transactionHash(transactionReceipt.getTransactionHash())
