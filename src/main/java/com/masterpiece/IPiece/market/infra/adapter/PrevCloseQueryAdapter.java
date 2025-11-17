@@ -33,8 +33,8 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
         var rows = tradeExecutionRepository.findAllPrevClosePrices(
                 productIds,
-                yesterdayNine.toLocalDateTime(),
-                todayNine.toLocalDateTime()
+                yesterdayNine.toOffsetDateTime(),
+                todayNine.toOffsetDateTime()
         );
 
         return rows.stream()
@@ -57,8 +57,8 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
         Long price = tradeExecutionRepository.findPrevClosePrice(
                 productId,
-                yesterdayNine.toLocalDateTime(),
-                todayNine.toLocalDateTime()
+                yesterdayNine.toOffsetDateTime(),
+                todayNine.toOffsetDateTime()
         );
 
         return Optional.ofNullable(price);

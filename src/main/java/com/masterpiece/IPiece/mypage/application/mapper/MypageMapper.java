@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
@@ -250,8 +251,10 @@ public class MypageMapper {
             LocalDateTime from,
             LocalDateTime to
     ) {
+        OffsetDateTime fromOffset = toOffsetDateTime(from);
+        OffsetDateTime toOffset = toOffsetDateTime(to);
         List<TradeExecution> executions =
-                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
+                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, fromOffset, toOffset);
 
         return executions.stream()
                 .map(exec -> mapExecutionToHistoryItem(exec, account))
@@ -298,6 +301,11 @@ public class MypageMapper {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    private OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return null;
+        return dateTime.atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
     }
 
     /**
