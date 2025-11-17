@@ -31,7 +31,12 @@ public class Holdings extends BaseEntity {
     private VirtualAccount virtualAccount;
 
     @Column(name = "quantity", nullable = false)
-    private Long quantity;
+    @Builder.Default
+    private Long quantity = 0L;
+
+    @Column(name = "pending_quantity", nullable = false)
+    @Builder.Default
+    private Long pendingQuantity = 0L;
 
     @Column(name = "avg_price", nullable = false)
     private Long avgBuyPrice;
@@ -39,5 +44,16 @@ public class Holdings extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", referencedColumnName = "product_id", nullable = false)
     private Product product;
+
+    public void moveToPending(long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("이동 수량은 0보다 커야 합니다.");
+        }
+        if (this.quantity < amount) {
+            throw new IllegalStateException("보유 수량이 부족합니다.");
+        }
+        this.quantity -= amount;
+        this.pendingQuantity += amount;
+    }
 
 }

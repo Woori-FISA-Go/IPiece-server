@@ -19,6 +19,8 @@ import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.market.domain.OrderType;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import com.sun.jdi.request.DuplicateRequestException;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -50,6 +52,7 @@ public class MarketService {
     private final ProductRepository productRepository;
     private final VirtualAccountRepository virtualAccountRepository;
     private final OrderBookRepository orderBookRepository;
+    private final HoldingsRepository holdingsRepository;
 
     private final ProductMapper productMapper;
 
@@ -241,18 +244,14 @@ public class MarketService {
         long quantity = req.getOrder_quantity();
         long totalAmount = price * quantity;
 
-        // ================================
-        // TODO: 보유자산 테이블에서 해당 IP 토큰 보유 수량 조회
-        //  - 만약 보유 수량 < quantity 이면 예외 던지기
-        //
-        // long holdingQty = holdingRepository
-        //      .findQuantityByAccountAndProduct(account, product);
-        // if (holdingQty < quantity) {
-        //     throw new IllegalStateException("보유 수량이 부족합니다.");
-        // }
-        //
-        // TODO: 보유자산 테이블에서 가용 수량 줄이고, "판매 대기" 수량으로 이동
-        // ================================
+        Holdings holdings = holdingsRepository.findByVirtualAccountAndProduct(account, product)
+                .orElseThrow(() -> new IllegalStateException("보유 수량이 부족합니다."));
+
+        if (holdings.getQuantity() < quantity) {
+            throw new IllegalStateException("보유 수량이 부족합니다.");
+        }
+
+        holdings.moveToPending(quantity);
 
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
