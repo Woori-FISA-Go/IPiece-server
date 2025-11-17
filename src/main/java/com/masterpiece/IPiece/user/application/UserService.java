@@ -45,20 +45,21 @@ public class UserService {
                         .joinDate(LocalDateTime.now())
                         .build();
 
-        // DB에 user 저장
+        // DB에 user 저장하고 해당 user정보 저장(이 때 userId 자동 생성됨)
         User savedUser = userRepository.save(user);
 
-        // 4. 신분증 이미지 저장
+        // 신분증 이미지 저장하고 파일 경로 받기
         String idCardPath = storageService.saveIdCard(idCardFile, request.getId());
 
-        // 5. UserPrivate 생성 (민감정보 DB)
+
+        /** 5) UserPrivate 생성 (민감정보 DB) */
         UserPrivate privateInfo = UserPrivate.builder()
-                .user(savedUser)
+                .user(savedUser)                       // @MapsId 관계로 user_id 공유됨
                 .name(request.getName())
-                .birthDate(LocalDate.parse(request.getBirth()))
+                .birthDate(LocalDate.parse(request.getBirth())) // "19980214" 형식이면 포맷 별도처리 필요
                 .phoneNumber(request.getPhone())
                 .address(request.getAddress())
-                .idCardImg(idCardPath)
+                .idCardImg(idCardPath)                 // 로컬경로나 S3 key
                 .build();
 
         userPrivateRepository.save(privateInfo);
