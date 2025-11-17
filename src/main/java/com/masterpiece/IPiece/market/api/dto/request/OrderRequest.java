@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 public class OrderRequest {
 
     @NotNull
-    @Min(0)
+    @Min(1)
     private Long order_price;
 
     @NotNull
@@ -18,5 +18,5 @@ public class OrderRequest {
     private Long order_quantity;
 
     @NotNull
-    private String createtime;
+    private String client_time;
 }

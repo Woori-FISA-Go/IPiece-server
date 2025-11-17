@@ -24,6 +24,11 @@ public class OrderBook extends BaseEntity {
     @Column(name = "order_id")
     private Long orderId;
 
+    @Column(name = "version", nullable = false)
+    @Builder.Default
+    @Version
+    private Long version = 0L;
+
     // DDL: order_status (BUY/SELL) ← OrderSide로 매핑
     @Enumerated(EnumType.STRING)
     @Column(name = "order_type", length = 16, nullable = false)
@@ -38,11 +43,14 @@ public class OrderBook extends BaseEntity {
     @Column(name = "remain_quantity")
     private Long remainQuantity;
 
-    @Column(name = "createtime", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime createTime;
+    @Column(name = "client_time", columnDefinition = "timestamp", nullable = false)
+    private LocalDateTime clientTime;
 
     @Column(name = "pending_status")
     private Boolean pendingStatus;
+
+    @Column(name = "idempotency_key", nullable = false, unique = true, length = 64)
+    private String idempotencyKey;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "account_id", referencedColumnName = "account_id", nullable = false)

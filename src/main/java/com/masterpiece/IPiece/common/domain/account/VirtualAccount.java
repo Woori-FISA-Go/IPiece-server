@@ -23,6 +23,11 @@ public class VirtualAccount extends BaseEntity {
     @Column(name = "account_id")
     private Long accountId;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    @Builder.Default
+    private Long version = 0L;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
@@ -72,5 +77,4 @@ public class VirtualAccount extends BaseEntity {
         }
         this.pendingPrice -= amount;
     }
-
 }

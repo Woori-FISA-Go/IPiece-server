@@ -18,6 +18,7 @@ import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
 import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.market.domain.OrderType;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
+import com.sun.jdi.request.DuplicateRequestException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -152,13 +154,24 @@ public class MarketService {
     }
 
     @Transactional(readOnly = false)
-    public OrderResponse buy(Long productId, Long userId, OrderRequest req, String idempotencyKeyHeader) {
+    public OrderResponse buy(Long productId, Long userId, String idempotencyKeyHeader, OrderRequest req) {
 
         VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        orderBookRepository.findByIdempotencyKey(idempotencyKey)
+                .ifPresent(existing -> {
+                    throw new DuplicateRequestException(
+                            "Duplicate idempotency key: " + idempotencyKey
+                    );
+                });
 
         long price = req.getOrder_price();
         long quantity = req.getOrder_quantity();
@@ -171,6 +184,9 @@ public class MarketService {
         account.decreaseBalanceKrw(totalAmount);
         account.increasePendingPrice(totalAmount);
 
+        OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
+        LocalDateTime clientTime = clientTimeOffset.toLocalDateTime();
+
         OffsetDateTime now = OffsetDateTime.now();
         OrderBook order = OrderBook.builder()
                 .product(product)
@@ -180,14 +196,11 @@ public class MarketService {
                 .orderQuantity(quantity)
                 .remainQuantity(quantity)
                 .pendingStatus(true)
-                .createTime(now.toLocalDateTime())
+                .clientTime(clientTimeOffset.toLocalDateTime())
+                .idempotencyKey(idempotencyKey)
                 .build();
 
         OrderBook saved = orderBookRepository.save(order);
-
-        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
-                ? UUID.randomUUID().toString()
-                : idempotencyKeyHeader;
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -205,16 +218,24 @@ public class MarketService {
     }
 
     @Transactional(readOnly = false)
-    public OrderResponse sell(Long productId,
-                                  Long userId,
-                                  OrderRequest req,
-                                  String idempotencyKeyHeader) {
+    public OrderResponse sell(Long productId, Long userId, String idempotencyKeyHeader, OrderRequest req) {
 
         VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        orderBookRepository.findByIdempotencyKey(idempotencyKey)
+                .ifPresent(existing -> {
+                    throw new DuplicateRequestException(
+                            "Duplicate idempotency key: " + idempotencyKey
+                    );
+                });
 
         long price = req.getOrder_price();
         long quantity = req.getOrder_quantity();
@@ -234,6 +255,7 @@ public class MarketService {
         // ================================
 
         OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
 
         OrderBook order = OrderBook.builder()
                 .product(product)
@@ -243,16 +265,14 @@ public class MarketService {
                 .orderQuantity(quantity)
                 .remainQuantity(quantity)
                 .pendingStatus(true)
-                .createTime(now.toLocalDateTime())
+                .clientTime(clientTimeOffset.toLocalDateTime())
+                .idempotencyKey(idempotencyKey)
                 .build();
 
         OrderBook saved = orderBookRepository.save(order);
 
-        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
-                ? UUID.randomUUID().toString()
-                : idempotencyKeyHeader;
-
         return OrderResponse.builder()
+                .status_code(200)
                 .order_id(saved.getOrderId().toString())
                 .product_id(productId)
                 .side("SELL")
@@ -285,7 +305,7 @@ public class MarketService {
                         .filled_quantity(ob.getOrderQuantity() - ob.getRemainQuantity())
                         .remaining_quantity(ob.getRemainQuantity())
                         .amount(ob.getOrderPrice() * ob.getOrderQuantity())
-                        .placed_at(ob.getCreateTime().toString())
+                        .placed_at(ob.getClientTime().toString())
                         .build()
         ).collect(Collectors.toList());
 

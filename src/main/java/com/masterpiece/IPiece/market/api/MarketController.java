@@ -52,17 +52,15 @@ public class MarketController {
     @PostMapping("/{product_id}/buy")
     public ResponseEntity<OrderResponse> buy(
             @PathVariable("product_id") Long productId,
-            @Valid @RequestBody OrderRequest request,
             @AuthenticationPrincipal Long userId,
-//            @RequestHeader(value = "X-USER-ID", required = false) Long userId,
-            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey
+            @RequestHeader(name = "Idempotency-Key", required = true) String idempotencyKey,
+            @Valid @RequestBody OrderRequest request
     ) {
         if (userId == null)
-            userId = 1L;
-//            throw new IllegalStateException("User not authenticated");
+            throw new IllegalStateException("User not authenticated");
 
         OrderResponse response =
-                marketService.buy(productId, userId, request, idempotencyKey);
+                marketService.buy(productId, userId, idempotencyKey, request);
 
         return ResponseEntity.ok(response);
     }
@@ -70,31 +68,27 @@ public class MarketController {
     @PostMapping("/{product_id}/sell")
     public ResponseEntity<OrderResponse> sell(
             @PathVariable("product_id") Long productId,
-            @Valid @RequestBody OrderRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @AuthenticationPrincipal Long userId
-//            @RequestHeader(value = "X-USER-ID", required = false) Long userId,
+            @AuthenticationPrincipal Long userId,
+            @RequestHeader(value = "Idempotency-Key", required = true) String idempotencyKey,
+            @Valid @RequestBody OrderRequest request
     ) {
         if (userId == null)
-            userId = 1L;
-//            throw new IllegalStateException("User not authenticated");
+            throw new IllegalStateException("User not authenticated");
 
-        OrderResponse response = marketService.sell(productId, userId, request, idempotencyKey);
+        OrderResponse response = marketService.sell(productId, userId, idempotencyKey, request);
 
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{product_id}/orderbook/status=pending")
+    @GetMapping("/{product_id}/orders/pending")
     public ResponseEntity<PendingOrderListResponse> pendingOrders(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
-//            @RequestHeader(value = "X-USER-ID", required = false) Long userId,
             @ModelAttribute PendingOrderRequest request
     ) {
 
         if (userId == null)
-            userId = 1L;
-//            throw new IllegalStateException("User not authenticated");
+            throw new IllegalStateException("User not authenticated");
 
         var response = marketService.getPendingOrders(
                 userId,
