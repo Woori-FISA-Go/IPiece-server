@@ -177,10 +177,16 @@ public class MarketService {
             end = start.plusDays(1).minusSeconds(1);
         } else {
             String[] parts = cursorOptional.split(":");
-            long epoch = Long.parseLong(parts[1]);
-
-            start = Instant.ofEpochSecond(epoch).atZone(ZoneId.of("UTC")).toOffsetDateTime();
-            end = start.plusDays(1).minusSeconds(1);
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("Invalid cursor format");
+            }
+            try {
+                long epoch = Long.parseLong(parts[1]);
+                start = Instant.ofEpochSecond(epoch).atZone(ZoneId.of("UTC")).toOffsetDateTime();
+                end = start.plusDays(1).minusSeconds(1);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid cursor epoch value", e);
+            }
         }
 
         List<TradeExecution> executions =
@@ -197,6 +203,10 @@ public class MarketService {
         OffsetDateTime previousDay = start.minusDays(1);
         long epochCursor = previousDay.toEpochSecond();
         String nextCursor = "c:" + epochCursor + ":" + interval;
+        
+        OffsetDateTime prevStart = start.minusDays(1);
+        OffsetDateTime prevEnd = prevStart.plusDays(1).minusSeconds(1);
+        boolean hasMore = !tradeExecutionRepository.findInWindow(productId, prevStart, prevEnd).isEmpty();
 
         return ChartResponse.builder()
                 .product_id(productId)
@@ -206,7 +216,7 @@ public class MarketService {
                         .end_at(end.toString())
                         .build())
                 .points(points)
-                .has_more(true)
+                .has_more(hasMore)
                 .next_cursor(nextCursor)
                 .fetched_at(now.toString())
                 .build();
