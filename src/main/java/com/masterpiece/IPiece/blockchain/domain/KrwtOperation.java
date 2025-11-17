@@ -6,6 +6,7 @@ import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,14 +26,14 @@ public class KrwtOperation extends BaseEntity {
     @Column(name = "operation_type", nullable = false, length = 10)
     private OperationType operationType;
 
-    @Column(name = "amount", nullable = false)
-    private Long amount;
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
 
-    @Column(name = "before_balance", nullable = false)
-    private Long beforeBalance;
+    @Column(name = "before_balance", nullable = false, precision = 19, scale = 2)
+    private BigDecimal beforeBalance;
 
-    @Column(name = "after_balance", nullable = false)
-    private Long afterBalance;
+    @Column(name = "after_balance", nullable = false, precision = 19, scale = 2)
+    private BigDecimal afterBalance;
 
     @Column(name = "tx_hash", length = 66)
     private String txHash;
@@ -74,11 +75,11 @@ public class KrwtOperation extends BaseEntity {
 
     public void validateBalance() {
         if (operationType == OperationType.MINT) {
-            if (afterBalance != beforeBalance + amount) {
+            if (afterBalance.compareTo(beforeBalance.add(amount)) != 0) {
                 throw new IllegalStateException("입금 후 잔액이 일치하지 않습니다");
             }
         } else if (operationType == OperationType.BURN) {
-            if (afterBalance != beforeBalance - amount) {
+            if (afterBalance.compareTo(beforeBalance.subtract(amount)) != 0) {
                 throw new IllegalStateException("출금 후 잔액이 일치하지 않습니다");
             }
         }

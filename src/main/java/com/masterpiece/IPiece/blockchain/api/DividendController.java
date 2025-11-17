@@ -57,6 +57,7 @@ public class DividendController {
     }
 
     @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ProjectDividendsResponse> getProjectDividends(
         @PathVariable Long projectId
     ) {

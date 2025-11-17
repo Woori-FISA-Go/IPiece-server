@@ -60,7 +60,12 @@ public class Web3jConfig {
 
     @Bean
     public Credentials adminCredentials() {
-        return Credentials.create(adminPrivateKey);
+        try {
+            return Credentials.create(adminPrivateKey);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                "Failed to create admin credentials. Please check ADMIN_PRIVATE_KEY format.", e);
+        }
     }
 
     @PreDestroy
