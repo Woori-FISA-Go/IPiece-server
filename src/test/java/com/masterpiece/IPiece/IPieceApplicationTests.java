@@ -2,7 +2,7 @@ package com.masterpiece.IPiece;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
@@ -11,10 +11,10 @@ import org.web3j.protocol.Web3j;
 @ActiveProfiles("test")
 class IPieceApplicationTests {
 
-	@MockBean
+	@MockitoBean
 	Web3j web3j;
 
-	@MockBean
+	@MockitoBean
 	Credentials credentials;
 
 	@Test
