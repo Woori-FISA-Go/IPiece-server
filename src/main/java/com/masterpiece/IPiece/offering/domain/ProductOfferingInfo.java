@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -33,11 +34,11 @@ public class ProductOfferingInfo extends BaseEntity {
     @Column(name = "detail_img", length = 255, nullable = false)
     private String detailImg;
 
-    @Column(name = "offering_start_date", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime offeringStartDate;
+    @Column(name = "offering_start_date", columnDefinition = "timestamp", nullable = false)
+    private OffsetDateTime offeringStartDate;
 
-    @Column(name = "offering_end_date", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime offeringEndDate;
+    @Column(name = "offering_end_date", columnDefinition = "timestamp", nullable = false)
+    private OffsetDateTime offeringEndDate;
 
     @Column(name = "offering_amount", nullable = false)
     private Long offeringAmount;

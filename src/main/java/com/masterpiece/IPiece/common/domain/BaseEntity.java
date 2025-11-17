@@ -7,17 +7,18 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @MappedSuperclass
 public class BaseEntity {
 
     @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "timestamp", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", columnDefinition = "timestamptz", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "timestamp")
-    private LocalDateTime updatedAt;
+    @Column(name = "updated_at", columnDefinition = "timestamptz")
+    private OffsetDateTime updatedAt;
 
 }

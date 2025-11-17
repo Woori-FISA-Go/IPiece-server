@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -39,7 +40,7 @@ public class OrderBook extends BaseEntity {
     private Long remainQuantity;
 
     @Column(name = "createtime", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
     @Column(name = "pending_status")
     private Boolean pendingStatus;

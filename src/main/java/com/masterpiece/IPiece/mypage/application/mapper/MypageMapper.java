@@ -18,6 +18,7 @@ import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
@@ -286,7 +287,7 @@ public class MypageMapper {
      */
     private AccountHistoryItemDto mapExecutionToHistoryItem(TradeExecution exec, VirtualAccount account) {
         Product product = exec.getProduct();
-        LocalDateTime time = exec.getMatchTime();
+        OffsetDateTime time = exec.getMatchTime();
 
         boolean isBuyAccount = exec.getBuyOrder().getVirtualAccount().equals(account);
         boolean isSellAccount = exec.getSellOrder().getVirtualAccount().equals(account);
@@ -339,7 +340,7 @@ public class MypageMapper {
         }
 
         // 공모 기간 확인
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now();
         ProductOfferingInfo info = offeringInfo.get();
 
         boolean isOfferingPeriod =
