@@ -1,0 +1,14 @@
+[
+  {
+    "bannerId": 1,
+    "imageUrl": "/images/banners/banner1.png",
+    "title": "dinotang banner",
+    "description": "다이노탱 토큰을 소개합니다."
+  },
+  {
+    "bannerId": 2,
+    "imageUrl": "/images/banners/banner2.png",
+    "title": "mang_gom banner",
+    "description": "망곰이 토큰을 소개합니다."
+  }
+]

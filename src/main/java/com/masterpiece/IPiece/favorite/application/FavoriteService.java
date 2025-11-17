@@ -138,7 +138,7 @@ public class FavoriteService {
 
         public OffsetDateTime getCreatedAt() {
             // BaseEntity에 createdAt(LocalDateTime) 있다고 가정
-            return favorite.getCreateAt().atOffset(ZoneOffset.UTC);
+            return favorite.getCreatedAt().atOffset(ZoneOffset.UTC);
         }
     }
 
