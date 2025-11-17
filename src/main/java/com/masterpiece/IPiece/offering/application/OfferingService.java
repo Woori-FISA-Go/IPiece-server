@@ -138,8 +138,7 @@ public class OfferingService {
                 .findByProductId(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.OFFERING_INFO_NOT_FOUND));
 
-        boolean isFavorited = favoriteQueryPort.existsByUserIdAndProductId(userId, productId);
-
+        boolean isFavorited = userId != null && favoriteQueryPort.existsByUserIdAndProductId(userId, productId);
         return convertToOfferingProductDetailResponse(product, offeringInfo, isFavorited);
     }
 
@@ -179,6 +178,9 @@ public class OfferingService {
             ProductOfferingInfo offeringInfo,
             boolean isFavorite
     ) {
+        if (offeringInfo == null) {
+            throw new BusinessException(ErrorCode.OFFERING_INFO_NOT_FOUND);
+        }
         return OfferingProductResponse.builder()
                 .productId(product.getProductId())
                 .productName(product.getProductName())
