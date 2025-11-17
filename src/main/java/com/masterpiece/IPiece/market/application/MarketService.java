@@ -1,28 +1,43 @@
 package com.masterpiece.IPiece.market.application;
 
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Disclosure;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import com.masterpiece.IPiece.common.domain.product.policy.PriceChangePolicy;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
-import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
-import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
+import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
+import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
 import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
 import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
+import com.masterpiece.IPiece.market.domain.OrderBook;
+import com.masterpiece.IPiece.market.domain.OrderType;
+import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
+import com.masterpiece.IPiece.common.exception.BusinessException;
+import com.masterpiece.IPiece.common.exception.ErrorCode;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,7 +49,13 @@ public class MarketService {
     private final FavoriteQueryPort favoriteQueryPort;
     private final PrevCloseQueryPort prevCloseQueryPort;
     private final TradingInfoQueryPort tradingInfoPort;
+
     private final DividendPayoutsRepository dividendPayoutsRepository;
+    private final ProductRepository productRepository;
+    private final VirtualAccountRepository virtualAccountRepository;
+    private final OrderBookRepository orderBookRepository;
+    private final HoldingsRepository holdingsRepository;
+
     private final ProductMapper productMapper;
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
@@ -134,6 +155,179 @@ public class MarketService {
         return ProductDetailsResponse.builder()
                 .info(info)
                 .details(details)
+                .build();
+    }
+
+    @Transactional(readOnly = false)
+    public OrderResponse buy(Long productId, Long userId, String idempotencyKeyHeader, OrderRequest req) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        orderBookRepository.findByIdempotencyKey(idempotencyKey)
+                .ifPresent(existing -> {
+                    throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+                });
+
+        long price = req.getOrder_price();
+        long quantity = req.getOrder_quantity();
+        long totalAmount = price * quantity;
+
+        if (account.getBalanceKrw() < totalAmount) {
+            throw new IllegalStateException("잔액이 부족합니다.");
+        }
+
+        account.decreaseBalanceKrw(totalAmount);
+        account.increasePendingPrice(totalAmount);
+
+        OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
+        LocalDateTime clientTime = clientTimeOffset.toLocalDateTime();
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OrderBook order = OrderBook.builder()
+                .product(product)
+                .virtualAccount(account)
+                .orderType(OrderType.BUY)
+                .orderPrice(price)
+                .orderQuantity(quantity)
+                .remainQuantity(quantity)
+                .pendingStatus(true)
+                .clientTime(clientTimeOffset.toLocalDateTime())
+                .idempotencyKey(idempotencyKey)
+                .build();
+
+        OrderBook saved;
+        try {
+            saved = orderBookRepository.save(order);
+        } catch (DataIntegrityViolationException e) {
+            // 동시성으로 unique constraint가 먼저 걸린 경우
+            throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+        }
+
+        return OrderResponse.builder()
+                .status_code(200)
+                .order_id(saved.getOrderId().toString())
+                .product_id(productId)
+                .side("BUY")
+                .order_price(price)
+                .order_quantity(quantity)
+                .total_amount(totalAmount)
+                .filled_quantity(0L)
+                .remaining_quantity(quantity)
+                .created_at(now.toString())
+                .idempotency_key(idempotencyKey)
+                .build();
+    }
+
+    @Transactional(readOnly = false)
+    public OrderResponse sell(Long productId, Long userId, String idempotencyKeyHeader, OrderRequest req) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        orderBookRepository.findByIdempotencyKey(idempotencyKey)
+                .ifPresent(existing -> {
+                    throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+                });
+
+        long price = req.getOrder_price();
+        long quantity = req.getOrder_quantity();
+        long totalAmount = price * quantity;
+
+        Holdings holdings = holdingsRepository.findByVirtualAccountAndProduct(account, product)
+                .orElseThrow(() -> new IllegalStateException("보유 수량이 부족합니다."));
+
+        if (holdings.getQuantity() < quantity) {
+            throw new IllegalStateException("보유 수량이 부족합니다.");
+        }
+
+        holdings.moveToPending(quantity);
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
+
+        OrderBook order = OrderBook.builder()
+                .product(product)
+                .virtualAccount(account)
+                .orderType(OrderType.SELL)
+                .orderPrice(price)
+                .orderQuantity(quantity)
+                .remainQuantity(quantity)
+                .pendingStatus(true)
+                .clientTime(clientTimeOffset.toLocalDateTime())
+                .idempotencyKey(idempotencyKey)
+                .build();
+
+        OrderBook saved;
+        try {
+            saved = orderBookRepository.save(order);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+        }
+
+        return OrderResponse.builder()
+                .status_code(200)
+                .order_id(saved.getOrderId().toString())
+                .product_id(productId)
+                .side("SELL")
+                .order_price(price)
+                .order_quantity(quantity)
+                .total_amount(totalAmount)
+                .filled_quantity(0L)
+                .remaining_quantity(quantity)
+                .created_at(now.toString())
+                .idempotency_key(idempotencyKey)
+                .build();
+    }
+
+    public PendingOrderListResponse getPendingOrders(Long userId, Long productId, int page) {
+
+        if (page < 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+
+        int pageIndex = page - 1; // JPA는 0-base 페이지
+        int size = 10;
+
+        var pageable = PageRequest.of(pageIndex, size);
+        var result = orderBookRepository.findPendingOrders(userId, productId, pageable);
+
+        var items = result.getContent().stream().map(ob -> {
+            long remain = ob.getRemainQuantity() == null ? 0L : ob.getRemainQuantity();
+            long filled = ob.getOrderQuantity() - remain;
+            return PendingOrderItem.builder()
+                    .order_id(String.valueOf(ob.getOrderId()))
+                    .product_id(productId)
+                    .product_name(ob.getProduct().getProductName())
+                    .order_type(ob.getOrderType().name())
+                    .price(ob.getOrderPrice())
+                    .quantity(ob.getOrderQuantity())
+                    .filled_quantity(filled)
+                    .remaining_quantity(remain)
+                    .amount(ob.getOrderPrice() * ob.getOrderQuantity())
+                    .placed_at(ob.getClientTime().toString())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return PendingOrderListResponse.builder()
+                .items(items)
+                .page(page)
+                .total(result.getTotalElements())
+                .has_next(result.hasNext())
                 .build();
     }
 }
