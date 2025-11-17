@@ -3,7 +3,6 @@ package com.masterpiece.IPiece.favorite.api;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.web.Responses;
 import com.masterpiece.IPiece.favorite.api.dto.request.FavoriteBatchStatusRequest;
-import com.masterpiece.IPiece.favorite.api.dto.request.FavoriteRegisterRequest;
 import com.masterpiece.IPiece.favorite.api.dto.response.*;
 import com.masterpiece.IPiece.favorite.application.FavoriteService;
 import com.masterpiece.IPiece.favorite.application.FavoriteService.FavoriteRegisterResult;
@@ -30,13 +29,11 @@ public class FavoriteController {
      *
      * POST /v1/products/{product_id}/favorite
      * Header: Authorization: Bearer {accessToken}
-     * Body:   { "product_id": "501" }
      */
     @PostMapping("/products/{product_id}/favorite")
     public ResponseEntity<?> registerFavorite(
             @AuthenticationPrincipal Long userId,           // ← MypageController와 동일
-            @PathVariable("product_id") String productIdPath,
-            @RequestBody FavoriteRegisterRequest request
+            @PathVariable("product_id") String productIdPath
     ) {
         String instanceUri = "/v1/products/" + productIdPath + "/favorite";
 
@@ -51,20 +48,20 @@ public class FavoriteController {
                 );
             }
 
-            // 2. path와 body의 product_id가 다르면 400
-            if (!productIdPath.equals(request.getProductId())) {
+            // 2. path의 product_id를 Long으로 변환
+            Long productId;
+            try {
+                productId = Long.parseLong(productIdPath);
+            } catch (NumberFormatException e) {
                 return Responses.badRequest(
                         "https://ipiece.com/errors/" + ErrorCode.VALIDATION_ERROR.name(),
                         ErrorCode.VALIDATION_ERROR.name(),
-                        "path의 product_id와 body의 product_id가 일치하지 않습니다.",
+                        "product_id는 양의 정수여야 합니다.",
                         instanceUri
                 );
             }
 
-            // 3. 숫자(Long)로 변환
-            Long productId = request.toProductIdAsLong();
-
-            // 4. 서비스 호출
+            // 3. 서비스 호출
             FavoriteRegisterResult result = favoriteService.registerFavorite(userId, productId);
 
             String createdAtIso = result.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
@@ -73,14 +70,14 @@ public class FavoriteController {
             if (result.isAlreadyLiked()) {
                 FavoriteAlreadyLikeResponse body = FavoriteAlreadyLikeResponse.builder()
                         .status("ALREADY_LIKED")
-                        .productId(request.getProductId())
+                        .productId(productIdPath)
                         .liked(true)
                         .build();
                 return Responses.ok(body);
             } else {
                 FavoriteRegisterResponse body = FavoriteRegisterResponse.builder()
                         .favoriteId(String.valueOf(result.getFavorite().getFavoriteId()))
-                        .productId(request.getProductId())
+                        .productId(productIdPath)
                         .liked(true)
                         .createdAt(createdAtIso)
                         .build();

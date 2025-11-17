@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -34,7 +35,7 @@ public class User extends BaseEntity{
     private boolean isVerified; //본인인증 여부
 
     @Column(name = "join_date", nullable = false)
-    private LocalDateTime joinDate; //가입일
+    private OffsetDateTime joinDate; //가입일
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserPrivate userPrivate;

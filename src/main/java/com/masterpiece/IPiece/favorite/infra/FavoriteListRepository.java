@@ -23,6 +23,7 @@ public interface FavoriteListRepository extends JpaRepository<FavoriteList, Long
     // 특정 유저의 찜 목록 조회
     List<FavoriteList> findAllByUser(User user);
 
+
     @Query("""
         SELECT fl.product.productId
           FROM FavoriteList fl

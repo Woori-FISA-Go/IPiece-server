@@ -1,12 +1,14 @@
 package com.masterpiece.IPiece.mypage.application.mapper;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
+import com.masterpiece.IPiece.mypage.api.dto.AccountJournalItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
@@ -18,6 +20,8 @@ import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
@@ -142,6 +146,22 @@ public class MypageMapper {
     }
 
     /**
+     * VirtualAccountJournal → AccountJournalItemDto 변환
+     */
+    public AccountJournalItemDto toAccountJournalItemDto(
+            VirtualAccountJournal journal
+    ) {
+        return AccountJournalItemDto.builder()
+                .journalId(journal.getJournalId())
+                .txType(journal.getTxType())
+                .description(journal.getDescription())
+                .amountKrw(journal.getAmountKrw())
+                .balanceAfter(journal.getBalanceAfter())
+                .createdAt(journal.getCreatedAt()) // BaseEntity의 createAt
+                .build();
+    }
+
+    /**
      * 전체 데이터 → MyhomeResponse 변환
      */
     public MyhomeResponse toMyhomeResponse(
@@ -231,8 +251,10 @@ public class MypageMapper {
             LocalDateTime from,
             LocalDateTime to
     ) {
+        OffsetDateTime fromOffset = toOffsetDateTime(from);
+        OffsetDateTime toOffset = toOffsetDateTime(to);
         List<TradeExecution> executions =
-                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
+                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, fromOffset, toOffset);
 
         return executions.stream()
                 .map(exec -> mapExecutionToHistoryItem(exec, account))
@@ -281,12 +303,17 @@ public class MypageMapper {
                 .collect(Collectors.toList());
     }
 
+    private OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return null;
+        return dateTime.atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
+    }
+
     /**
      * 단일 체결내역 → 이 계좌 기준 history 아이템으로 변환
      */
     private AccountHistoryItemDto mapExecutionToHistoryItem(TradeExecution exec, VirtualAccount account) {
         Product product = exec.getProduct();
-        LocalDateTime time = exec.getMatchTime();
+        OffsetDateTime time = exec.getMatchTime();
 
         boolean isBuyAccount = exec.getBuyOrder().getVirtualAccount().equals(account);
         boolean isSellAccount = exec.getSellOrder().getVirtualAccount().equals(account);
@@ -339,7 +366,7 @@ public class MypageMapper {
         }
 
         // 공모 기간 확인
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now();
         ProductOfferingInfo info = offeringInfo.get();
 
         boolean isOfferingPeriod =

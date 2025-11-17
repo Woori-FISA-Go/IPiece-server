@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import static java.time.LocalTime.now;
 
@@ -42,7 +43,7 @@ public class UserService {
                         .userMadeId(request.getId())
                         .passwordHash(encodedPassword)
                         .isVerified(true)
-                        .joinDate(LocalDateTime.now())
+                        .joinDate(OffsetDateTime.now())
                         .build();
 
         // DB에 user 저장하고 해당 user정보 저장(이 때 userId 자동 생성됨)

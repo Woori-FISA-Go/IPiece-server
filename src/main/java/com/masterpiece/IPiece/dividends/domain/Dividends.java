@@ -5,7 +5,9 @@ import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,10 +27,10 @@ public class Dividends extends BaseEntity {
     private Product product;
 
     @Column(name = "record_date", nullable = false)
-    private LocalDate recordDate;
+    private OffsetDateTime recordDate;
 
     @Column(name = "payout_date", nullable = false)
-    private LocalDate payoutDate;
+    private OffsetDateTime payoutDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)

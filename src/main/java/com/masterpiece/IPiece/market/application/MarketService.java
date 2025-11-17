@@ -1,28 +1,51 @@
 package com.masterpiece.IPiece.market.application;
 
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Disclosure;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductTradingInfo;
 import com.masterpiece.IPiece.common.domain.product.policy.PriceChangePolicy;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
-import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
-import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
+import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
+import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
 import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
 import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
+import com.masterpiece.IPiece.market.domain.OrderBook;
+import com.masterpiece.IPiece.market.domain.OrderType;
+import com.masterpiece.IPiece.market.domain.TradeExecution;
+import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
+import com.masterpiece.IPiece.common.exception.BusinessException;
+import com.masterpiece.IPiece.common.exception.ErrorCode;
+import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,7 +57,14 @@ public class MarketService {
     private final FavoriteQueryPort favoriteQueryPort;
     private final PrevCloseQueryPort prevCloseQueryPort;
     private final TradingInfoQueryPort tradingInfoPort;
+
     private final DividendPayoutsRepository dividendPayoutsRepository;
+    private final ProductRepository productRepository;
+    private final VirtualAccountRepository virtualAccountRepository;
+    private final TradeExecutionRepository tradeExecutionRepository;
+    private final OrderBookRepository orderBookRepository;
+    private final HoldingsRepository holdingsRepository;
+
     private final ProductMapper productMapper;
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
@@ -134,6 +164,323 @@ public class MarketService {
         return ProductDetailsResponse.builder()
                 .info(info)
                 .details(details)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ChartResponse getChart(Long productId,
+                                  String interval,
+                                  String cursorOptional) {
+
+        validateInterval(interval);
+
+        ZoneId timezone = ZoneId.of("Asia/Seoul");
+        OffsetDateTime now = OffsetDateTime.now(timezone);
+        OffsetDateTime start;
+        OffsetDateTime end;
+
+        if (cursorOptional == null) {
+            start = now.atZoneSameInstant(timezone)
+                    .truncatedTo(ChronoUnit.DAYS)
+                    .toOffsetDateTime();
+            end = start.plusDays(1).minusSeconds(1);
+        } else {
+            String[] parts = cursorOptional.split(":");
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("Invalid cursor format");
+            }
+            try {
+                long epoch = Long.parseLong(parts[1]);
+                start = Instant.ofEpochSecond(epoch).atZone(timezone).toOffsetDateTime();
+                end = start.plusDays(1).minusSeconds(1);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid cursor epoch value", e);
+            }
+        }
+
+        List<TradeExecution> executions =
+                tradeExecutionRepository.findInWindow(productId, start, end);
+
+        List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
+                .map(p -> ChartResponse.Point.builder()
+                        .ts(p.ts().toString())
+                        .price(p.price())
+                        .volume(p.volume())
+                        .build())
+                .toList();
+
+        OffsetDateTime previousDay = start.minusDays(1);
+        long epochCursor = previousDay.toEpochSecond();
+        String nextCursor = "c:" + epochCursor + ":" + interval;
+        
+        OffsetDateTime prevStart = start.minusDays(1);
+        OffsetDateTime prevEnd = prevStart.plusDays(1).minusSeconds(1);
+        boolean hasMore = !tradeExecutionRepository.findInWindow(productId, prevStart, prevEnd).isEmpty();
+
+        return ChartResponse.builder()
+                .product_id(productId)
+                .interval(interval)
+                .window(ChartResponse.Window.builder()
+                        .start_at(start.toString())
+                        .end_at(end.toString())
+                        .build())
+                .points(points)
+                .has_more(hasMore)
+                .next_cursor(nextCursor)
+                .fetched_at(now.toString())
+                .build();
+    }
+
+    private void validateInterval(String interval) {
+        if (interval == null || interval.isBlank()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+        Set<String> allowed = Set.of("1d", "1h", "1w");
+        if (!allowed.contains(interval)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+    }
+
+    private record AggregatedPoint(OffsetDateTime ts, Long price, Long volume) {}
+
+    private List<AggregatedPoint> aggregateByInterval(List<TradeExecution> executions, String interval, ZoneId zoneId) {
+        Map<OffsetDateTime, AggregatedPoint> buckets = new LinkedHashMap<>();
+
+        executions.stream()
+                .sorted((a, b) -> a.getMatchTime().compareTo(b.getMatchTime()))
+                .forEach(exec -> {
+                    OffsetDateTime match = exec.getMatchTime();
+                    ZonedDateTime zoned = match.atZoneSameInstant(zoneId);
+                    OffsetDateTime bucketStart;
+                    switch (interval) {
+                        case "1h" -> bucketStart = zoned.truncatedTo(ChronoUnit.HOURS).toOffsetDateTime();
+                        case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                .truncatedTo(ChronoUnit.DAYS)
+                                .toOffsetDateTime();
+                        case "1d":
+                        default -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
+                    }
+
+                    AggregatedPoint current = buckets.get(bucketStart);
+                    if (current == null) {
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, exec.getTradePrice(), exec.getTradeQuantity()));
+                    } else {
+                        long newVolume = current.volume() + exec.getTradeQuantity();
+                        long newPrice = exec.getTradePrice(); // 마지막 체결가
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, newPrice, newVolume));
+                    }
+                });
+
+        return List.copyOf(buckets.values());
+    }
+
+    @Transactional(readOnly = false)
+    public OrderResponse buy(Long productId, Long userId, String idempotencyKeyHeader, OrderRequest req) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        orderBookRepository.findByIdempotencyKey(idempotencyKey)
+                .ifPresent(existing -> {
+                    throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+                });
+
+        long price = req.getOrder_price();
+        long quantity = req.getOrder_quantity();
+        long totalAmount = price * quantity;
+
+        if (account.getBalanceKrw() < totalAmount) {
+            throw new IllegalStateException("잔액이 부족합니다.");
+        }
+
+        account.decreaseBalanceKrw(totalAmount);
+        account.increasePendingPrice(totalAmount);
+
+        OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OrderBook order = OrderBook.builder()
+                .product(product)
+                .virtualAccount(account)
+                .orderType(OrderType.BUY)
+                .orderPrice(price)
+                .orderQuantity(quantity)
+                .remainQuantity(quantity)
+                .pendingStatus(true)
+                .clientTime(clientTimeOffset)
+                .idempotencyKey(idempotencyKey)
+                .build();
+
+        OrderBook saved;
+        try {
+            saved = orderBookRepository.save(order);
+        } catch (DataIntegrityViolationException e) {
+            // 동시성으로 unique constraint가 먼저 걸린 경우
+            throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+        }
+
+        return OrderResponse.builder()
+                .status_code(200)
+                .order_id(saved.getOrderId().toString())
+                .product_id(productId)
+                .side("BUY")
+                .order_price(price)
+                .order_quantity(quantity)
+                .total_amount(totalAmount)
+                .filled_quantity(0L)
+                .remaining_quantity(quantity)
+                .created_at(now.toString())
+                .idempotency_key(idempotencyKey)
+                .build();
+    }
+
+    @Transactional(readOnly = false)
+    public OrderResponse sell(Long productId, Long userId, String idempotencyKeyHeader, OrderRequest req) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
+                ? UUID.randomUUID().toString()
+                : idempotencyKeyHeader;
+
+        orderBookRepository.findByIdempotencyKey(idempotencyKey)
+                .ifPresent(existing -> {
+                    throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+                });
+
+        long price = req.getOrder_price();
+        long quantity = req.getOrder_quantity();
+        long totalAmount = price * quantity;
+
+        Holdings holdings = holdingsRepository.findByVirtualAccountAndProduct(account, product)
+                .orElseThrow(() -> new IllegalStateException("보유 수량이 부족합니다."));
+
+        if (holdings.getQuantity() < quantity) {
+            throw new IllegalStateException("보유 수량이 부족합니다.");
+        }
+
+        holdings.moveToPending(quantity);
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
+
+        OrderBook order = OrderBook.builder()
+                .product(product)
+                .virtualAccount(account)
+                .orderType(OrderType.SELL)
+                .orderPrice(price)
+                .orderQuantity(quantity)
+                .remainQuantity(quantity)
+                .pendingStatus(true)
+                .clientTime(clientTimeOffset)
+                .idempotencyKey(idempotencyKey)
+                .build();
+
+        OrderBook saved;
+        try {
+            saved = orderBookRepository.save(order);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+        }
+
+        return OrderResponse.builder()
+                .status_code(200)
+                .order_id(saved.getOrderId().toString())
+                .product_id(productId)
+                .side("SELL")
+                .order_price(price)
+                .order_quantity(quantity)
+                .total_amount(totalAmount)
+                .filled_quantity(0L)
+                .remaining_quantity(quantity)
+                .created_at(now.toString())
+                .idempotency_key(idempotencyKey)
+                .build();
+    }
+
+    public PendingOrderListResponse getPendingOrders(Long userId, Long productId, int page) {
+
+        if (page < 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+
+        int pageIndex = page - 1; // JPA는 0-base 페이지
+        int size = 10;
+
+        var pageable = PageRequest.of(pageIndex, size);
+        var result = orderBookRepository.findPendingOrders(userId, productId, pageable);
+
+        var items = result.getContent().stream().map(ob -> {
+            long remain = ob.getRemainQuantity() == null ? 0L : ob.getRemainQuantity();
+            long filled = ob.getOrderQuantity() - remain;
+            return PendingOrderItem.builder()
+                    .order_id(String.valueOf(ob.getOrderId()))
+                    .product_id(productId)
+                    .product_name(ob.getProduct().getProductName())
+                    .order_type(ob.getOrderType().name())
+                    .price(ob.getOrderPrice())
+                    .quantity(ob.getOrderQuantity())
+                    .filled_quantity(filled)
+                    .remaining_quantity(remain)
+                    .amount(ob.getOrderPrice() * ob.getOrderQuantity())
+                    .placed_at(ob.getClientTime().toString())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return PendingOrderListResponse.builder()
+                .items(items)
+                .page(page)
+                .total(result.getTotalElements())
+                .has_next(result.hasNext())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public HoldingAssetResponse getHoldingAsset(Long userId, Long productId) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        var holding = holdingsRepository.findByVirtualAccountAndProduct(account, product)
+                .orElseThrow(() -> new IllegalArgumentException("No holdings for this product"));
+
+        long quantity = holding.getQuantity();
+        long avgBuyPrice = holding.getAvgBuyPrice();
+
+        long currentPrice = product.getCurrentPrice();
+        long totalAmount = quantity * currentPrice;
+
+        // 수익 금액 = (현재가 - 매수평균가) * 수량
+        long profitAmount = (currentPrice - avgBuyPrice) * quantity;
+
+        // 수익률 = (수익금액 / (매수평균가 * 수량)) * 100
+        double profitRate = (avgBuyPrice > 0)
+                ? Math.abs((profitAmount * 100.0) / (avgBuyPrice * quantity))
+                : 0.0;
+
+        profitRate = Math.round(profitRate * 10) / 10.0;
+
+        return HoldingAssetResponse.builder()
+                .product_name(product.getProductName())
+                .quantity(quantity)
+                .avg_buy_price(avgBuyPrice)
+                .total_amount(totalAmount)
+                .total_profit_amount(profitAmount)
+                .total_profit_rate(profitRate)
                 .build();
     }
 }

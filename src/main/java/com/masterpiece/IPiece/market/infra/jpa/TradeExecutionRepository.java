@@ -10,12 +10,26 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
-    // 매칭 시간 기준 기간 조회 -> 특정 계좌 기준 체결 내역 조회
+
+    @Query("""
+        SELECT t
+          FROM TradeExecution t
+         WHERE t.product.productId = :productId
+           AND t.matchTime BETWEEN :start AND :end
+         ORDER BY t.matchTime ASC
+    """)
+    List<TradeExecution> findInWindow(
+            @Param("productId") Long productId,
+            @Param("start")     OffsetDateTime start,
+            @Param("end")       OffsetDateTime end
+    );
+
     @Query("""
         SELECT te
           FROM TradeExecution te
@@ -26,8 +40,8 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
         """)
     List<TradeExecution> findByAccountAndMatchTimeBetween(
             @Param("account") VirtualAccount account,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to
     );
 
     @Query("""
@@ -49,8 +63,8 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
             """)
     List<PrevCloseProjection> findAllPrevClosePrices(
             @Param("productIds") Collection<Long> productIds,
-            @Param("startAt") LocalDateTime startAt,
-            @Param("endAt")   LocalDateTime endAt);
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt")   OffsetDateTime endAt);
 
     @Query("""
         SELECT te.tradePrice
@@ -69,6 +83,6 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
          LIMIT 1
         """)
     Long findPrevClosePrice(@Param("productId") Long productId,
-                            @Param("startAt") LocalDateTime startAt,
-                            @Param("endAt")   LocalDateTime endAt);
+                            @Param("startAt") OffsetDateTime startAt,
+                            @Param("endAt")   OffsetDateTime endAt);
 }
