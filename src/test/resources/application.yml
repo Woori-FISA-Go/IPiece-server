@@ -44,5 +44,5 @@ admin:
   private-key: ${ADMIN_PRIVATE_KEY}
 
 besu:
-  rpc-url: http://localhost:8545
+  rpc-url: http://172.16.4.60:8545
 ADMIN_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000001" # Dummy key for testing

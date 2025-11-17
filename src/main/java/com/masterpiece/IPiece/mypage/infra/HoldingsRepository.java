@@ -14,4 +14,6 @@ public interface HoldingsRepository extends JpaRepository<Holdings, Long> {
     List<Holdings> findAllByVirtualAccount(VirtualAccount virtualAccount);
 
     Optional<Holdings> findByVirtualAccountAndProduct(VirtualAccount virtualAccount, Product product);
+
+    List<Holdings> findAllByProduct(Product product);
 }

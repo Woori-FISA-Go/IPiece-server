@@ -4,6 +4,7 @@ import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault; // Add this import
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,6 +32,7 @@ public class Dividends extends BaseEntity {
     private OffsetDateTime payoutDate;
 
     @Enumerated(EnumType.STRING)
+    @ColumnDefault("'SCHEDULED'") // 기존 데이터에 대한 기본값 설정
     @Column(name = "status", nullable = false, length = 16)
     @Builder.Default
     private DividendStatus status = DividendStatus.SCHEDULED;
