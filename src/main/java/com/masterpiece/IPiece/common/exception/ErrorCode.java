@@ -31,6 +31,13 @@ public enum ErrorCode {
     LOGOUT_FAILED(HttpStatus.BAD_REQUEST, "로그아웃 실패"),
     TOO_MANY_VERIFICATION_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "인증번호 입력 횟수를 초과했습니다."),
 
+    /* 상품 */
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."),
+    PRODUCT_NOT_OFFERING(HttpStatus.BAD_REQUEST, "공모중인 상품이 아닙니다."),
+    OFFERING_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "공모 정보를 찾을 수 없습니다."),
+
+
+
 
     /* 공통 - 5xx */
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),

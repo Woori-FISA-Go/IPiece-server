@@ -5,10 +5,6 @@ import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "favorite_list", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "product_id"}))

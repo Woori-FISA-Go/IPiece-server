@@ -137,7 +137,7 @@ public class FavoriteService {
         }
 
         public OffsetDateTime getCreatedAt() {
-            // BaseEntity에 createdAt(LocalDateTime) 있다고 가정
+            // BaseEntity에 createdAt(OffsetDateTime) 있다고 가정
             return favorite.getCreatedAt();
         }
     }

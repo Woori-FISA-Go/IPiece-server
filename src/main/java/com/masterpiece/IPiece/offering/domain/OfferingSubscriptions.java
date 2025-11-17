@@ -3,12 +3,8 @@ package com.masterpiece.IPiece.offering.domain;
 
 import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
-import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 
     @Getter @Setter
     @NoArgsConstructor @AllArgsConstructor @Builder

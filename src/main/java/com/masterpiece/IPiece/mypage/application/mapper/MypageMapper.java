@@ -4,6 +4,7 @@ import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
+import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
@@ -12,18 +13,15 @@ import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
-import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
@@ -229,8 +227,8 @@ public class MypageMapper {
      */
     public List<AccountHistoryItemDto> toAccountTradeHistory(
             VirtualAccount account,
-            LocalDateTime from,
-            LocalDateTime to
+            OffsetDateTime from,
+            OffsetDateTime to
     ) {
         List<TradeExecution> executions =
                 tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
@@ -246,8 +244,8 @@ public class MypageMapper {
      */
     public List<AccountHistoryItemDto> toAccountDividendHistory(
             VirtualAccount account,
-            LocalDateTime from,
-            LocalDateTime to
+            OffsetDateTime from,
+            OffsetDateTime to
     ) {
         // 완료된 배당만 보여준다고 가정 (status 값은 네가 INSERT한 값에 맞춰서 바꿔도 됨)
         List<DividendPayouts> payouts =
