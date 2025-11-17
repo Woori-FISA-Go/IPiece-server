@@ -46,6 +46,16 @@ public class MarketController {
         return ResponseEntity.ok(marketService.getDetails(productId, userId));
     }
 
+    @GetMapping("/{product_id}/chart")
+    public ResponseEntity<ChartResponse> getChart(
+            @PathVariable("product_id") Long productId,
+            @RequestParam(value = "interval", defaultValue = "1d") String interval,
+            @RequestParam(value = "cursor", required = false) String cursor
+    ) {
+        ChartResponse response = marketService.getChart(productId, interval, cursor);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{product_id}/buy")
     public ResponseEntity<OrderResponse> buy(
             @PathVariable("product_id") Long productId,

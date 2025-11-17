@@ -10,12 +10,24 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
-    // 매칭 시간 기준 기간 조회 -> 특정 계좌 기준 체결 내역 조회
+
+    @Query("""
+        SELECT t
+          FROM TradeExecution t
+         WHERE t.product.productId = :productId
+           AND t.matchTime BETWEEN :start AND :end
+         ORDER BY t.matchTime ASC
+    """)
+    List<TradeExecution> findInWindow(Long productId,
+                                      OffsetDateTime start,
+                                      OffsetDateTime end);
+    
     @Query("""
         SELECT te
           FROM TradeExecution te

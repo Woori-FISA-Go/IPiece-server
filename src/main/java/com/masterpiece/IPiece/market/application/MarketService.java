@@ -17,9 +17,11 @@ import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
 import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
 import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.market.domain.OrderType;
+import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
+import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +32,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +57,7 @@ public class MarketService {
     private final DividendPayoutsRepository dividendPayoutsRepository;
     private final ProductRepository productRepository;
     private final VirtualAccountRepository virtualAccountRepository;
+    private final TradeExecutionRepository tradeExecutionRepository;
     private final OrderBookRepository orderBookRepository;
     private final HoldingsRepository holdingsRepository;
 
@@ -155,6 +160,55 @@ public class MarketService {
         return ProductDetailsResponse.builder()
                 .info(info)
                 .details(details)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ChartResponse getChart(Long productId,
+                                  String interval,
+                                  String cursorOptional) {
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime start;
+        OffsetDateTime end;
+
+        if (cursorOptional == null) {
+            start = now.truncatedTo(ChronoUnit.DAYS);
+            end = start.plusDays(1).minusSeconds(1);
+        } else {
+            String[] parts = cursorOptional.split(":");
+            long epoch = Long.parseLong(parts[1]);
+
+            start = Instant.ofEpochSecond(epoch).atZone(ZoneId.of("UTC")).toOffsetDateTime();
+            end = start.plusDays(1).minusSeconds(1);
+        }
+
+        List<TradeExecution> executions =
+                tradeExecutionRepository.findInWindow(productId, start, end);
+
+        List<ChartResponse.Point> points = executions.stream().map(t ->
+                ChartResponse.Point.builder()
+                        .ts(t.getMatchTime().toString())
+                        .price(t.getTradePrice())
+                        .volume(t.getTradeQuantity())
+                        .build()
+        ).toList();
+
+        OffsetDateTime previousDay = start.minusDays(1);
+        long epochCursor = previousDay.toEpochSecond();
+        String nextCursor = "c:" + epochCursor + ":" + interval;
+
+        return ChartResponse.builder()
+                .product_id(productId)
+                .interval(interval)
+                .window(ChartResponse.Window.builder()
+                        .start_at(start.toString())
+                        .end_at(end.toString())
+                        .build())
+                .points(points)
+                .has_more(true)
+                .next_cursor(nextCursor)
+                .fetched_at(now.toString())
                 .build();
     }
 
