@@ -188,7 +188,6 @@ public class MarketService {
         account.increasePendingPrice(totalAmount);
 
         OffsetDateTime clientTimeOffset = OffsetDateTime.parse(req.getClient_time());
-        LocalDateTime clientTime = clientTimeOffset.toLocalDateTime();
 
         OffsetDateTime now = OffsetDateTime.now();
         OrderBook order = OrderBook.builder()
@@ -199,7 +198,7 @@ public class MarketService {
                 .orderQuantity(quantity)
                 .remainQuantity(quantity)
                 .pendingStatus(true)
-                .clientTime(clientTimeOffset.toLocalDateTime())
+                .clientTime(clientTimeOffset)
                 .idempotencyKey(idempotencyKey)
                 .build();
 
@@ -268,7 +267,7 @@ public class MarketService {
                 .orderQuantity(quantity)
                 .remainQuantity(quantity)
                 .pendingStatus(true)
-                .clientTime(clientTimeOffset.toLocalDateTime())
+                .clientTime(clientTimeOffset)
                 .idempotencyKey(idempotencyKey)
                 .build();
 
