@@ -32,5 +32,4 @@ public class FavoriteList extends BaseEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-
 }

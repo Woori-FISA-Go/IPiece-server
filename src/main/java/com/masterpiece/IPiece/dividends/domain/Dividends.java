@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,11 +30,11 @@ public class Dividends extends BaseEntity {
 
     // 배당 기준일 (언제 보유자 확인할지)
     @Column(name = "record_date", nullable = false)
-    private LocalDateTime recordDate;
+    private OffsetDateTime recordDate;
 
     // 실제 지급일
     @Column(name = "payout_date", nullable = false)
-    private LocalDateTime payoutDate;
+    private OffsetDateTime payoutDate;
 
     // 전체 배당 금액
     @Column(name = "total_amount", nullable = false)

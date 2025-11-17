@@ -6,6 +6,7 @@ import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import lombok.*;
 
@@ -24,7 +25,7 @@ public class TradeExecution extends BaseEntity {
     private Long tradeId;
 
     @Column(name = "matchtime", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime matchTime;
+    private OffsetDateTime matchTime;
 
     @Column(name = "trade_quantity", nullable = false)
     private Long tradeQuantity;
@@ -37,7 +38,7 @@ public class TradeExecution extends BaseEntity {
     private Boolean tradeState;
 
     @Column(name = "settletime", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime settleTime;
+    private OffsetDateTime settleTime;
 
     // N:1 product (FK: product_id)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

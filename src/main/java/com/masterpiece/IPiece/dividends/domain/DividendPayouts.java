@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "dividend_payouts")
@@ -39,7 +40,7 @@ public class DividendPayouts extends BaseEntity {
     private String payoutStatus; // 예: "PENDING", "COMPLETED", "FAILED"
 
     @Column(name = "payout_date", nullable = false)
-    private LocalDateTime payoutDate;
+    private OffsetDateTime payoutDate;
 
 
 }

@@ -13,6 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class Product extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
-    private ProductStatus status; // DRAFT / ACTIVE / PAUSED / DELISTED
+    private ProductStatus status;
 
     @Column(name = "present_img", length = 255, nullable = false)
     private String presentImg;
@@ -57,7 +58,7 @@ public class Product extends BaseEntity {
     private String projectName;
 
     @Column(name = "issue_date", columnDefinition = "timestamptz", nullable = false)
-    private LocalDateTime issueDate;
+    private OffsetDateTime issueDate;
 
     @Column(name = "issue_amount", nullable = false)
     private Long issueAmount;
