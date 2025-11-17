@@ -24,9 +24,11 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
            AND t.matchTime BETWEEN :start AND :end
          ORDER BY t.matchTime ASC
     """)
-    List<TradeExecution> findInWindow(Long productId,
-                                      OffsetDateTime start,
-                                      OffsetDateTime end);
+    List<TradeExecution> findInWindow(
+            @Param("productId") Long productId,
+            @Param("start")     OffsetDateTime start,
+            @Param("end")       OffsetDateTime end
+    );
 
     @Query("""
         SELECT te
