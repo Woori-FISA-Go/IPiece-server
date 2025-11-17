@@ -96,7 +96,7 @@ public class MypageService {
         LocalDate to = LocalDate.parse(dateTo);
 
         // 서버 기본 타임존 기준으로 OffsetDateTime 만들기
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = ZoneId.of("Asia/Seoul");
 
         // 시작 시각 = 00:00:00
         OffsetDateTime fromDateTime = from

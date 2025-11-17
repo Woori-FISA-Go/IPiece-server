@@ -159,8 +159,7 @@ public class OfferingService {
             // 다음 로드: cursor 기반
             products = productRepository.findByStatusCursorBased(
                     ProductStatus.OFFERING,
-                    cursor,
-                    limit
+                    cursor
             );
         }
 
