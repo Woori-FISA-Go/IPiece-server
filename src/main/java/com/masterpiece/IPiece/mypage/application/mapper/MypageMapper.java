@@ -1,12 +1,14 @@
 package com.masterpiece.IPiece.mypage.application.mapper;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
+import com.masterpiece.IPiece.mypage.api.dto.AccountJournalItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
@@ -139,6 +141,22 @@ public class MypageMapper {
                         .ratio((double) entry.getValue() / totalValue * 100)
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * VirtualAccountJournal → AccountJournalItemDto 변환
+     */
+    public AccountJournalItemDto toAccountJournalItemDto(
+            VirtualAccountJournal journal
+    ) {
+        return AccountJournalItemDto.builder()
+                .journalId(journal.getJournalId())
+                .txType(journal.getTxType())
+                .description(journal.getDescription())
+                .amountKrw(journal.getAmountKrw())
+                .balanceAfter(journal.getBalanceAfter())
+                .createdAt(journal.getCreateAt()) // BaseEntity의 createAt
+                .build();
     }
 
     /**

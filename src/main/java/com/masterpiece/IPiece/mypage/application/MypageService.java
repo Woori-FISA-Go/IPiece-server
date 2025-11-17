@@ -1,15 +1,19 @@
 package com.masterpiece.IPiece.mypage.application;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountJournalRepository;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import com.masterpiece.IPiece.favorite.infra.FavoriteListRepository;
 import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
+import com.masterpiece.IPiece.mypage.api.dto.AccountJournalItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.response.AccountHistoryResponse;
+import com.masterpiece.IPiece.mypage.api.dto.response.AccountJournalResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.mapper.MypageMapper;
@@ -40,6 +44,7 @@ public class MypageService {
     private final HoldingsRepository holdingsRepository;
     private final FavoriteListRepository favoriteListRepository;
     private final MypageMapper mypageMapper;
+    private final VirtualAccountJournalRepository virtualAccountJournalRepository;
 
     private static final int PAGE_SIZE = 10;
 
@@ -135,6 +140,37 @@ public class MypageService {
                 .totalBalance(totalBalance)
                 .pendingPrice(pendingPrice)
                 .history(history)
+                .build();
+    }
+
+    /**
+     * 가상계좌 분개장(입출금/배당/거래) 전체 조회 (날짜 필터 없음, 최신순)
+     */
+    public AccountJournalResponse getAccountJournals(Long userId) {
+
+        // 1. 가상계좌 조회
+        VirtualAccount account = virtualAccountRepository
+                .findByUser_UserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+        // 2. 해당 계좌의 모든 저널을 최신순으로 조회
+        List<VirtualAccountJournal> journals =
+                virtualAccountJournalRepository
+                        .findByVirtualAccountOrderByCreateAtDesc(account);
+
+        // 3. DTO 변환
+        List<AccountJournalItemDto> items = journals.stream()
+                .map(mypageMapper::toAccountJournalItemDto)
+                .collect(Collectors.toList());
+
+        // 4. 상단 요약 정보
+        long totalBalance = account.getBalanceKrw();
+        long pendingPrice = account.getPendingPrice() != null ? account.getPendingPrice() : 0L;
+
+        return AccountJournalResponse.builder()
+                .totalBalance(totalBalance)
+                .pendingPrice(pendingPrice)
+                .items(items)
                 .build();
     }
 }

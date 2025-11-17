@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.mypage.api;
 
 import com.masterpiece.IPiece.mypage.api.dto.response.AccountHistoryResponse;
+import com.masterpiece.IPiece.mypage.api.dto.response.AccountJournalResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.MypageService;
@@ -57,6 +58,18 @@ public class MypageController {
             @RequestParam("date_to") String dateTo
     ) {
         AccountHistoryResponse response = mypageService.getAccountHistory(userId, dateFrom, dateTo);
+        return ResponseEntity.ok(response);
+    }
+    /**
+     * 가상계좌 분개장(입출금/배당/거래) 내역 조회
+     * 날짜 필터 없이 전체를 최신순으로 반환
+     * GET /v1/mypage/account/journals
+     */
+    @GetMapping("/account/journals")
+    public ResponseEntity<AccountJournalResponse> getAccountJournals(
+            @AuthenticationPrincipal Long userId
+    ) {
+        AccountJournalResponse response = mypageService.getAccountJournals(userId);
         return ResponseEntity.ok(response);
     }
 }
