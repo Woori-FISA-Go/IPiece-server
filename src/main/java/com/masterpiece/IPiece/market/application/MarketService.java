@@ -168,6 +168,8 @@ public class MarketService {
                                   String interval,
                                   String cursorOptional) {
 
+        validateInterval(interval);
+
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime start;
         OffsetDateTime end;
@@ -220,6 +222,16 @@ public class MarketService {
                 .next_cursor(nextCursor)
                 .fetched_at(now.toString())
                 .build();
+    }
+
+    private void validateInterval(String interval) {
+        if (interval == null || interval.isBlank()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+        Set<String> allowed = Set.of("1d", "1h", "1w");
+        if (!allowed.contains(interval)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
     }
 
     @Transactional(readOnly = false)
