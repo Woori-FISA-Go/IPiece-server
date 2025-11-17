@@ -5,10 +5,7 @@ import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Getter

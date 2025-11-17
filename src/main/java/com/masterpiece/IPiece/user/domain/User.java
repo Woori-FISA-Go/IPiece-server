@@ -4,13 +4,8 @@ import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
 
 @Entity
 @Table(name = "users") //DB테이블명 명시(PostgreSQL은 user가 예약어기 때문에 "" 명시)

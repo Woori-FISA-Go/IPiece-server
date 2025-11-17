@@ -37,6 +37,8 @@ public class SecurityConfig {
                                 "/v1/market/*/orderbook",
                                 "/v1/market/*/detail",
                                 "/v1/main/home",
+                                "/v1/offerings",
+                                "/v1/offerings/detail/{productId}",
                                 "/error").permitAll()
                         .anyRequest().authenticated()   // 허용 경로 말고는 jwt토큰 달고 들어와야함
                 )

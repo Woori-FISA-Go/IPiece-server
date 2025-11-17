@@ -3,11 +3,8 @@ package com.masterpiece.IPiece.user.domain;
 import com.masterpiece.IPiece.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @Table(name = "user_private")

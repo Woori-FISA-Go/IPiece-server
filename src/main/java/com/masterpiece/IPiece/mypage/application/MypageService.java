@@ -26,9 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -99,11 +97,23 @@ public class MypageService {
 
     public AccountHistoryResponse getAccountHistory(Long userId, String dateFrom, String dateTo) {
         // 0. 날짜 파싱
-        LocalDate from = LocalDate.parse(dateFrom);   // 예: "2025-09-23"
-        LocalDate to = LocalDate.parse(dateTo);       // 예: "2025-10-23"
+        LocalDate from = LocalDate.parse(dateFrom);
+        LocalDate to = LocalDate.parse(dateTo);
 
-        LocalDateTime fromDateTime = from.atStartOfDay();
-        LocalDateTime toDateTime = to.atTime(LocalTime.MAX);
+        // 서버 기본 타임존 기준으로 OffsetDateTime 만들기
+        ZoneId zone = ZoneId.of("Asia/Seoul");
+
+        // 시작 시각 = 00:00:00
+        OffsetDateTime fromDateTime = from
+                .atStartOfDay(zone)
+                .toOffsetDateTime();
+
+        // 끝 시각 = 23:59:59.999...
+        OffsetDateTime toDateTime = to
+                .atTime(LocalTime.MAX)
+                .atZone(zone)
+                .toOffsetDateTime();
+
 
         // 1. 가상계좌 조회
         Optional<VirtualAccount> optionalAccount = virtualAccountRepository.findByUser_UserId(userId);

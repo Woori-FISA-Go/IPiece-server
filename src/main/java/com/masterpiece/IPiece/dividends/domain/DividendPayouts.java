@@ -4,10 +4,7 @@ import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Entity
