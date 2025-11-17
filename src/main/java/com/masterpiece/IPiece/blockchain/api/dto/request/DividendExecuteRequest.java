@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -19,9 +20,9 @@ public class DividendExecuteRequest {
     private Long totalAmount;
 
     @NotNull(message = "배당 기준일은 필수입니다")
-    private LocalDate recordDate;
+    private OffsetDateTime recordDate;
 
     @NotNull(message = "배당 지급일은 필수입니다")
     @FutureOrPresent(message = "배당 지급일은 현재 또는 미래여야 합니다")
-    private LocalDate paymentDate;
+    private OffsetDateTime paymentDate;
 }

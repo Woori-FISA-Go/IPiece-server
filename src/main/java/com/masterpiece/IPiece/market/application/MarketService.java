@@ -257,7 +257,7 @@ public class MarketService {
                         case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                                 .truncatedTo(ChronoUnit.DAYS)
                                 .toOffsetDateTime();
-                        case "1d":
+                        case "1d" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
                         default -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
                     }
 
