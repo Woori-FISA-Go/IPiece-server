@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: IPiece
+  profiles:
+    active: local
+
+  datasource:
+    url: jdbc:postgresql://192.168.0.122:5432/ipiece
+    driverClassName: org.postgresql.Driver
+    username: postgres
+    password: root
+
+  data:
+    redis:
+      host: 192.168.0.122
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+    show-sql: true
+
+server:
+  error:
+    include-message: always
+    include-stacktrace: never
+    include-binding-errors: never
+
+jwt:
+  secret: GDrstwtmYicx9S4RSb80AQfnfSEhJXAH4wVRi+m43huDkt4WiPxfmDE5V3Crk2S/tgLYoC7B0cjv2COTgHq1VA==
+  expiration-ms: 241920000
+  refresh-expiration-ms: 604800000
+
+solapi:
+  api-key: dummy_solapi_key
+  api-secret: dummy_solapi_secret
+  sender: dummy_solapi_sender
+
+admin:
+  private-key: ${ADMIN_PRIVATE_KEY}
+
+besu:
+  rpc-url: http://localhost:8545
+ADMIN_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000001" # Dummy key for testing

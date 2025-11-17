@@ -42,6 +42,9 @@ jwt:
     api-secret: ${SOLAPI_API_SECRET}
     sender: ${SOLAPI_SENDER}
 
+admin:
+  private-key: ${ADMIN_PRIVATE_KEY}
+
 
 
 
