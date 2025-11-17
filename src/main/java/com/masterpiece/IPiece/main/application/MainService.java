@@ -2,11 +2,13 @@ package com.masterpiece.IPiece.main.application;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductStatus;
-import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.main.api.dto.response.BannerResponse;
 import com.masterpiece.IPiece.main.api.dto.response.MainPageResponse;
 import com.masterpiece.IPiece.main.api.dto.response.ProductCardResponse;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
@@ -18,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +30,12 @@ public class MainService {
 
     private final ProductRepository productRepository;
     private final ObjectMapper objectMapper;
+    private List<BannerResponse> cachedBanners;
+
+    @PostConstruct
+    public void init() {
+        this.cachedBanners = loadBannersFromJson();
+    }
 
     /**
      * 메인 페이지 데이터 조회
@@ -38,7 +45,7 @@ public class MainService {
      */
     public MainPageResponse getMainPage() {
         // 1. 배너 로드 (JSON 파일에서)
-        List<Map<String, Object>> banners = loadBannersFromJson();
+        List<BannerResponse> banners = cachedBanners;
 
         // 2. 공모중 상품 (최신순, 4개)
         Pageable offeringPageable = PageRequest.of(0, 4, 
@@ -68,12 +75,12 @@ public class MainService {
     /**
      * resources/banners.json 파일에서 배너 데이터 로드
      */
-    private List<Map<String, Object>> loadBannersFromJson() {
+    private List<BannerResponse> loadBannersFromJson() {
         try {
             ClassPathResource resource = new ClassPathResource("banners.json");
             InputStream inputStream = resource.getInputStream();
             return objectMapper.readValue(inputStream, 
-                    new TypeReference<List<Map<String, Object>>>() {});
+                    new TypeReference<List<BannerResponse>>() {});
         } catch (Exception e) {
             log.error("배너 파일 읽기 실패", e);
             return List.of();  // 빈 리스트 반환

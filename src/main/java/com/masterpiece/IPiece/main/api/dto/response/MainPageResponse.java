@@ -14,7 +14,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MainPageResponse {
-    private List<Map<String, Object>> banners;
+    private List<BannerResponse> banners;
     private List<ProductCardResponse> offeringProducts;
     private List<ProductCardResponse> tradingProducts;
 }
