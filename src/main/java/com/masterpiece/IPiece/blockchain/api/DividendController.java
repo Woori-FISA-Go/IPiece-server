@@ -30,9 +30,10 @@ public class DividendController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DividendExecuteResponse> executeDividend(
+        @AuthenticationPrincipal Long userId,
         @Valid @RequestBody DividendExecuteRequest request
     ) {
-        DividendExecuteResponse response = dividendService.executeDividend(request);
+        DividendExecuteResponse response = dividendService.executeDividend(userId, request);
         return ResponseEntity.ok(response);
     }
 

@@ -81,6 +81,21 @@ public class Product extends BaseEntity {
     @Column(name = "token_name", length = 100, nullable = false)
     private String tokenName;
 
+    @Column(name = "token_contract_address", length = 42)
+    private String tokenContractAddress;
+
+    @Column(name = "dividend_contract_address", length = 42)
+    private String dividendContractAddress;
+
+    @Column(name = "token_symbol", length = 10)
+    private String tokenSymbol;
+
+    @Column(name = "deployment_tx_hash", length = 66)
+    private String deploymentTxHash;
+
+    @Column(name = "deployed_at")
+    private LocalDateTime deployedAt;
+
 
 
 }
