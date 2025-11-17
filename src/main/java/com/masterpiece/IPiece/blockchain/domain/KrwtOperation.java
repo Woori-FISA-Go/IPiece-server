@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "krwt_operations")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -60,4 +59,16 @@ public class KrwtOperation extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
     private VirtualAccount virtualAccount;
+
+    //== 비즈니스 로직 ==//
+    public void complete(String txHash) {
+        this.txHash = txHash;
+        this.status = TransactionStatus.SUCCESS;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public void fail(String errorMessage) {
+        this.status = TransactionStatus.FAILED;
+        this.memo = errorMessage;
+    }
 }

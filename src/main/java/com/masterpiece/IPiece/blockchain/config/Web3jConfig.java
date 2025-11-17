@@ -13,7 +13,7 @@ public class Web3jConfig {
     @Value("${besu.rpc-url}")
     private String besuRpcUrl;
 
-    @Value("${admin.private-key}")
+    @Value("${ADMIN_PRIVATE_KEY}")
     private String adminPrivateKey;
 
     @Bean

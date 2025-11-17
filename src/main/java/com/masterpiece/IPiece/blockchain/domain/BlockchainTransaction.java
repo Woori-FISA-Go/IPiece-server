@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "blockchain_transactions")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -59,6 +58,16 @@ public class BlockchainTransaction extends BaseEntity {
 
     // 연관관계
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    //== 비즈니스 로직 ==//
+    public void updateStatus(TransactionStatus status) {
+        this.status = status;
+    }
+
+    public void recordError(String errorMessage) {
+        this.status = TransactionStatus.FAILED;
+        this.errorMessage = errorMessage;
+    }
 }
