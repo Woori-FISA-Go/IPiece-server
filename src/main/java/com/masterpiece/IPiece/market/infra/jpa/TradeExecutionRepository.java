@@ -27,7 +27,7 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
     List<TradeExecution> findInWindow(Long productId,
                                       OffsetDateTime start,
                                       OffsetDateTime end);
-    
+
     @Query("""
         SELECT te
           FROM TradeExecution te
@@ -38,8 +38,8 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
         """)
     List<TradeExecution> findByAccountAndMatchTimeBetween(
             @Param("account") VirtualAccount account,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to
     );
 
     @Query("""
@@ -61,8 +61,8 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
             """)
     List<PrevCloseProjection> findAllPrevClosePrices(
             @Param("productIds") Collection<Long> productIds,
-            @Param("startAt") LocalDateTime startAt,
-            @Param("endAt")   LocalDateTime endAt);
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt")   OffsetDateTime endAt);
 
     @Query("""
         SELECT te.tradePrice
@@ -81,6 +81,6 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
          LIMIT 1
         """)
     Long findPrevClosePrice(@Param("productId") Long productId,
-                            @Param("startAt") LocalDateTime startAt,
-                            @Param("endAt")   LocalDateTime endAt);
+                            @Param("startAt") OffsetDateTime startAt,
+                            @Param("endAt")   OffsetDateTime endAt);
 }
