@@ -105,6 +105,9 @@ public class MarketController {
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId
     ) {
+        if (userId == null)
+            throw new IllegalStateException("User not authenticated");
+
         var response = marketService.getHoldingAsset(userId, productId);
         return ResponseEntity.ok(response);
     }
