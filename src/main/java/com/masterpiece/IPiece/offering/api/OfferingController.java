@@ -5,6 +5,7 @@ import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.util.JwtTokenProvider;
 import com.masterpiece.IPiece.common.web.Responses;
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingListResponse;
+import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductDetailResponse;
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductResponse;
 import com.masterpiece.IPiece.offering.application.OfferingService;
 import com.masterpiece.IPiece.user.infra.UserRepository;
@@ -89,7 +90,7 @@ public class OfferingController {
 
         Long userId = extractUserIdFromToken(request);
 
-        OfferingProductResponse response = offeringService.getOfferingProductDetail(productId, userId);
+        OfferingProductDetailResponse response = offeringService.getOfferingProductDetail(productId, userId);
 
         return Responses.ok(response);
     }
