@@ -19,6 +19,7 @@ import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
 import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
 import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.market.domain.OrderType;
+import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
@@ -32,10 +33,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -52,6 +58,7 @@ public class MarketService {
     private final DividendPayoutsRepository dividendPayoutsRepository;
     private final ProductRepository productRepository;
     private final VirtualAccountRepository virtualAccountRepository;
+    private final TradeExecutionRepository tradeExecutionRepository;
     private final OrderBookRepository orderBookRepository;
     private final HoldingsRepository holdingsRepository;
 
@@ -155,6 +162,113 @@ public class MarketService {
                 .info(info)
                 .details(details)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ChartResponse getChart(Long productId,
+                                  String interval,
+                                  String cursorOptional) {
+
+        validateInterval(interval);
+
+        ZoneId timezone = ZoneId.of("Asia/Seoul");
+        OffsetDateTime now = OffsetDateTime.now(timezone);
+        OffsetDateTime start;
+        OffsetDateTime end;
+
+        if (cursorOptional == null) {
+            start = now.atZoneSameInstant(timezone)
+                    .truncatedTo(ChronoUnit.DAYS)
+                    .toOffsetDateTime();
+            end = start.plusDays(1).minusSeconds(1);
+        } else {
+            String[] parts = cursorOptional.split(":");
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("Invalid cursor format");
+            }
+            try {
+                long epoch = Long.parseLong(parts[1]);
+                start = Instant.ofEpochSecond(epoch).atZone(timezone).toOffsetDateTime();
+                end = start.plusDays(1).minusSeconds(1);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid cursor epoch value", e);
+            }
+        }
+
+        List<TradeExecution> executions =
+                tradeExecutionRepository.findInWindow(productId, start, end);
+
+        List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
+                .map(p -> ChartResponse.Point.builder()
+                        .ts(p.ts().toString())
+                        .price(p.price())
+                        .volume(p.volume())
+                        .build())
+                .toList();
+
+        OffsetDateTime previousDay = start.minusDays(1);
+        long epochCursor = previousDay.toEpochSecond();
+        String nextCursor = "c:" + epochCursor + ":" + interval;
+        
+        OffsetDateTime prevStart = start.minusDays(1);
+        OffsetDateTime prevEnd = prevStart.plusDays(1).minusSeconds(1);
+        boolean hasMore = !tradeExecutionRepository.findInWindow(productId, prevStart, prevEnd).isEmpty();
+
+        return ChartResponse.builder()
+                .product_id(productId)
+                .interval(interval)
+                .window(ChartResponse.Window.builder()
+                        .start_at(start.toString())
+                        .end_at(end.toString())
+                        .build())
+                .points(points)
+                .has_more(hasMore)
+                .next_cursor(nextCursor)
+                .fetched_at(now.toString())
+                .build();
+    }
+
+    private void validateInterval(String interval) {
+        if (interval == null || interval.isBlank()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+        Set<String> allowed = Set.of("1d", "1h", "1w");
+        if (!allowed.contains(interval)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+    }
+
+    private record AggregatedPoint(OffsetDateTime ts, Long price, Long volume) {}
+
+    private List<AggregatedPoint> aggregateByInterval(List<TradeExecution> executions, String interval, ZoneId zoneId) {
+        Map<OffsetDateTime, AggregatedPoint> buckets = new LinkedHashMap<>();
+
+        executions.stream()
+                .sorted((a, b) -> a.getMatchTime().compareTo(b.getMatchTime()))
+                .forEach(exec -> {
+                    OffsetDateTime match = exec.getMatchTime();
+                    ZonedDateTime zoned = match.atZoneSameInstant(zoneId);
+                    OffsetDateTime bucketStart;
+                    switch (interval) {
+                        case "1h" -> bucketStart = zoned.truncatedTo(ChronoUnit.HOURS).toOffsetDateTime();
+                        case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                .truncatedTo(ChronoUnit.DAYS)
+                                .toOffsetDateTime();
+                        case "1d":
+                        default -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
+                    }
+
+                    AggregatedPoint current = buckets.get(bucketStart);
+                    if (current == null) {
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, exec.getTradePrice(), exec.getTradeQuantity()));
+                    } else {
+                        long newVolume = current.volume() + exec.getTradeQuantity();
+                        long newPrice = exec.getTradePrice(); // 마지막 체결가
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, newPrice, newVolume));
+                    }
+                });
+
+        return List.copyOf(buckets.values());
     }
 
     @Transactional(readOnly = false)
@@ -326,6 +440,44 @@ public class MarketService {
                 .page(page)
                 .total(result.getTotalElements())
                 .has_next(result.hasNext())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public HoldingAssetResponse getHoldingAsset(Long userId, Long productId) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        var holding = holdingsRepository.findByVirtualAccountAndProduct(account, product)
+                .orElseThrow(() -> new IllegalArgumentException("No holdings for this product"));
+
+        long quantity = holding.getQuantity();
+        long avgBuyPrice = holding.getAvgBuyPrice();
+
+        long currentPrice = product.getCurrentPrice();
+        long totalAmount = quantity * currentPrice;
+
+        // 수익 금액 = (현재가 - 매수평균가) * 수량
+        long profitAmount = (currentPrice - avgBuyPrice) * quantity;
+
+        // 수익률 = (수익금액 / (매수평균가 * 수량)) * 100
+        double profitRate = (avgBuyPrice > 0)
+                ? Math.abs((profitAmount * 100.0) / (avgBuyPrice * quantity))
+                : 0.0;
+
+        profitRate = Math.round(profitRate * 10) / 10.0;
+
+        return HoldingAssetResponse.builder()
+                .product_name(product.getProductName())
+                .quantity(quantity)
+                .avg_buy_price(avgBuyPrice)
+                .total_amount(totalAmount)
+                .total_profit_amount(profitAmount)
+                .total_profit_rate(profitRate)
                 .build();
     }
 }

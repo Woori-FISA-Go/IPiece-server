@@ -15,7 +15,20 @@ import java.util.List;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
-    // 매칭 시간 기준 기간 조회 -> 특정 계좌 기준 체결 내역 조회
+
+    @Query("""
+        SELECT t
+          FROM TradeExecution t
+         WHERE t.product.productId = :productId
+           AND t.matchTime BETWEEN :start AND :end
+         ORDER BY t.matchTime ASC
+    """)
+    List<TradeExecution> findInWindow(
+            @Param("productId") Long productId,
+            @Param("start")     OffsetDateTime start,
+            @Param("end")       OffsetDateTime end
+    );
+
     @Query("""
         SELECT te
           FROM TradeExecution te

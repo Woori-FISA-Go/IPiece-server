@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.mypage.application.mapper;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
@@ -8,6 +9,7 @@ import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import com.masterpiece.IPiece.market.domain.TradeExecution;
 import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
+import com.masterpiece.IPiece.mypage.api.dto.AccountJournalItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
@@ -141,6 +143,22 @@ public class MypageMapper {
     }
 
     /**
+     * VirtualAccountJournal → AccountJournalItemDto 변환
+     */
+    public AccountJournalItemDto toAccountJournalItemDto(
+            VirtualAccountJournal journal
+    ) {
+        return AccountJournalItemDto.builder()
+                .journalId(journal.getJournalId())
+                .txType(journal.getTxType())
+                .description(journal.getDescription())
+                .amountKrw(journal.getAmountKrw())
+                .balanceAfter(journal.getBalanceAfter())
+                .createdAt(journal.getCreatedAt()) // BaseEntity의 createAt
+                .build();
+    }
+
+    /**
      * 전체 데이터 → MyhomeResponse 변환
      */
     public MyhomeResponse toMyhomeResponse(
@@ -230,8 +248,10 @@ public class MypageMapper {
             OffsetDateTime from,
             OffsetDateTime to
     ) {
+        OffsetDateTime fromOffset = toOffsetDateTime(from);
+        OffsetDateTime toOffset = toOffsetDateTime(to);
         List<TradeExecution> executions =
-                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
+                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, fromOffset, toOffset);
 
         return executions.stream()
                 .map(exec -> mapExecutionToHistoryItem(exec, account))
@@ -278,6 +298,11 @@ public class MypageMapper {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    private OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return null;
+        return dateTime.atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
     }
 
     /**
