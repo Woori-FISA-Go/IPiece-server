@@ -7,6 +7,7 @@ import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingListResponse;
+import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductDetailResponse;
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductResponse;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
@@ -124,8 +125,8 @@ public class OfferingService {
     /**
      * 공모 상품 상세 조회 (기존 로직)
      */
-    public OfferingProductResponse getOfferingProductDetail(Long productId, Long userId) {
-        
+    public OfferingProductDetailResponse getOfferingProductDetail(Long productId, Long userId) {
+
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
@@ -139,8 +140,9 @@ public class OfferingService {
 
         boolean isFavorited = favoriteQueryPort.existsByUserIdAndProductId(userId, productId);
 
-        return convertToOfferingProductResponse(product, offeringInfo, isFavorited);
+        return convertToOfferingProductDetailResponse(product, offeringInfo, isFavorited);
     }
+
 
     /**
      * 커서 기반 상품 조회
@@ -189,4 +191,34 @@ public class OfferingService {
                 .isFavorite(isFavorite)
                 .build();
     }
+
+
+    private OfferingProductDetailResponse convertToOfferingProductDetailResponse(
+            Product product,
+            ProductOfferingInfo offeringInfo,
+            boolean isFavorite
+    ) {
+        return OfferingProductDetailResponse.builder()
+                .productId(product.getProductId())
+                .productName(product.getProductName())
+                .owner(product.getOwner())
+                .thumbnailImg(product.getThumbnailImg())
+                .presentImg(product.getPresentImg())
+                .projectName(product.getProjectName())
+                .issueAmount(product.getIssueAmount())
+                .tokenStandard(product.getTokenStandard())
+                .exchangeListing(product.getExchangeListing())
+                .tokenQuantity(product.getTokenQuantity())
+                .tokenName(product.getTokenName())
+                .progressRate(offeringInfo.getProgressRate())
+                .offeringStartDate(offeringInfo.getOfferingStartDate())
+                .offeringEndDate(offeringInfo.getOfferingEndDate())
+                .offeringPrice(offeringInfo.getOfferingPrice())
+                .detailImg(offeringInfo.getDetailImg())
+                .offeringAmount(offeringInfo.getOfferingAmount())
+                .isFavorite(isFavorite)
+                .build();
+    }
+
+
 }
