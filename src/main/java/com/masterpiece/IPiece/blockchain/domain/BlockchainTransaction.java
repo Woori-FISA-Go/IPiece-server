@@ -40,7 +40,7 @@ public class BlockchainTransaction extends BaseEntity {
     private String tokenAddress;
 
     @Column(name = "block_number", nullable = false)
-    private Integer blockNumber;
+    private Long blockNumber;
 
     @Column(name = "block_hash", length = 66)
     private String blockHash;

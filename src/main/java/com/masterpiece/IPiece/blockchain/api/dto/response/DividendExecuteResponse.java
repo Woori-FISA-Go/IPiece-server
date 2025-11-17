@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.blockchain.api.dto.response;
 
+import com.masterpiece.IPiece.blockchain.domain.TransactionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +21,6 @@ public class DividendExecuteResponse {
     private Long remainderAmount;
     private Integer recipientCount;
     private String transactionHash;
-    private String status;
+    private TransactionStatus status;
     private LocalDateTime executedAt;
 }

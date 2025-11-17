@@ -7,6 +7,7 @@ import com.masterpiece.IPiece.blockchain.api.dto.response.DividendSimulateRespon
 import com.masterpiece.IPiece.blockchain.api.dto.response.MyDividendsResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.ProjectDividendsResponse;
 import com.masterpiece.IPiece.blockchain.application.DividendService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +30,7 @@ public class DividendController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DividendExecuteResponse> executeDividend(
-        @RequestBody DividendExecuteRequest request
+        @Valid @RequestBody DividendExecuteRequest request
     ) {
         DividendExecuteResponse response = dividendService.executeDividend(request);
         return ResponseEntity.ok(response);
@@ -38,7 +39,7 @@ public class DividendController {
     @PostMapping("/simulate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DividendSimulateResponse> simulateDividend(
-        @RequestBody DividendSimulateRequest request
+        @Valid @RequestBody DividendSimulateRequest request
     ) {
         DividendSimulateResponse response = dividendService.simulateDividend(request);
         return ResponseEntity.ok(response);

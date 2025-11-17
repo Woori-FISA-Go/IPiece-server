@@ -12,6 +12,6 @@ import java.util.List;
 @Repository
 public interface KrwtOperationRepository extends JpaRepository<KrwtOperation, Long> {
     Page<KrwtOperation> findByUserUserId(Long userId, Pageable pageable);
-    List<KrwtOperation> findByOperationType(OperationType operationType);
-    List<KrwtOperation> findByVirtualAccountAccountId(Long accountId);
+    Page<KrwtOperation> findByOperationType(OperationType operationType, Pageable pageable);
+    Page<KrwtOperation> findByVirtualAccountAccountId(Long accountId, Pageable pageable);
 }

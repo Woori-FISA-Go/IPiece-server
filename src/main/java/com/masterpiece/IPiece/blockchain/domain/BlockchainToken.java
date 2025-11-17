@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "blockchain_tokens")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

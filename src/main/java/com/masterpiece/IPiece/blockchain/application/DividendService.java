@@ -32,11 +32,13 @@ public class DividendService {
         return null; // Placeholder
     }
 
+    @Transactional(readOnly = true)
     public MyDividendsResponse getMyDividends(Long userId, int page, int size) {
         // 1. 내 배당 내역 조회 로직
         return null; // Placeholder
     }
 
+    @Transactional(readOnly = true)
     public ProjectDividendsResponse getProjectDividends(Long projectId) {
         // 1. 프로젝트별 배당 내역 조회 로직
         return null; // Placeholder

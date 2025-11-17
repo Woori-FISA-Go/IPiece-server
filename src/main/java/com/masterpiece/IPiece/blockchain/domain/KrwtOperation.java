@@ -34,7 +34,7 @@ public class KrwtOperation extends BaseEntity {
     @Column(name = "after_balance", nullable = false)
     private Long afterBalance;
 
-    @Column(name = "tx_hash", nullable = false, length = 66)
+    @Column(name = "tx_hash", length = 66)
     private String txHash;
 
     @Enumerated(EnumType.STRING)
@@ -70,5 +70,17 @@ public class KrwtOperation extends BaseEntity {
     public void fail(String errorMessage) {
         this.status = TransactionStatus.FAILED;
         this.memo = errorMessage;
+    }
+
+    public void validateBalance() {
+        if (operationType == OperationType.MINT) {
+            if (afterBalance != beforeBalance + amount) {
+                throw new IllegalStateException("입금 후 잔액이 일치하지 않습니다");
+            }
+        } else if (operationType == OperationType.BURN) {
+            if (afterBalance != beforeBalance - amount) {
+                throw new IllegalStateException("출금 후 잔액이 일치하지 않습니다");
+            }
+        }
     }
 }
