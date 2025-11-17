@@ -156,7 +156,7 @@ public class MypageService {
         // 2. 해당 계좌의 모든 저널을 최신순으로 조회
         List<VirtualAccountJournal> journals =
                 virtualAccountJournalRepository
-                        .findByVirtualAccountOrderByCreateAtDesc(account);
+                        .findByVirtualAccountOrderByCreatedAtDesc(account);
 
         // 3. DTO 변환
         List<AccountJournalItemDto> items = journals.stream()

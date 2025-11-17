@@ -156,7 +156,7 @@ public class MypageMapper {
                 .description(journal.getDescription())
                 .amountKrw(journal.getAmountKrw())
                 .balanceAfter(journal.getBalanceAfter())
-                .createdAt(journal.getCreateAt()) // BaseEntity의 createAt
+                .createdAt(journal.getCreatedAt()) // BaseEntity의 createAt
                 .build();
     }
 

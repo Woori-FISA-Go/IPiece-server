@@ -9,7 +9,7 @@ public interface VirtualAccountJournalRepository
         extends JpaRepository<VirtualAccountJournal, Long> {
 
     // 해당 계좌의 모든 저널을 created_at 기준 최신순으로 반환
-    List<VirtualAccountJournal> findByVirtualAccountOrderByCreateAtDesc(
+    List<VirtualAccountJournal> findByVirtualAccountOrderByCreatedAtDesc(
             VirtualAccount account
     );
 }
