@@ -329,4 +329,42 @@ public class MarketService {
                 .has_next(result.hasNext())
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public HoldingAssetResponse getHoldingAsset(Long userId, Long productId) {
+
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        var holding = holdingsRepository.findByVirtualAccountAndProduct(account, product)
+                .orElseThrow(() -> new IllegalArgumentException("No holdings for this product"));
+
+        long quantity = holding.getQuantity();
+        long avgBuyPrice = holding.getAvgBuyPrice();
+
+        long currentPrice = product.getCurrentPrice();
+        long totalAmount = quantity * currentPrice;
+
+        // 수익 금액 = (현재가 - 매수평균가) * 수량
+        long profitAmount = (currentPrice - avgBuyPrice) * quantity;
+
+        // 수익률 = (수익금액 / (매수평균가 * 수량)) * 100
+        double profitRate = (avgBuyPrice > 0)
+                ? Math.abs((profitAmount * 100.0) / (avgBuyPrice * quantity))
+                : 0.0;
+
+        profitRate = Math.round(profitRate * 10) / 10.0;
+
+        return HoldingAssetResponse.builder()
+                .product_name(product.getProductName())
+                .quantity(quantity)
+                .avg_buy_price(avgBuyPrice)
+                .total_amount(totalAmount)
+                .total_profit_amount(profitAmount)
+                .total_profit_rate(profitRate)
+                .build();
+    }
 }

@@ -2,10 +2,7 @@ package com.masterpiece.IPiece.market.api;
 
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
 import com.masterpiece.IPiece.market.api.dto.request.PendingOrderRequest;
-import com.masterpiece.IPiece.market.api.dto.response.OrderResponse;
-import com.masterpiece.IPiece.market.api.dto.response.PendingOrderListResponse;
-import com.masterpiece.IPiece.market.api.dto.response.ProductDetailsResponse;
-import com.masterpiece.IPiece.market.api.dto.response.ProductListResponse;
+import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.MarketService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -96,6 +93,15 @@ public class MarketController {
                 request.getPage()
         );
 
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{product_id}/asset")
+    public ResponseEntity<HoldingAssetResponse> getHoldingAsset(
+            @PathVariable("product_id") Long productId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        var response = marketService.getHoldingAsset(userId, productId);
         return ResponseEntity.ok(response);
     }
 }
