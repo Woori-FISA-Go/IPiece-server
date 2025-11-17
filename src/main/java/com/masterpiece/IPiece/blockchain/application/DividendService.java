@@ -33,7 +33,7 @@ import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.tx.gas.DefaultGasProvider;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
+
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -118,7 +118,7 @@ public class DividendService {
                 .recipientCount(0)     // TODO: 이벤트 리스너를 통해 실제 수령자 수 업데이트 필요
                 .transactionHash(transactionReceipt.getTransactionHash())
                 .status(transactionReceipt.isStatusOK() ? "COMPLETED" : "FAILED")
-                .executedAt(LocalDateTime.now())
+                .executedAt(OffsetDateTime.now())
                 .build();
     }
 

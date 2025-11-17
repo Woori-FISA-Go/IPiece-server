@@ -5,7 +5,7 @@ import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "blockchain_transactions")

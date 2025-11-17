@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "krwt_operations")
@@ -50,7 +50,7 @@ public class KrwtOperation extends BaseEntity {
     private String memo;
 
     @Column(name = "completed_at")
-    private LocalDateTime completedAt;
+    private OffsetDateTime completedAt;
 
     // 연관관계
     @ManyToOne(fetch = FetchType.LAZY)
@@ -65,7 +65,7 @@ public class KrwtOperation extends BaseEntity {
     public void complete(String txHash) {
         this.txHash = txHash;
         this.status = TransactionStatus.SUCCESS;
-        this.completedAt = LocalDateTime.now();
+        this.completedAt = OffsetDateTime.now();
     }
 
     public void fail(String errorMessage) {

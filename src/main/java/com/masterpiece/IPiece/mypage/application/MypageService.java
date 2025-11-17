@@ -100,8 +100,8 @@ public class MypageService {
         LocalDate from = LocalDate.parse(dateFrom);
         LocalDate to = LocalDate.parse(dateTo);
 
-        // 서버 기본 타임존 기준으로 OffsetDateTime 만들기
-        ZoneId zone = ZoneId.of("Asia/Seoul");
+        OffsetDateTime fromDateTime = from.atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime toDateTime = to.atTime(LocalTime.MAX).atOffset(ZoneOffset.UTC);
 
         // 시작 시각 = 00:00:00
         OffsetDateTime fromDateTime = from

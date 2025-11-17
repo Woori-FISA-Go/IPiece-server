@@ -5,35 +5,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class MyDividendsResponse {
-    private List<DividendInfo> dividends;
-    private Summary summary;
-    private int page;
-    private int size;
-    private long totalElements;
-    private int totalPages;
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class DividendInfo {
-        private Long dividendId;
-        private ProjectInfo project;
-        private Long amount;
-        private Long myTokenBalance;
-        private Long totalSupply;
-        private String mySharePercentage;
-        private String transactionHash;
-        private LocalDateTime paidAt;
-    }
+import java.time.OffsetDateTime;
+// ...
+private OffsetDateTime paidAt;    }
 
     @Getter
     @Builder

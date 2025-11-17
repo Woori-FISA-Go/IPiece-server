@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -246,8 +247,8 @@ public class MypageMapper {
      */
     public List<AccountHistoryItemDto> toAccountTradeHistory(
             VirtualAccount account,
-            OffsetDateTime fromOffset,
-            OffsetDateTime toOffset
+            OffsetDateTime from,
+            OffsetDateTime to
     ) {
         List<TradeExecution> executions =
                 tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, fromOffset, toOffset);

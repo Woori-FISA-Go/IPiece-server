@@ -6,24 +6,10 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+// ...
+private OffsetDateTime deployedAt;
 
-/**
- * DDL과 1:1 매핑된 Product 엔티티
- * - 테이블: "product"
- */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Entity
-@Table(name = "product")
-public class Product extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // BIGSERIAL
-    @Column(name = "product_id")
-    private Long productId;
 
     @Column(name = "product_name", length = 100, nullable = false)
     private String productName;
