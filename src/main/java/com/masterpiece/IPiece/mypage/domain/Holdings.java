@@ -13,7 +13,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "holdings")
+@Table(
+        name = "holdings",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"account_id", "product_id"}),
+        indexes = @Index(name = "idx_holdings_account_product", columnList = "account_id, product_id")
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -24,6 +28,10 @@ public class Holdings extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "holding_id")
     private Long holdingId;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @Setter
     @ManyToOne(fetch = FetchType.LAZY)

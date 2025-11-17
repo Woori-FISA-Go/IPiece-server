@@ -84,7 +84,7 @@ public class MarketController {
     public ResponseEntity<PendingOrderListResponse> pendingOrders(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
-            @ModelAttribute PendingOrderRequest request
+            @Valid @ModelAttribute PendingOrderRequest request
     ) {
 
         if (userId == null)

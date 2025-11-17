@@ -40,7 +40,8 @@ public enum ErrorCode {
     /* 거래/주문  4xx */
     INSUFFICIENT_BALANCE(HttpStatus.UNPROCESSABLE_ENTITY, "잔액이 부족합니다."),
     MARKET_CLOSED(HttpStatus.UNPROCESSABLE_ENTITY, "현재 거래가 불가능한 시간입니다."),
-    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문 정보를 찾을 수 없습니다.");
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문 정보를 찾을 수 없습니다."),
+    DUPLICATE_ORDER(HttpStatus.CONFLICT, "중복된 주문입니다.");
 
     private final HttpStatus status;
     private final String message;

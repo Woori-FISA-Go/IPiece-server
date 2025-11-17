@@ -18,13 +18,15 @@ import com.masterpiece.IPiece.market.application.port.TradingInfoQueryPort;
 import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.market.domain.OrderType;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
-import com.sun.jdi.request.DuplicateRequestException;
+import com.masterpiece.IPiece.common.exception.BusinessException;
+import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -171,9 +173,7 @@ public class MarketService {
 
         orderBookRepository.findByIdempotencyKey(idempotencyKey)
                 .ifPresent(existing -> {
-                    throw new DuplicateRequestException(
-                            "Duplicate idempotency key: " + idempotencyKey
-                    );
+                    throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
                 });
 
         long price = req.getOrder_price();
@@ -203,7 +203,13 @@ public class MarketService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        OrderBook saved = orderBookRepository.save(order);
+        OrderBook saved;
+        try {
+            saved = orderBookRepository.save(order);
+        } catch (DataIntegrityViolationException e) {
+            // 동시성으로 unique constraint가 먼저 걸린 경우
+            throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+        }
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -235,9 +241,7 @@ public class MarketService {
 
         orderBookRepository.findByIdempotencyKey(idempotencyKey)
                 .ifPresent(existing -> {
-                    throw new DuplicateRequestException(
-                            "Duplicate idempotency key: " + idempotencyKey
-                    );
+                    throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
                 });
 
         long price = req.getOrder_price();
@@ -268,7 +272,12 @@ public class MarketService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        OrderBook saved = orderBookRepository.save(order);
+        OrderBook saved;
+        try {
+            saved = orderBookRepository.save(order);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
+        }
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -287,26 +296,32 @@ public class MarketService {
 
     public PendingOrderListResponse getPendingOrders(Long userId, Long productId, int page) {
 
+        if (page < 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+
         int pageIndex = page - 1; // JPA는 0-base 페이지
         int size = 10;
 
         var pageable = PageRequest.of(pageIndex, size);
         var result = orderBookRepository.findPendingOrders(userId, productId, pageable);
 
-        var items = result.getContent().stream().map(ob ->
-                PendingOrderItem.builder()
-                        .order_id(String.valueOf(ob.getOrderId()))
-                        .product_id(productId)
-                        .product_name(ob.getProduct().getProductName())
-                        .order_type(ob.getOrderType().name())
-                        .price(ob.getOrderPrice())
-                        .quantity(ob.getOrderQuantity())
-                        .filled_quantity(ob.getOrderQuantity() - ob.getRemainQuantity())
-                        .remaining_quantity(ob.getRemainQuantity())
-                        .amount(ob.getOrderPrice() * ob.getOrderQuantity())
-                        .placed_at(ob.getClientTime().toString())
-                        .build()
-        ).collect(Collectors.toList());
+        var items = result.getContent().stream().map(ob -> {
+            long remain = ob.getRemainQuantity() == null ? 0L : ob.getRemainQuantity();
+            long filled = ob.getOrderQuantity() - remain;
+            return PendingOrderItem.builder()
+                    .order_id(String.valueOf(ob.getOrderId()))
+                    .product_id(productId)
+                    .product_name(ob.getProduct().getProductName())
+                    .order_type(ob.getOrderType().name())
+                    .price(ob.getOrderPrice())
+                    .quantity(ob.getOrderQuantity())
+                    .filled_quantity(filled)
+                    .remaining_quantity(remain)
+                    .amount(ob.getOrderPrice() * ob.getOrderQuantity())
+                    .placed_at(ob.getClientTime().toString())
+                    .build();
+        }).collect(Collectors.toList());
 
         return PendingOrderListResponse.builder()
                 .items(items)

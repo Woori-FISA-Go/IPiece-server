@@ -40,8 +40,9 @@ public class OrderBook extends BaseEntity {
     @Column(name = "order_quantity", nullable = false)
     private Long orderQuantity;
 
-    @Column(name = "remain_quantity")
-    private Long remainQuantity;
+    @Column(name = "remain_quantity", nullable = false)
+    @Builder.Default
+    private Long remainQuantity = 0L;
 
     @Column(name = "client_time", columnDefinition = "timestamp", nullable = false)
     private LocalDateTime clientTime;
