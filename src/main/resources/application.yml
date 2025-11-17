@@ -42,9 +42,7 @@ jwt:
     api-secret: ${SOLAPI_API_SECRET}
     sender: ${SOLAPI_SENDER}
 
+besu:
+  rpc-url: ${BESU_RPC_URL}
 admin:
   private-key: ${ADMIN_PRIVATE_KEY}
-
-
-
-
