@@ -84,7 +84,7 @@ public class Product extends BaseEntity {
     private String deploymentTxHash;
 
     @Column(name = "deployed_at")
-    private LocalDateTime deployedAt;
+    private OffsetDateTime deployedAt;
 
 
 

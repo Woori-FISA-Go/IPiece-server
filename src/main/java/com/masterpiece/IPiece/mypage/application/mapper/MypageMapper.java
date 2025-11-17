@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -245,11 +246,9 @@ public class MypageMapper {
      */
     public List<AccountHistoryItemDto> toAccountTradeHistory(
             VirtualAccount account,
-            OffsetDateTime from,
-            OffsetDateTime to
+            OffsetDateTime fromOffset,
+            OffsetDateTime toOffset
     ) {
-        OffsetDateTime fromOffset = toOffsetDateTime(from);
-        OffsetDateTime toOffset = toOffsetDateTime(to);
         List<TradeExecution> executions =
                 tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, fromOffset, toOffset);
 
@@ -300,10 +299,6 @@ public class MypageMapper {
                 .collect(Collectors.toList());
     }
 
-    private OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
-        if (dateTime == null) return null;
-        return dateTime.atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
-    }
 
     /**
      * 단일 체결내역 → 이 계좌 기준 history 아이템으로 변환
