@@ -312,7 +312,7 @@ public class MypageMapper {
             tradeAmount = +tradeAmount;
         }
 
-        String description = product.getProductName() + " " + type;
+        String description = product.getProductName() + " 토큰 " + type;
 
         String createdAt = time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
