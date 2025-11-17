@@ -36,11 +36,15 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -170,12 +174,15 @@ public class MarketService {
 
         validateInterval(interval);
 
-        OffsetDateTime now = OffsetDateTime.now();
+        ZoneId timezone = ZoneId.of("Asia/Seoul");
+        OffsetDateTime now = OffsetDateTime.now(timezone);
         OffsetDateTime start;
         OffsetDateTime end;
 
         if (cursorOptional == null) {
-            start = now.truncatedTo(ChronoUnit.DAYS);
+            start = now.atZoneSameInstant(timezone)
+                    .truncatedTo(ChronoUnit.DAYS)
+                    .toOffsetDateTime();
             end = start.plusDays(1).minusSeconds(1);
         } else {
             String[] parts = cursorOptional.split(":");
@@ -184,7 +191,7 @@ public class MarketService {
             }
             try {
                 long epoch = Long.parseLong(parts[1]);
-                start = Instant.ofEpochSecond(epoch).atZone(ZoneId.of("UTC")).toOffsetDateTime();
+                start = Instant.ofEpochSecond(epoch).atZone(timezone).toOffsetDateTime();
                 end = start.plusDays(1).minusSeconds(1);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid cursor epoch value", e);
@@ -194,13 +201,13 @@ public class MarketService {
         List<TradeExecution> executions =
                 tradeExecutionRepository.findInWindow(productId, start, end);
 
-        List<ChartResponse.Point> points = executions.stream().map(t ->
-                ChartResponse.Point.builder()
-                        .ts(t.getMatchTime().toString())
-                        .price(t.getTradePrice())
-                        .volume(t.getTradeQuantity())
-                        .build()
-        ).toList();
+        List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
+                .map(p -> ChartResponse.Point.builder()
+                        .ts(p.ts().toString())
+                        .price(p.price())
+                        .volume(p.volume())
+                        .build())
+                .toList();
 
         OffsetDateTime previousDay = start.minusDays(1);
         long epochCursor = previousDay.toEpochSecond();
@@ -232,6 +239,39 @@ public class MarketService {
         if (!allowed.contains(interval)) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
+    }
+
+    private record AggregatedPoint(OffsetDateTime ts, Long price, Long volume) {}
+
+    private List<AggregatedPoint> aggregateByInterval(List<TradeExecution> executions, String interval, ZoneId zoneId) {
+        Map<OffsetDateTime, AggregatedPoint> buckets = new LinkedHashMap<>();
+
+        executions.stream()
+                .sorted((a, b) -> a.getMatchTime().compareTo(b.getMatchTime()))
+                .forEach(exec -> {
+                    OffsetDateTime match = exec.getMatchTime();
+                    ZonedDateTime zoned = match.atZoneSameInstant(zoneId);
+                    OffsetDateTime bucketStart;
+                    switch (interval) {
+                        case "1h" -> bucketStart = zoned.truncatedTo(ChronoUnit.HOURS).toOffsetDateTime();
+                        case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                                .truncatedTo(ChronoUnit.DAYS)
+                                .toOffsetDateTime();
+                        case "1d":
+                        default -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
+                    }
+
+                    AggregatedPoint current = buckets.get(bucketStart);
+                    if (current == null) {
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, exec.getTradePrice(), exec.getTradeQuantity()));
+                    } else {
+                        long newVolume = current.volume() + exec.getTradeQuantity();
+                        long newPrice = exec.getTradePrice(); // 마지막 체결가
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, newPrice, newVolume));
+                    }
+                });
+
+        return List.copyOf(buckets.values());
     }
 
     @Transactional(readOnly = false)
