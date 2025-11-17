@@ -6,6 +6,7 @@ import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.util.StringUtils;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
@@ -15,6 +16,7 @@ import org.web3j.protocol.http.HttpService;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@Profile("!test")
 public class Web3jConfig {
 
     @Value("${besu.rpc-url}")
