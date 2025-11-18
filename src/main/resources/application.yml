@@ -36,6 +36,10 @@ jwt:
   expiration-ms: 241920000          # AccessToken 28일 -> 개발 완료 후 조정 필요
   refresh-expiration-ms: 604800000 # RefreshToken 7일
 
+krwt:
+  contract:
+    address: ${KRWT_CONTRACT_ADDRESS}
+
 
   solapi:
     api-key: ${SOLAPI_API_KEY}

@@ -6,8 +6,27 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
-// ...
-private OffsetDateTime paidAt;    }
+import java.util.List;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class MyDividendsResponse {
+    private Summary summary;
+    private List<DividendItem> items;
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DividendItem {
+        private Long dividendId;
+        private ProjectInfo project;
+        private Long amount;
+        private OffsetDateTime paidAt;
+        private String status;
+    }
 
     @Getter
     @Builder
