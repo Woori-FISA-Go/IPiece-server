@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.market.infra.jpa;
 
 import com.masterpiece.IPiece.market.domain.OrderBook;
+import com.masterpiece.IPiece.market.infra.jpa.projection.OrderBookItemProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
@@ -52,4 +53,26 @@ public interface OrderBookRepository extends JpaRepository<OrderBook, Long> {
      ORDER BY o.orderPrice DESC, o.createdAt ASC
     """)
     List<OrderBook> findMatchableBuyOrders(Long productId, Long sellPrice);
+
+    @Query("""
+    SELECT o.orderPrice AS price, SUM(o.remainQuantity) AS qty
+      FROM OrderBook o
+     WHERE o.product.productId = :productId
+       AND o.orderType = com.masterpiece.IPiece.market.domain.OrderType.SELL
+       AND o.pendingStatus = true
+     GROUP BY o.orderPrice
+     ORDER BY o.orderPrice ASC
+    """)
+    List<OrderBookItemProjection> findSellOrderLevels(@Param("productId") Long productId);
+
+    @Query("""
+    SELECT o.orderPrice AS price, SUM(o.remainQuantity) AS qty
+      FROM OrderBook o
+     WHERE o.product.productId = :productId
+       AND o.orderType = com.masterpiece.IPiece.market.domain.OrderType.BUY
+       AND o.pendingStatus = true
+     GROUP BY o.orderPrice
+     ORDER BY o.orderPrice DESC
+    """)
+    List<OrderBookItemProjection> findBuyOrderLevels(@Param("productId") Long productId);
 }
