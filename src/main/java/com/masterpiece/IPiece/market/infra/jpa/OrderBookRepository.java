@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface OrderBookRepository extends JpaRepository<OrderBook, Long> {
@@ -29,4 +30,26 @@ public interface OrderBookRepository extends JpaRepository<OrderBook, Long> {
             @Param("productId") Long productId,
             Pageable pageable
     );
+
+    @Query("""
+    SELECT o
+      FROM OrderBook o
+     WHERE o.product.productId = :productId
+       AND o.orderType = com.masterpiece.IPiece.market.domain.OrderType.SELL
+       AND o.pendingStatus = true
+       AND o.orderPrice <= :buyPrice
+     ORDER BY o.orderPrice ASC, o.createdAt ASC
+    """)
+    List<OrderBook> findMatchableSellOrders(Long productId, Long buyPrice);
+
+    @Query("""
+    SELECT o
+      FROM OrderBook o
+     WHERE o.product.productId = :productId
+       AND o.orderType = com.masterpiece.IPiece.market.domain.OrderType.BUY
+       AND o.pendingStatus = true
+       AND o.orderPrice >= :sellPrice
+     ORDER BY o.orderPrice DESC, o.createdAt ASC
+    """)
+    List<OrderBook> findMatchableBuyOrders(Long productId, Long sellPrice);
 }
