@@ -50,8 +50,7 @@ public enum ErrorCode {
 
     /* 상품/블록체인 */
     CONTRACT_ADDRESS_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "컨트랙트 주소가 등록되지 않았습니다."),
-    BLOCKCHAIN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "블록체인 연동 중 오류가 발생했습니다."),
-    DUPLICATE_ORDER(HttpStatus.CONFLICT, "중복된 주문입니다.");
+    BLOCKCHAIN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "블록체인 연동 중 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String message;

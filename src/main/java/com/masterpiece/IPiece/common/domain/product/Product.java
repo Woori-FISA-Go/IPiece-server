@@ -1,6 +1,11 @@
 package com.masterpiece.IPiece.common.domain.product;
 
 import com.masterpiece.IPiece.common.domain.BaseEntity;
+import com.masterpiece.IPiece.dividends.domain.Dividends;
+import com.masterpiece.IPiece.favorite.domain.FavoriteList;
+import com.masterpiece.IPiece.market.domain.OrderBook;
+import com.masterpiece.IPiece.market.domain.TradeExecution;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -28,6 +33,9 @@ public class Product extends BaseEntity {
 
     @Column(name = "token_name", nullable = false, length = 50)
     private String tokenName;
+
+    @Column(name = "issue_amount")
+    private Long issueAmount;
 
     @Column(name = "total_token_quantity", nullable = false)
     private Long totalTokenQuantity;

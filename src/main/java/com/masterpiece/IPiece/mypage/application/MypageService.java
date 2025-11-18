@@ -103,17 +103,6 @@ public class MypageService {
         OffsetDateTime fromDateTime = from.atStartOfDay().atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
         OffsetDateTime toDateTime = to.atTime(LocalTime.MAX).atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
 
-        // 시작 시각 = 00:00:00
-        OffsetDateTime fromDateTime = from
-                .atStartOfDay(zone)
-                .toOffsetDateTime();
-
-        // 끝 시각 = 23:59:59.999...
-        OffsetDateTime toDateTime = to
-                .atTime(LocalTime.MAX)
-                .atZone(zone)
-                .toOffsetDateTime();
-
 
         // 1. 가상계좌 조회
         Optional<VirtualAccount> optionalAccount = virtualAccountRepository.findByUser_UserId(userId);
