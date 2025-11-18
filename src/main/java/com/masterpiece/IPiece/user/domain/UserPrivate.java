@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Getter
 @Table(name = "user_private")

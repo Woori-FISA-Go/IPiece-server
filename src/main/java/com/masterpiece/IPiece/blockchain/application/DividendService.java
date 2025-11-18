@@ -18,6 +18,8 @@ import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.dividends.domain.DividendStatus;
 import com.masterpiece.IPiece.dividends.domain.Dividends;
 import com.masterpiece.IPiece.dividends.infra.DividendsRepository;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import io.micrometer.common.util.StringUtils;
@@ -31,8 +33,11 @@ import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.tx.gas.DefaultGasProvider;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
+
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +50,7 @@ public class DividendService {
     private final UserRepository userRepository;
     private final BlockchainTransactionRepository blockchainTransactionRepository;
     private final DividendsRepository dividendsRepository;
+    private final HoldingsRepository holdingsRepository;
 
     public DividendExecuteResponse executeDividend(Long userId, DividendExecuteRequest request) {
         // 1. Product 및 컨트랙트 정보 조회
@@ -112,13 +118,60 @@ public class DividendService {
                 .recipientCount(0)     // TODO: 이벤트 리스너를 통해 실제 수령자 수 업데이트 필요
                 .transactionHash(transactionReceipt.getTransactionHash())
                 .status(transactionReceipt.isStatusOK() ? "COMPLETED" : "FAILED")
-                .executedAt(LocalDateTime.now())
+                .executedAt(OffsetDateTime.now())
                 .build();
     }
 
     public DividendSimulateResponse simulateDividend(DividendSimulateRequest request) {
-        // 1. 시뮬레이션 로직
-        throw new UnsupportedOperationException("배당 시뮬레이션 기능이 아직 구현되지 않았습니다");
+        // 1. Product 및 토큰 보유자 목록 조회
+        Product product = productRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        List<Holdings> holdings = holdingsRepository.findAllByProduct(product);
+
+        // 2. 총 배당금을 기반으로 토큰 당 배당금 계산
+        long totalTokenSupply = product.getTokenQuantity();
+        long totalDividendAmount = request.getTotalAmount();
+
+        final long dividendPerToken;
+        final long remainder;
+
+        if (totalTokenSupply > 0) {
+            dividendPerToken = totalDividendAmount / totalTokenSupply;
+            remainder = totalDividendAmount % totalTokenSupply;
+        } else {
+            dividendPerToken = 0L;
+            remainder = totalDividendAmount; // If no tokens, all amount is remainder
+        }
+
+        // 3. 각 보유자별 예상 수령액 계산
+        List<DividendSimulateResponse.TopHolder> topHolders = holdings.stream()
+                .map(holding -> {
+                    long estimatedDividend = holding.getQuantity() * dividendPerToken;
+                    return DividendSimulateResponse.TopHolder.builder()
+                            .address(holding.getVirtualAccount().getWalletAddress())
+                            .balance(holding.getQuantity())
+                            .estimatedDividend(estimatedDividend)
+                            .build();
+                })
+                .sorted((h1, h2) -> Long.compare(h2.getEstimatedDividend(), h1.getEstimatedDividend())) // 내림차순 정렬
+                .limit(10) // 상위 10명만 표시
+                .toList();
+
+        // 4. DividendSimulateResponse DTO에 결과 담아 반환
+        long estimatedDistributed = totalDividendAmount - remainder;
+        int numberOfHolders = holdings.size();
+
+        return DividendSimulateResponse.builder()
+                .canDistribute(true) // 시뮬레이션이므로 항상 true
+                .projectName(product.getProjectName())
+                .totalSupply(totalTokenSupply)
+                .holders(numberOfHolders)
+                .amountPerToken(dividendPerToken)
+                .estimatedDistributed(estimatedDistributed)
+                .estimatedRemainder(remainder)
+                .topHolders(topHolders)
+                .build();
     }
 
     @Transactional(readOnly = true)

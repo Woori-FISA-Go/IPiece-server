@@ -5,12 +5,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class DividendExecuteResponse {
     private Long dividendId;
     private Long projectId;
@@ -21,5 +21,5 @@ public class DividendExecuteResponse {
     private Integer recipientCount;
     private String transactionHash;
     private String status;
-    private LocalDateTime executedAt;
+    private OffsetDateTime executedAt;
 }

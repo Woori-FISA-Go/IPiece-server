@@ -5,7 +5,7 @@ import com.masterpiece.IPiece.common.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "blockchain_tokens")
@@ -40,7 +40,7 @@ public class BlockchainToken extends BaseEntity {
     private String ownerAddress;
 
     @Column(name = "deployed_at", nullable = false)
-    private LocalDateTime deployedAt;
+    private OffsetDateTime deployedAt;
 
     @Column(name = "deployment_tx_hash", length = 66)
     private String deploymentTxHash;
