@@ -10,8 +10,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -32,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenBlacklistService tokenBlacklistService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserRepository userRepository;
+    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -72,11 +77,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         /// 1) 토큰에서 userId 추출
         String userIdStr = jwtTokenProvider.getSubject(token);
-        Long userId = Long.valueOf(userIdStr);
-
-
+        UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr); // Use the service
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userId, null, null);
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()); // Use UserDetails
 
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
