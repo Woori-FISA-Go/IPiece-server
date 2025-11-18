@@ -44,6 +44,9 @@ public class ProductOfferingInfo extends BaseEntity {
     private Long offeringPrice;
 
 
+    public void updateProgressRate(int rate) {
+        this.progressRate = rate;
+    }
 }
 
 

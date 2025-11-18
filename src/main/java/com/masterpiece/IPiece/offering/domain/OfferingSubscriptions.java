@@ -29,10 +29,6 @@ import java.time.OffsetDateTime;
         @Column(name = "applied_amount_krw", nullable = false)
         private Long appliedAmountKrw;
 
-        @Enumerated(EnumType.STRING) // ← status를 Enum으로 매핑
-        @Column(name = "status", length = 16, nullable = false)
-        private OfferingStatus status;
-
         @ManyToOne(fetch = FetchType.LAZY, optional = false)
         @JoinColumn(name = "product_id", nullable = false)
         private ProductOfferingInfo productOfferingInfo;

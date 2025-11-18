@@ -79,9 +79,10 @@ public class OfferingController {
      * 헤더:
      * - Authorization: Bearer {accessToken} (선택사항)
      */
-    @GetMapping("/detail/{productId}")
+
+    @GetMapping("/{product_id}/detail")
     public ResponseEntity<?> getOfferingProductDetail(
-            @PathVariable Long productId,
+            @PathVariable("product_id") Long productId,
             HttpServletRequest request
     ) {
         if (productId == null || productId <= 0) {
