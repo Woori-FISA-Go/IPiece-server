@@ -326,7 +326,7 @@ public class MarketService {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        orderMatchingService.match(savedOrder);
+        orderMatchingService.matchWithRetry(savedOrder);
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -395,7 +395,7 @@ public class MarketService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        orderMatchingService.match(savedOrder);
+        orderMatchingService.matchWithRetry(savedOrder);
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -528,12 +528,12 @@ public class MarketService {
                 new OrderBookResponse.Summary(
                         highest,
                         lowest,
-                        prevClose,
+                        currentPrice,
                         priceChange,
                         limitUp,
                         limitDown,
-                        thisWeekVol,
-                        lastWeekVol
+                        thisWeekVol != null ? thisWeekVol : 0L,
+                        lastWeekVol != null ? lastWeekVol : 0L
                 );
 
         return new OrderBookResponse(summary, sellItems, buyItems);

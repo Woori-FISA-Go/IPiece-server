@@ -11,11 +11,13 @@ import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import jakarta.persistence.OptimisticLockException;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,26 @@ public class OrderMatchingService {
             matchBuyOrder(incomingOrder);
         } else {
             matchSellOrder(incomingOrder);
+        }
+    }
+
+    /**
+     * 낙관적 락 충돌 시 재시도
+     */
+    public void matchWithRetry(OrderBook incomingOrder) {
+        int attempts = 0;
+        while (true) {
+            try {
+                match(incomingOrder);
+                return;
+            } catch (OptimisticLockException | OptimisticLockingFailureException e) {
+                attempts++;
+                if (attempts >= 3) {
+                    throw e;
+                }
+                incomingOrder = orderBookRepository.findById(incomingOrder.getOrderId())
+                        .orElseThrow(() -> e);
+            }
         }
     }
 

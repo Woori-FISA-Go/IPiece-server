@@ -41,7 +41,8 @@ public interface OrderBookRepository extends JpaRepository<OrderBook, Long> {
        AND o.orderPrice <= :buyPrice
      ORDER BY o.orderPrice ASC, o.createdAt ASC
     """)
-    List<OrderBook> findMatchableSellOrders(Long productId, Long buyPrice);
+    List<OrderBook> findMatchableSellOrders(@Param("productId") Long productId,
+                                            @Param("buyPrice") Long buyPrice);
 
     @Query("""
     SELECT o
@@ -52,7 +53,8 @@ public interface OrderBookRepository extends JpaRepository<OrderBook, Long> {
        AND o.orderPrice >= :sellPrice
      ORDER BY o.orderPrice DESC, o.createdAt ASC
     """)
-    List<OrderBook> findMatchableBuyOrders(Long productId, Long sellPrice);
+    List<OrderBook> findMatchableBuyOrders(@Param("productId") Long productId,
+                                           @Param("sellPrice") Long sellPrice);
 
     @Query("""
     SELECT o.orderPrice AS price, SUM(o.remainQuantity) AS qty
