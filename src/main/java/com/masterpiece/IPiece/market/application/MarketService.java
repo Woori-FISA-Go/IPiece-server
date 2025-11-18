@@ -66,6 +66,8 @@ public class MarketService {
 
     private final ProductMapper productMapper;
 
+    private final OrderMatchingService orderMatchingService;
+
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
                 productQueryPort.findTradeProducts(pageable);
@@ -317,17 +319,18 @@ public class MarketService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        OrderBook saved;
+        OrderBook savedOrder;
         try {
-            saved = orderBookRepository.save(order);
+            savedOrder = orderBookRepository.save(order);
         } catch (DataIntegrityViolationException e) {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
+        orderMatchingService.match(savedOrder);
 
         return OrderResponse.builder()
                 .status_code(200)
-                .order_id(saved.getOrderId().toString())
+                .order_id(savedOrder.getOrderId().toString())
                 .product_id(productId)
                 .side("BUY")
                 .order_price(price)
@@ -386,16 +389,17 @@ public class MarketService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        OrderBook saved;
+        OrderBook savedOrder;
         try {
-            saved = orderBookRepository.save(order);
+            savedOrder = orderBookRepository.save(order);
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
+        orderMatchingService.match(savedOrder);
 
         return OrderResponse.builder()
                 .status_code(200)
-                .order_id(saved.getOrderId().toString())
+                .order_id(savedOrder.getOrderId().toString())
                 .product_id(productId)
                 .side("SELL")
                 .order_price(price)
