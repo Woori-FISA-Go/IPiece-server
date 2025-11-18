@@ -1,6 +1,9 @@
 package com.masterpiece.IPiece.blockchain.application;
 
 import com.masterpiece.IPiece.blockchain.api.dto.response.KrwtBalanceResponse;
+import com.masterpiece.IPiece.blockchain.infra.jpa.WalletRepository;
+import com.masterpiece.IPiece.common.exception.BlockchainException;
+import com.masterpiece.IPiece.common.exception.WalletNotFoundException;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,16 +17,20 @@ import java.math.BigDecimal;
 public class BlockchainService {
 
     private final BesuClient besuClient;
+    private final WalletRepository walletRepository;
 
     public KrwtBalanceResponse getKrwtBalance(Long userId) {
-        // TODO: Get wallet address for userId
-        String walletAddress = "0x..."; // Placeholder for user's wallet address
+        String walletAddress = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new WalletNotFoundException("User " + userId + " has no wallet"))
+                .getAddress();
 
-        // Interact with BesuClient to get KRWT balance
-        BigDecimal balance = besuClient.getKrwtBalance(walletAddress);
-
-        return KrwtBalanceResponse.builder()
-                .balance(balance)
-                .build();
+        try {
+            BigDecimal balance = besuClient.getKrwtBalance(walletAddress);
+            return KrwtBalanceResponse.builder()
+                    .balance(balance)
+                    .build();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch KRWT balance for wallet: " + walletAddress, e);
+        }
     }
 }

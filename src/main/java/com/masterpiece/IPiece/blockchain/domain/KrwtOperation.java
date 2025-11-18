@@ -78,10 +78,13 @@ public class KrwtOperation extends BaseEntity {
             if (afterBalance.compareTo(beforeBalance.add(amount)) != 0) {
                 throw new IllegalStateException("입금 후 잔액이 일치하지 않습니다");
             }
-        } else if (operationType == OperationType.BURN) {
+        } else if (operationType == OperationType.BURN || operationType == OperationType.TRANSFER) { // Assume TRANSFER is an outgoing operation for now
             if (afterBalance.compareTo(beforeBalance.subtract(amount)) != 0) {
-                throw new IllegalStateException("출금 후 잔액이 일치하지 않습니다");
+                throw new IllegalStateException("잔액이 일치하지 않습니다");
             }
+        } else if (operationType == OperationType.OTHER) {
+            // For OTHER types, specific validation might be needed based on context.
+            // For now, no specific balance validation assumed.
         }
     }
 }
