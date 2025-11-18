@@ -1,6 +1,6 @@
 package com.masterpiece.IPiece.mypage.api.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.OffsetDateTime;
 
 import lombok.Builder;

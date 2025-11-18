@@ -5,51 +5,34 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Getter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ProjectDividendsResponse {
-    private ProjectInfo project;
-    private List<DividendInfo> dividends;
-    private Summary summary;
+    private Long projectId;
+    private String projectName;
+    private Long totalDistributedAmount;
+    private Long totalRemainderAmount;
+    private Integer totalRecipientCount;
+    private List<DividendItem> items;
 
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ProjectInfo {
-        private Long id;
-        private String name;
-        private String tokenAddress;
-        private String dividendAddress;
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class DividendInfo {
-        private Long id;
+    public static class DividendItem {
+        private Long dividendId;
         private Long totalAmount;
         private Long distributedAmount;
         private Long remainderAmount;
         private Integer recipientCount;
-        private Long perShare;
         private String transactionHash;
-        private LocalDateTime executedAt;
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Summary {
-        private Integer totalDistributions;
-        private Long totalDistributed;
-        private LocalDateTime lastDistribution;
+        private String status;
+        private OffsetDateTime executedAt;
+        private OffsetDateTime lastDistribution;
     }
 }

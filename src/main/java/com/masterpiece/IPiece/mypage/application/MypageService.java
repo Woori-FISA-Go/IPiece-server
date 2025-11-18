@@ -100,19 +100,8 @@ public class MypageService {
         LocalDate from = LocalDate.parse(dateFrom);
         LocalDate to = LocalDate.parse(dateTo);
 
-        // 서버 기본 타임존 기준으로 OffsetDateTime 만들기
-        ZoneId zone = ZoneId.of("Asia/Seoul");
-
-        // 시작 시각 = 00:00:00
-        OffsetDateTime fromDateTime = from
-                .atStartOfDay(zone)
-                .toOffsetDateTime();
-
-        // 끝 시각 = 23:59:59.999...
-        OffsetDateTime toDateTime = to
-                .atTime(LocalTime.MAX)
-                .atZone(zone)
-                .toOffsetDateTime();
+        OffsetDateTime fromDateTime = from.atStartOfDay().atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
+        OffsetDateTime toDateTime = to.atTime(LocalTime.MAX).atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
 
 
         // 1. 가상계좌 조회

@@ -246,11 +246,11 @@ public class MypageMapper {
      */
     public List<AccountHistoryItemDto> toAccountTradeHistory(
             VirtualAccount account,
-            OffsetDateTime fromOffset,
-            OffsetDateTime toOffset
+            OffsetDateTime from,
+            OffsetDateTime to
     ) {
         List<TradeExecution> executions =
-                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, fromOffset, toOffset);
+                tradeExecutionRepository.findByAccountAndMatchTimeBetween(account, from, to);
 
         return executions.stream()
                 .map(exec -> mapExecutionToHistoryItem(exec, account))
@@ -298,6 +298,7 @@ public class MypageMapper {
                 })
                 .collect(Collectors.toList());
     }
+
 
 
     /**

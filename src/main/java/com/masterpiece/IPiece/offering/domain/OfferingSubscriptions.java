@@ -6,6 +6,8 @@ import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.OffsetDateTime;
+
     @Getter @Setter
     @NoArgsConstructor @AllArgsConstructor @Builder
     @Entity

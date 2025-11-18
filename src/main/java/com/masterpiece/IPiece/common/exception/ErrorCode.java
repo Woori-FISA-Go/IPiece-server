@@ -46,17 +46,17 @@ public enum ErrorCode {
     INSUFFICIENT_BALANCE(HttpStatus.UNPROCESSABLE_ENTITY, "잔액이 부족합니다."),
     MARKET_CLOSED(HttpStatus.UNPROCESSABLE_ENTITY, "현재 거래가 불가능한 시간입니다."),
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문 정보를 찾을 수 없습니다."),
-    INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "공모 가능한 수량이 없습니다."),
 
     /* 공모 */
     INSUFFICIENT_OFFERING_STOCK(HttpStatus.UNPROCESSABLE_ENTITY, "공모 가능 수량이 부족합니다."),
     VIRTUAL_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자의 가상계좌를 찾을 수 없습니다."),
     OFFERING_AMOUNT_INVALID(HttpStatus.UNPROCESSABLE_ENTITY, "공모 총 수량이 올바르지 않습니다."),
+    DUPLICATE_ORDER(HttpStatus.CONFLICT, "중복된 주문입니다."),
+    INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "공모 가능한 수량이 없습니다."),
 
     /* 상품/블록체인 */
     CONTRACT_ADDRESS_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "컨트랙트 주소가 등록되지 않았습니다."),
-    BLOCKCHAIN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "블록체인 연동 중 오류가 발생했습니다."),
-    DUPLICATE_ORDER(HttpStatus.CONFLICT, "중복된 주문입니다.");
+    BLOCKCHAIN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "블록체인 연동 중 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String message;
