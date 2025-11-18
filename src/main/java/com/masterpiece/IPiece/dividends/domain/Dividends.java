@@ -25,10 +25,10 @@ public class Dividends extends BaseEntity {
     @JoinColumn(name = "product_id")
     private Product product;
 
-    @Column(name = "record_date", nullable = false)
+    @Column(name = "record_date", nullable = false, columnDefinition = "timestamptz")
     private OffsetDateTime recordDate;
 
-    @Column(name = "payout_date", nullable = false)
+    @Column(name = "payout_date", nullable = false, columnDefinition = "timestamptz")
     private OffsetDateTime payoutDate;
 
     @Enumerated(EnumType.STRING)
