@@ -41,7 +41,7 @@ solapi:
   sender: dummy_solapi_sender
 
 admin:
-  private-key: ${ADMIN_PRIVATE_KEY}
+  private-key: ${ADMIN_PRIVATE_KEY:0x0000000000000000000000000000000000000000000000000000000000000001}
 
 besu:
   rpc-url: http://172.16.4.60:8545
