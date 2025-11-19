@@ -6,6 +6,8 @@ import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
 import com.masterpiece.IPiece.mypage.application.MypageService;
 import com.masterpiece.IPiece.user.domain.User;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,6 +29,7 @@ public class MypageController {
      * GET /v1/mypage/myhome?page=1
      */
     @GetMapping("/myhome")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<MyhomeResponse> getMyHome(
             @AuthenticationPrincipal Long userId,
             @RequestParam(defaultValue = "1") int page
@@ -40,6 +43,7 @@ public class MypageController {
      * GET /v1/mypage/favorites
      */
     @GetMapping("/favorites")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<FavoriteListResponse> getFavorites(
             @AuthenticationPrincipal Long userId
     ) {
@@ -52,6 +56,7 @@ public class MypageController {
      * GET /v1/mypage/account?date_from=2025-09-23&date_to=2025-10-23
      */
     @GetMapping("/account")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AccountHistoryResponse> getAccountHistory(
             @AuthenticationPrincipal Long userId,
             @RequestParam("date_from") String dateFrom,
@@ -66,6 +71,7 @@ public class MypageController {
      * GET /v1/mypage/account/journals
      */
     @GetMapping("/account/journals")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AccountJournalResponse> getAccountJournals(
             @AuthenticationPrincipal Long userId
     ) {

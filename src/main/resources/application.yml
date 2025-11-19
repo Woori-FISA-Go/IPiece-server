@@ -54,13 +54,12 @@ admin:
   private-key: ${ADMIN_PRIVATE_KEY}
 
 springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    url: /v3/api-docs
-    operationsSorter: method
-    tagsSorter: alpha
-    enabled: true
   override-with-generic-response: false
   api-docs:
     path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
     enabled: true
