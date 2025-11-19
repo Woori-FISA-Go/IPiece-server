@@ -20,7 +20,12 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // JWT의 subject에 저장된 userId를 사용합니다.
-        Long userId = Long.parseLong(username);
+        Long userId;
+        try {
+            userId = Long.parseLong(username);
+        } catch (NumberFormatException e) {
+            throw new UsernameNotFoundException("Invalid user id in JWT subject: " + username, e);
+        }
 
         // 1. DB에서 우리 시스템의 User 엔티티를 조회합니다.
         User ourUser = userRepository.findById(userId)

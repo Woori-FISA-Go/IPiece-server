@@ -34,7 +34,7 @@ public class WalletService {
                 .map(holding -> {
                     BigDecimal balance = new BigDecimal(holding.getQuantity());
                     BigDecimal totalSupply = new BigDecimal(holding.getProduct().getTotalTokenQuantity());
-                    BigDecimal sharePercentage = totalSupply.equals(BigDecimal.ZERO) ? BigDecimal.ZERO :
+                    BigDecimal sharePercentage = totalSupply.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO :
                             balance.divide(totalSupply, 4, RoundingMode.HALF_UP).multiply(new BigDecimal(100));
 
                     return MyWalletResponse.TokenInfo.builder()
