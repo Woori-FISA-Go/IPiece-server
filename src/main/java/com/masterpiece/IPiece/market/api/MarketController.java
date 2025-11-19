@@ -6,6 +6,8 @@ import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.MarketService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.PageRequest;
@@ -53,6 +55,7 @@ public class MarketController {
 
     @PostMapping("/{product_id}/buy")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<OrderResponse> buy(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
@@ -67,6 +70,7 @@ public class MarketController {
 
     @PostMapping("/{product_id}/sell")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<OrderResponse> sell(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
@@ -80,6 +84,7 @@ public class MarketController {
 
     @GetMapping("/{product_id}/orders/pending")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<PendingOrderListResponse> pendingOrders(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
@@ -96,6 +101,7 @@ public class MarketController {
 
     @GetMapping("/{product_id}/asset")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<HoldingAssetResponse> getHoldingAsset(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId

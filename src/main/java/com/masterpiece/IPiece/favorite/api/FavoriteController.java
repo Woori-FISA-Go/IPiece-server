@@ -8,6 +8,8 @@ import com.masterpiece.IPiece.favorite.application.FavoriteService;
 import com.masterpiece.IPiece.favorite.application.FavoriteService.FavoriteRegisterResult;
 import com.masterpiece.IPiece.favorite.application.FavoriteService.ProductNotFoundException;
 import com.masterpiece.IPiece.favorite.application.FavoriteService.UserNotFoundException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,6 +35,7 @@ public class FavoriteController {
      */
     @PostMapping("/products/{product_id}/favorite")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> registerFavorite(
             @AuthenticationPrincipal Long userId,           // ← MypageController와 동일
             @PathVariable("product_id") String productIdPath
@@ -108,6 +111,7 @@ public class FavoriteController {
      */
     @DeleteMapping("/products/{product_id}/favorite")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> unregisterFavorite(
             @AuthenticationPrincipal Long userId,
             @PathVariable("product_id") String productIdPath
@@ -168,6 +172,7 @@ public class FavoriteController {
      */
     @PostMapping("/favorites/status")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> getFavoriteStatusBatch(
             @AuthenticationPrincipal Long userId,
             @RequestBody FavoriteBatchStatusRequest request
