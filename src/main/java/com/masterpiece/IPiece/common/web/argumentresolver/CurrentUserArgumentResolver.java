@@ -2,6 +2,7 @@ package com.masterpiece.IPiece.common.web.argumentresolver;
 
 import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
 import org.springframework.core.MethodParameter;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,13 +26,15 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
-            // 인증되지 않은 사용자이거나 익명 사용자일 경우 null 반환 (혹은 예외 처리)
-            // @PreAuthorize 등으로 이미 걸러지겠지만, 방어적으로 처리
-            return null; // 또는 throw new AccessDeniedException("User not authenticated");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("User not authenticated");
         }
 
         Object principal = authentication.getPrincipal();
+
+        if ("anonymousUser".equals(principal)) {
+            throw new AccessDeniedException("User not authenticated");
+        }
 
         if (principal instanceof UserDetails) {
             String username = ((UserDetails) principal).getUsername();

@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -31,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Disabled
+@Disabled("TODO: 컨트롤러 테스트 환경의 근본적인 문제 해결 후 활성화 (#??)")
 @WebMvcTest(WalletController.class)
 @Import(WebConfig.class)
 class WalletControllerTest {
@@ -49,6 +50,7 @@ class WalletControllerTest {
     @WithMockUser(username = "1", roles = "USER")
     void 자신의_지갑_정보를_성공적으로_조회한다() throws Exception {
         // given
+        Long userId = 1L;
         MyWalletResponse response = MyWalletResponse.builder()
             .walletAddress("0x1234567890abcdef")
             .balanceKrw(1000000L)
@@ -57,7 +59,7 @@ class WalletControllerTest {
             .createdAt(OffsetDateTime.now())
             .build();
 
-        when(walletService.getMyWallet(anyLong())).thenReturn(response);
+        when(walletService.getMyWallet(userId)).thenReturn(response);
 
         // when & then
         mockMvc.perform(get("/v1/blockchain/wallet/my"))
@@ -67,19 +69,26 @@ class WalletControllerTest {
             .andExpect(jsonPath("$.walletAddress").value("0x1234567890abcdef"))
             .andExpect(jsonPath("$.balanceKrw").value(1000000))
             .andExpect(jsonPath("$.totalValueKrw").value(1000000));
+
+        // verify
+        verify(walletService).getMyWallet(userId);
     }
 
     @Test
     @WithMockUser(username = "999", roles = "USER")
     void 지갑_정보가_없는_경우_404_Not_Found_응답을_받는다() throws Exception {
         // given
-        when(walletService.getMyWallet(anyLong()))
+        Long userId = 999L;
+        when(walletService.getMyWallet(userId))
             .thenThrow(new BusinessException(ErrorCode.NOT_FOUND));
 
         // when & then
         mockMvc.perform(get("/v1/blockchain/wallet/my"))
             .andDo(print())
             .andExpect(status().isNotFound());
+        
+        // verify
+        verify(walletService).getMyWallet(userId);
     }
 
     @Test

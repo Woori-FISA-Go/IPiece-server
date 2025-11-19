@@ -23,12 +23,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Disabled
+@Disabled("TODO: 컨트롤러 테스트 환경의 근본적인 문제 해결 후 활성화 (#??)")
 @WebMvcTest(BlockchainController.class)
 @Import(WebConfig.class)
 class BlockchainControllerTest {
@@ -59,15 +60,19 @@ class BlockchainControllerTest {
     @WithMockUser(username = "1", roles = "USER")
     void getKrwtBalance_Success() throws Exception {
         // Given
+        Long userId = 1L;
         BigDecimal balance = new BigDecimal("12345.67");
         KrwtBalanceResponse mockResponse = KrwtBalanceResponse.builder().balance(balance).build();
-        when(blockchainService.getKrwtBalance(anyLong())).thenReturn(mockResponse);
+        when(blockchainService.getKrwtBalance(userId)).thenReturn(mockResponse);
 
         // When & Then
         mockMvc.perform(get("/v1/blockchain/wallet/krwt")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.balance").value(balance.doubleValue()));
+
+        // verify
+        verify(blockchainService).getKrwtBalance(userId);
     }
 
     @Test
