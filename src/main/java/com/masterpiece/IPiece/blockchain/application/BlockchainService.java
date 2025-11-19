@@ -6,6 +6,7 @@ import com.masterpiece.IPiece.common.exception.BlockchainException;
 import com.masterpiece.IPiece.common.exception.WalletNotFoundException;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.math.BigDecimal;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class BlockchainService {
 
     private final BesuClient besuClient;

@@ -7,13 +7,14 @@ import com.masterpiece.IPiece.blockchain.api.dto.response.DividendSimulateRespon
 import com.masterpiece.IPiece.blockchain.api.dto.response.MyDividendsResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.ProjectDividendsResponse;
 import com.masterpiece.IPiece.blockchain.application.DividendService;
+import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/blockchain/dividends")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class DividendController {
 
     private final DividendService dividendService;
@@ -33,7 +35,7 @@ public class DividendController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<DividendExecuteResponse> executeDividend(
-        @AuthenticationPrincipal Long userId,
+        @CurrentUser Long userId,
         @Valid @RequestBody DividendExecuteRequest request
     ) {
         DividendExecuteResponse response = dividendService.executeDividend(userId, request);
@@ -54,7 +56,7 @@ public class DividendController {
     @PreAuthorize("hasRole('USER')")
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<MyDividendsResponse> getMyDividends(
-        @AuthenticationPrincipal Long userId,
+        @CurrentUser Long userId,
         @RequestParam(defaultValue = "1") int page,
         @RequestParam(defaultValue = "20") int size
     ) {

@@ -1,79 +1,56 @@
 package com.masterpiece.IPiece.blockchain.config;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import okhttp3.OkHttpClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.util.StringUtils;
 import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 
-import java.util.concurrent.TimeUnit;
-
+@Slf4j
 @Configuration
-@Profile("!test")
+@ConditionalOnProperty(
+    name = "blockchain.enabled",
+    havingValue = "true",
+    matchIfMissing = true  // 기본값: true
+)
 public class Web3jConfig {
 
     @Value("${besu.rpc-url}")
     private String besuRpcUrl;
 
-    @Value("${ADMIN_PRIVATE_KEY}")
+    @Value("${admin.private-key}")
     private String adminPrivateKey;
 
-    private Web3j web3jInstance;
-
     @PostConstruct
-    public void validateConfig() {
-        if (!StringUtils.hasText(besuRpcUrl)) {
-            throw new IllegalStateException("besu.rpc-url must be configured");
-        }
-        if (!StringUtils.hasText(adminPrivateKey)) {
-            throw new IllegalStateException("ADMIN_PRIVATE_KEY must be configured");
-        }
-        if (!WalletUtils.isValidPrivateKey(adminPrivateKey)) {
-            throw new IllegalStateException("ADMIN_PRIVATE_KEY has invalid format");
-        }
+    public void init() {
+        log.info("=================================");
+        log.info("🔧 Web3j 설정 초기화");
+        log.info("=================================");
+        log.info("Besu RPC URL: {}", besuRpcUrl);
+        log.info("=================================");
     }
 
     @Bean
     public Web3j web3j() {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .build();
-
-        HttpService httpService = new HttpService(besuRpcUrl, client);
-        this.web3jInstance = Web3j.build(httpService);
-
         try {
-            web3jInstance.web3ClientVersion().send();
+            Web3j web3j = Web3j.build(new HttpService(besuRpcUrl));
+            String version = web3j.web3ClientVersion().send().getWeb3ClientVersion();
+            log.info("✅ Besu 연결 성공: {}", version);
+            return web3j;
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to connect to Besu RPC: " + besuRpcUrl, e);
+            log.error("❌ Besu 연결 실패: {}", e.getMessage());
+            throw new IllegalStateException("Besu RPC 연결 실패", e);
         }
-
-        return this.web3jInstance;
     }
 
     @Bean
     public Credentials adminCredentials() {
-        try {
-            return Credentials.create(adminPrivateKey);
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                "Failed to create admin credentials. Please check ADMIN_PRIVATE_KEY format.", e);
-        }
-    }
-
-    @PreDestroy
-    public void cleanup() {
-        if (web3jInstance != null) {
-            web3jInstance.shutdown();
-        }
+        Credentials credentials = Credentials.create(adminPrivateKey);
+        log.info("✅ Admin 계정 로드: {}", credentials.getAddress());
+        return credentials;
     }
 }

@@ -24,6 +24,7 @@ import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.Credentials;
@@ -42,6 +43,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class DividendService {
 
     private final Web3j web3j;

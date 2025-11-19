@@ -1,20 +1,32 @@
 package com.masterpiece.IPiece.integration.besu;
 
+import com.masterpiece.IPiece.common.exception.BlockchainException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Address;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.utils.Convert;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.concurrent.ExecutionException;
+import java.util.Collections;
+import java.util.List;
 
 @Component
+@ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class BesuClient {
 
     private final Web3j web3j;
@@ -52,12 +64,36 @@ public class BesuClient {
         if (!StringUtils.hasText(walletAddress) || !walletAddress.matches("^0x[0-9a-fA-F]{40}$")) {
             throw new IllegalArgumentException("Invalid wallet address: " + walletAddress);
         }
-        
-        // This is a placeholder. In a real scenario, you would interact with the KRWT smart contract
-        // to call its balanceOf function.
-        // TODO: Implement actual contract call when KRWT contract is deployed
-        // Uncomment and adapt the code above once ready
-        
-        return BigDecimal.valueOf(1000000); // Dummy balance
+
+        // 1. 'balanceOf(address)' 함수 시그니처 생성
+        Function function = new Function(
+                "balanceOf",
+                Collections.singletonList(new Address(walletAddress)),
+                Collections.singletonList(new TypeReference<Uint256>() {
+                })
+        );
+
+        // 2. web3j를 통해 컨트랙트 함수 호출 (eth_call)
+        try {
+            String encodedFunction = FunctionEncoder.encode(function);
+            Transaction transaction = Transaction.createEthCallTransaction(
+                    credentials.getAddress(), krwtContractAddress, encodedFunction);
+
+            EthCall response = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
+
+            // 3. 결과 디코딩
+            List<Type> result = FunctionReturnDecoder.decode(response.getValue(), function.getOutputParameters());
+            if (result.isEmpty()) {
+                throw new BlockchainException("Failed to get balance, empty response from contract.");
+            }
+
+            BigInteger balanceInWei = (BigInteger) result.get(0).getValue();
+
+            // 4. KRWT는 소수점 18자리를 사용한다고 가정하고, 실제 값으로 변환
+            return Convert.fromWei(new BigDecimal(balanceInWei), Convert.Unit.ETHER);
+
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch KRWT balance for wallet: " + walletAddress, e);
+        }
     }
 }
