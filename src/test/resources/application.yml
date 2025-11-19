@@ -31,7 +31,7 @@ server:
     include-binding-errors: never
 
 jwt:
-  secret: GDrstwtmYicx9S4RSb80AQfnfSEhJXAH4wVRi+m43huDkt4WiPxfmDE5V3Crk2S/tgLYoC7B0cjv2COTgHq1VA==
+  secret: test-jwt-secret-key-for-testing-minimum-256-bits-required-for-hmac-sha256-algorithm-security
   expiration-ms: 241920000
   refresh-expiration-ms: 604800000
 
