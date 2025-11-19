@@ -10,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -77,10 +78,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         /// 1) 토큰에서 userId 추출
         String userIdStr = jwtTokenProvider.getSubject(token);
         try {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            Long userId = Long.valueOf(jwtTokenProvider.getSubject(token));
+
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(userId, null, null);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (UsernameNotFoundException ex) {
             sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
@@ -95,7 +96,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 공통 problem+json 에러 응답
      * JWT 인증 예외는 핸들러(@RestControllerAdvice)가 도달하기 전(Security Filter 단계)에서 발생하지만,
      * GlobalExceptionHandler가 반환하는 problem+json 형식과 동일한 구조로 직접 응답을 만들어주면,
-     * 결과적으로 프론트엔드에서는 “모든 예외가 같은 형식으로 내려오는 것처럼 보이게 된다.
+     * 결과적으로 프론트엔드에서는 "모든 예외가 같은 형식으로 내려오는 것처럼 보이게 된다.
      */
     private void sendErrorResponse(HttpServletResponse response, HttpServletRequest request, ErrorCode code) throws IOException {
         response.setStatus(code.getStatus().value());

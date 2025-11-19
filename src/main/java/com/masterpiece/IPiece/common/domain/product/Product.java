@@ -83,7 +83,7 @@ public class Product extends BaseEntity {
     @Column(name = "token_symbol", length = 10)
     private String tokenSymbol;
 
-    @Column(name = "dividend_ratio", length = 100)
+    @Column(name = "dividend_ratio")
     private Double dividendRatio;
 
     @Column(name = "project_name", length = 100)
@@ -112,7 +112,7 @@ public class Product extends BaseEntity {
     }
 
     public String getProjectName() {
-        return this.productName;
+        return this.projectName;
     }
 
     public Long getTokenQuantity() {
