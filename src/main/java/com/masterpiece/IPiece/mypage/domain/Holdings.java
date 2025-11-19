@@ -9,6 +9,8 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(
         name = "holdings",
@@ -18,7 +20,7 @@ import java.time.OffsetDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Holdings extends BaseEntity {
 
     @Id

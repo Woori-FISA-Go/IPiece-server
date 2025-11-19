@@ -8,11 +8,13 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
 @Table(name = "trade_execution")
 public class TradeExecution extends BaseEntity {

@@ -8,12 +8,14 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "favorite_list", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "product_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class FavoriteList extends BaseEntity {
 
     @Id

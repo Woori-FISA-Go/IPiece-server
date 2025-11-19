@@ -7,11 +7,13 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
 @Table(name = "product_offering_info")
 public class ProductOfferingInfo extends BaseEntity {

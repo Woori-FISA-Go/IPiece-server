@@ -9,12 +9,14 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "users") //DB테이블명 명시(PostgreSQL은 user가 예약어기 때문에 "" 명시)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) //외부 직접 생성 방지
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class User extends BaseEntity{
 
     @Id

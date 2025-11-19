@@ -8,8 +8,10 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
     @Getter @Setter
-    @NoArgsConstructor @AllArgsConstructor @Builder
+    @NoArgsConstructor @AllArgsConstructor @SuperBuilder
     @Entity
     @Table(name = "offering_subscriptions")
     public class OfferingSubscriptions extends BaseEntity {

@@ -43,6 +43,7 @@ public enum ErrorCode {
     TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "요청 처리 시간이 초과되었습니다."),
 
     /* 거래/주문  4xx */
+    INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "금액이 유효하지 않습니다."),
     INSUFFICIENT_BALANCE(HttpStatus.UNPROCESSABLE_ENTITY, "잔액이 부족합니다."),
     MARKET_CLOSED(HttpStatus.UNPROCESSABLE_ENTITY, "현재 거래가 불가능한 시간입니다."),
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문 정보를 찾을 수 없습니다."),
