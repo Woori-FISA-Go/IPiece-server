@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/v1/otp")
+@RequestMapping("/v1/auth/otp")
 @RequiredArgsConstructor
 public class SmsAuthController {
 
