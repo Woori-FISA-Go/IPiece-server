@@ -28,10 +28,10 @@ public class UserController {
         return Responses.ok("회원가입 완료");
     }
 
-    @PostMapping("/duplicate-check")
+    @GetMapping("/duplicate-check")
     public ResponseEntity<?> duplicateCheck(@RequestParam("id") String userMadeId) {
 
-        boolean available = userService.duplicateCheck(userMadeId);
+        boolean available = !userService.duplicateCheck(userMadeId);
 
         return Responses.ok(Map.of(
                 "available", available,
