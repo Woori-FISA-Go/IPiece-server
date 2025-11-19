@@ -35,7 +35,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 ourUser.getUserId().toString(),
                 ourUser.getPasswordHash(), // 비밀번호는 JWT 인증에서는 사용되지 않지만 형식상 넣어줍니다.
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")) // 사용자의 권한(Role)을 지정합니다.
+                Collections.singletonList(new SimpleGrantedAuthority(
+                        ourUser.getUserMadeId().equals("admin") ? "ROLE_ADMIN" : "ROLE_USER" // user_made_id가 "admin"이면 ADMIN, 아니면 USER
+                )) // 사용자의 권한(Role)을 지정합니다.
         );
     }
 }

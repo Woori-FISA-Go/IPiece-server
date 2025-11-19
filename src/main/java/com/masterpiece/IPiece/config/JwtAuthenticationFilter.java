@@ -17,7 +17,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -77,13 +76,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         /// 1) 토큰에서 userId 추출
         String userIdStr = jwtTokenProvider.getSubject(token);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr); // Use the service
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()); // Use UserDetails
-
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (UsernameNotFoundException ex) {
+            sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
+            return;
+        }
 
         filterChain.doFilter(request, response);
     }
