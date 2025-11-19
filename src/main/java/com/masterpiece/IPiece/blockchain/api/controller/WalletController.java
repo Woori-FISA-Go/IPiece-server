@@ -2,11 +2,10 @@ package com.masterpiece.IPiece.blockchain.api.controller;
 
 import com.masterpiece.IPiece.blockchain.api.dto.response.MyWalletResponse;
 import com.masterpiece.IPiece.blockchain.application.WalletService;
+import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,11 +19,9 @@ public class WalletController {
     @GetMapping("/my")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<MyWalletResponse> getMyWalletInfo(
-        @AuthenticationPrincipal UserDetails userDetails
+        @CurrentUser Long userId // Use the new custom annotation
     ) {
-        // UserDetails에서 userId 추출
-        Long userId = Long.parseLong(userDetails.getUsername());
-        
+        // No need to parse userId from UserDetails anymore
         // Service 호출
         MyWalletResponse response = walletService.getMyWallet(userId);
         

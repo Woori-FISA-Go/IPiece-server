@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 // import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -51,15 +52,13 @@ public class MarketController {
     }
 
     @PostMapping("/{product_id}/buy")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> buy(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
             @RequestHeader(name = "Idempotency-Key", required = true) String idempotencyKey,
             @Valid @RequestBody OrderRequest request
     ) {
-        if (userId == null)
-            throw new IllegalStateException("User not authenticated");
-
         OrderResponse response =
                 marketService.buy(productId, userId, idempotencyKey, request);
 
@@ -67,30 +66,25 @@ public class MarketController {
     }
 
     @PostMapping("/{product_id}/sell")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<OrderResponse> sell(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
             @RequestHeader(value = "Idempotency-Key", required = true) String idempotencyKey,
             @Valid @RequestBody OrderRequest request
     ) {
-        if (userId == null)
-            throw new IllegalStateException("User not authenticated");
-
         OrderResponse response = marketService.sell(productId, userId, idempotencyKey, request);
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{product_id}/orders/pending")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PendingOrderListResponse> pendingOrders(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
             @Valid @ModelAttribute PendingOrderRequest request
     ) {
-
-        if (userId == null)
-            throw new IllegalStateException("User not authenticated");
-
         var response = marketService.getPendingOrders(
                 userId,
                 productId,
@@ -101,13 +95,11 @@ public class MarketController {
     }
 
     @GetMapping("/{product_id}/asset")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<HoldingAssetResponse> getHoldingAsset(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId
     ) {
-        if (userId == null)
-            throw new IllegalStateException("User not authenticated");
-
         var response = marketService.getHoldingAsset(userId, productId);
         return ResponseEntity.ok(response);
     }

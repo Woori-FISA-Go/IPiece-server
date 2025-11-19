@@ -1,3 +1,6 @@
+blockchain:
+  enabled: false
+
 spring:
   application:
     name: IPiece
@@ -35,10 +38,12 @@ jwt:
   expiration-ms: 241920000
   refresh-expiration-ms: 604800000
 
-solapi:
-  api-key: dummy_solapi_key
-  api-secret: dummy_solapi_secret
-  sender: dummy_solapi_sender
+cors:
+  allowed-origins: "http://localhost:3000"
+  solapi:
+    api-key: dummy_solapi_key
+    api-secret: dummy_solapi_secret
+    sender: dummy_solapi_sender
 
 admin:
   private-key: ${ADMIN_PRIVATE_KEY:0x0000000000000000000000000000000000000000000000000000000000000001}
@@ -48,3 +53,8 @@ besu:
 krwt:
   contract:
     address: 0x0000000000000000000000000000000000000000 # Dummy address for testing
+
+solapi:
+  api-key: test-api-key
+  api-secret: test-api-secret
+  sender: "01012345678"

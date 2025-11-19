@@ -9,6 +9,7 @@ import com.masterpiece.IPiece.blockchain.api.dto.response.ProjectDividendsRespon
 import com.masterpiece.IPiece.blockchain.application.DividendService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/blockchain/dividends")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class DividendController {
 
     private final DividendService dividendService;

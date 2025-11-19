@@ -10,6 +10,7 @@ import com.masterpiece.IPiece.favorite.application.FavoriteService.ProductNotFou
 import com.masterpiece.IPiece.favorite.application.FavoriteService.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,7 @@ public class FavoriteController {
      * Header: Authorization: Bearer {accessToken}
      */
     @PostMapping("/products/{product_id}/favorite")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> registerFavorite(
             @AuthenticationPrincipal Long userId,           // ← MypageController와 동일
             @PathVariable("product_id") String productIdPath
@@ -38,16 +40,6 @@ public class FavoriteController {
         String instanceUri = "/v1/products/" + productIdPath + "/favorite";
 
         try {
-            // 1. 인증 여부 확인 (SecurityConfig에서 이미 걸러지지만 방어적으로 한 번 더 확인)
-            if (userId == null) {
-                return Responses.unauthorized(
-                        "https://ipiece.com/errors/" + ErrorCode.AUTH_REQUIRED.name(),
-                        ErrorCode.AUTH_REQUIRED.name(),
-                        ErrorCode.AUTH_REQUIRED.getMessage(),
-                        instanceUri
-                );
-            }
-
             // 2. path의 product_id를 Long으로 변환
             Long productId;
             try {
@@ -115,6 +107,7 @@ public class FavoriteController {
      * Header: Authorization: Bearer {accessToken}
      */
     @DeleteMapping("/products/{product_id}/favorite")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> unregisterFavorite(
             @AuthenticationPrincipal Long userId,
             @PathVariable("product_id") String productIdPath
@@ -122,16 +115,6 @@ public class FavoriteController {
         String instanceUri = "/v1/products/" + productIdPath + "/favorite";
 
         try {
-            // 1. 인증 여부 확인
-            if (userId == null) {
-                return Responses.unauthorized(
-                        "https://ipiece.com/errors/" + ErrorCode.AUTH_REQUIRED.name(),
-                        ErrorCode.AUTH_REQUIRED.name(),
-                        ErrorCode.AUTH_REQUIRED.getMessage(),
-                        instanceUri
-                );
-            }
-
             // 2. path의 product_id를 Long으로 변환
             Long productId = Long.parseLong(productIdPath);
 
@@ -184,6 +167,7 @@ public class FavoriteController {
      * Body: { "product_ids": ["1","2","3"] }
      */
     @PostMapping("/favorites/status")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> getFavoriteStatusBatch(
             @AuthenticationPrincipal Long userId,
             @RequestBody FavoriteBatchStatusRequest request
@@ -191,16 +175,6 @@ public class FavoriteController {
         String instanceUri = "/v1/favorites/status";
 
         try {
-            // 1. 인증 여부 확인
-            if (userId == null) {
-                return Responses.unauthorized(
-                        "https://ipiece.com/errors/" + ErrorCode.AUTH_REQUIRED.name(),
-                        ErrorCode.AUTH_REQUIRED.name(),
-                        ErrorCode.AUTH_REQUIRED.getMessage(),
-                        instanceUri
-                );
-            }
-
             // 2. 기본 검증: null/개수 제한
             if (request == null || request.isEmpty()) {
                 return Responses.badRequest(
