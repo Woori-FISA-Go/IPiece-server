@@ -111,4 +111,11 @@ public class MarketController {
         var response = marketService.getHoldingAsset(userId, productId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{product_id}/orders")
+    public ResponseEntity<OrderBookResponse> getOrderBook(
+            @PathVariable("product_id") Long productId
+    ) {
+        return ResponseEntity.ok(marketService.getOrderBook(productId));
+    }
 }

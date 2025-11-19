@@ -35,20 +35,33 @@ public class Holdings extends BaseEntity {
     @JoinColumn(name = "account_id", nullable = false, referencedColumnName = "account_id")
     private VirtualAccount virtualAccount;
 
+    @Setter
     @Column(name = "quantity", nullable = false)
     @Builder.Default
     private Long quantity = 0L;
 
+    @Setter
     @Column(name = "pending_quantity", nullable = false)
     @Builder.Default
     private Long pendingQuantity = 0L;
 
+    @Setter
     @Column(name = "avg_price", nullable = false)
     private Long avgBuyPrice;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", referencedColumnName = "product_id", nullable = false)
     private Product product;
+
+    public static Holdings create(VirtualAccount virtualAccount, Product product) {
+        return Holdings.builder()
+                .virtualAccount(virtualAccount)
+                .product(product)
+                .quantity(0L)
+                .pendingQuantity(0L)
+                .avgBuyPrice(0L)
+                .build();
+    }
 
     public void moveToPending(long amount) {
         if (amount <= 0) {
@@ -60,5 +73,4 @@ public class Holdings extends BaseEntity {
         this.quantity -= amount;
         this.pendingQuantity += amount;
     }
-
 }

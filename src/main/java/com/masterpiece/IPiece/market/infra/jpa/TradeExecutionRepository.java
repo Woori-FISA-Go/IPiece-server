@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TradeExecutionRepository extends JpaRepository<TradeExecution, Long> {
@@ -85,4 +86,34 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
     Long findPrevClosePrice(@Param("productId") Long productId,
                             @Param("startAt") OffsetDateTime startAt,
                             @Param("endAt")   OffsetDateTime endAt);
+
+    @Query("""
+    SELECT MAX(te.tradePrice)
+      FROM TradeExecution te
+     WHERE te.product.productId = :productId
+       AND te.matchTime BETWEEN :from AND :to
+    """)
+    Optional<Long> findHighestPrice(@Param("productId") Long productId,
+                          @Param("from") OffsetDateTime from,
+                          @Param("to") OffsetDateTime to);
+
+    @Query("""
+    SELECT MIN(te.tradePrice)
+      FROM TradeExecution te
+     WHERE te.product.productId = :productId
+       AND te.matchTime BETWEEN :from AND :to
+    """)
+    Optional<Long> findLowestPrice(@Param("productId") Long productId,
+                         @Param("from") OffsetDateTime from,
+                         @Param("to") OffsetDateTime to);
+
+    @Query("""
+    SELECT COALESCE(SUM(te.tradeQuantity), 0)
+      FROM TradeExecution te
+     WHERE te.product.productId = :productId
+       AND te.matchTime BETWEEN :from AND :to
+    """)
+    Long findVolume(@Param("productId") Long productId,
+                    @Param("from") OffsetDateTime from,
+                    @Param("to") OffsetDateTime to);
 }

@@ -31,6 +31,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -67,6 +69,8 @@ public class MarketService {
     private final HoldingsRepository holdingsRepository;
 
     private final ProductMapper productMapper;
+
+    private final OrderMatchingService orderMatchingService;
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
@@ -319,17 +323,18 @@ public class MarketService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        OrderBook saved;
+        OrderBook savedOrder;
         try {
-            saved = orderBookRepository.save(order);
+            savedOrder = orderBookRepository.save(order);
         } catch (DataIntegrityViolationException e) {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
+        registerAfterCommitMatching(savedOrder.getOrderId());
 
         return OrderResponse.builder()
                 .status_code(200)
-                .order_id(saved.getOrderId().toString())
+                .order_id(savedOrder.getOrderId().toString())
                 .product_id(productId)
                 .side("BUY")
                 .order_price(price)
@@ -388,16 +393,17 @@ public class MarketService {
                 .idempotencyKey(idempotencyKey)
                 .build();
 
-        OrderBook saved;
+        OrderBook savedOrder;
         try {
-            saved = orderBookRepository.save(order);
+            savedOrder = orderBookRepository.save(order);
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
+        registerAfterCommitMatching(savedOrder.getOrderId());
 
         return OrderResponse.builder()
                 .status_code(200)
-                .order_id(saved.getOrderId().toString())
+                .order_id(savedOrder.getOrderId().toString())
                 .product_id(productId)
                 .side("SELL")
                 .order_price(price)
@@ -483,5 +489,93 @@ public class MarketService {
                 .total_profit_amount(profitAmount)
                 .total_profit_rate(profitRate)
                 .build();
+    }
+
+    public OrderBookResponse getOrderBook(Long productId) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("product not found"));
+
+        long currentPrice = product.getCurrentPrice();
+        long prevClose = prevCloseQueryPort.findPrevCloseSingle(productId, ZoneId.of("Asia/Seoul")).orElse(0L);
+
+        double priceChange = (prevClose > 0)
+                ? ((double)(currentPrice - prevClose) / prevClose) * 100
+                : 0.0;
+
+        var now = OffsetDateTime.now();
+        var oneWeekAgo = now.minusDays(7);
+
+        Long highest = tradeExecutionRepository.findHighestPrice(productId, oneWeekAgo, now).orElse(null);
+        Long lowest = tradeExecutionRepository.findLowestPrice(productId, oneWeekAgo, now).orElse(null);
+
+        Long thisWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(7), now);
+        Long lastWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(14), now.minusDays(7));
+
+        long limitUp = Math.round(prevClose * 1.30);
+        long limitDown = Math.round(prevClose * 0.70);
+
+        var sells = orderBookRepository.findSellOrderLevels(productId);
+        var buys  = orderBookRepository.findBuyOrderLevels(productId);
+
+        var sellItems = sells.stream()
+                .map(s -> new OrderBookResponse.OrderBookItem(s.getPrice(), s.getQty(),
+                        calcChangeRate(s.getPrice(), prevClose)))
+                .toList();
+
+        var buyItems = buys.stream()
+                .map(b -> new OrderBookResponse.OrderBookItem(b.getPrice(), b.getQty(),
+                        calcChangeRate(b.getPrice(), prevClose)))
+                .toList();
+
+        OrderBookResponse.Summary summary =
+                new OrderBookResponse.Summary(
+                        highest,
+                        lowest,
+                        currentPrice,
+                        priceChange,
+                        limitUp,
+                        limitDown,
+                        thisWeekVol != null ? thisWeekVol : 0L,
+                        lastWeekVol != null ? lastWeekVol : 0L
+                );
+
+        return new OrderBookResponse(summary, sellItems, buyItems);
+    }
+
+    private double calcChangeRate(long price, long prevClose) {
+        if (prevClose == 0) return 0.0;
+        return ((double)(price - prevClose) / prevClose) * 100;
+    }
+
+    private void registerAfterCommitMatching(Long orderId) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void suspend() {}
+
+                @Override
+                public void resume() {}
+
+                @Override
+                public void flush() {}
+
+                @Override
+                public void beforeCommit(boolean readOnly) {}
+
+                @Override
+                public void beforeCompletion() {}
+
+                @Override
+                public void afterCommit() {
+                    orderMatchingService.matchWithRetry(orderId);
+                }
+
+                @Override
+                public void afterCompletion(int status) {}
+            });
+        } else {
+            orderMatchingService.matchWithRetry(orderId);
+        }
     }
 }
