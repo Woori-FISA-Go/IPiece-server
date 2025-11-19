@@ -31,6 +31,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
@@ -326,7 +328,7 @@ public class MarketService {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        orderMatchingService.matchWithRetry(savedOrder);
+        registerAfterCommitMatching(savedOrder.getOrderId());
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -395,7 +397,7 @@ public class MarketService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        orderMatchingService.matchWithRetry(savedOrder);
+        registerAfterCommitMatching(savedOrder.getOrderId());
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -542,5 +544,36 @@ public class MarketService {
     private double calcChangeRate(long price, long prevClose) {
         if (prevClose == 0) return 0.0;
         return ((double)(price - prevClose) / prevClose) * 100;
+    }
+
+    private void registerAfterCommitMatching(Long orderId) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void suspend() {}
+
+                @Override
+                public void resume() {}
+
+                @Override
+                public void flush() {}
+
+                @Override
+                public void beforeCommit(boolean readOnly) {}
+
+                @Override
+                public void beforeCompletion() {}
+
+                @Override
+                public void afterCommit() {
+                    orderMatchingService.matchWithRetry(orderId);
+                }
+
+                @Override
+                public void afterCompletion(int status) {}
+            });
+        } else {
+            orderMatchingService.matchWithRetry(orderId);
+        }
     }
 }

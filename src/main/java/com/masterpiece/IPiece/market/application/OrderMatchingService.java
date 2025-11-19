@@ -13,7 +13,11 @@ import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,6 +32,7 @@ public class OrderMatchingService {
     private final TradeExecutionRepository tradeExecutionRepository;
     private final VirtualAccountRepository virtualAccountRepository;
     private final HoldingsRepository holdingsRepository;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * /v1/market/{product_id}/buy, /sell 에서
@@ -43,22 +48,32 @@ public class OrderMatchingService {
 
     /**
      * 낙관적 락 충돌 시 재시도
-     */
-    public void matchWithRetry(OrderBook incomingOrder) {
+    */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void matchWithRetry(Long orderId) {
         int attempts = 0;
-        while (true) {
+        RuntimeException lastError = null;
+        while (attempts < 3) {
             try {
-                match(incomingOrder);
+                executeMatchInNewTransaction(orderId);
                 return;
             } catch (OptimisticLockException | OptimisticLockingFailureException e) {
                 attempts++;
-                if (attempts >= 3) {
-                    throw e;
-                }
-                incomingOrder = orderBookRepository.findById(incomingOrder.getOrderId())
-                        .orElseThrow(() -> e);
+                lastError = e;
             }
         }
+        throw lastError != null ? lastError
+                : new OptimisticLockingFailureException("Failed to match order after retries");
+    }
+
+    private void executeMatchInNewTransaction(Long orderId) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.executeWithoutResult(status -> {
+            OrderBook incomingOrder = orderBookRepository.findById(orderId)
+                    .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+            match(incomingOrder);
+        });
     }
 
     // ==========================
@@ -247,12 +262,12 @@ public class OrderMatchingService {
         Holdings holding = holdingsRepository.findByVirtualAccountAndProduct(seller, product)
                 .orElseThrow(() -> new IllegalStateException("보유 수량 부족"));
 
-        long remainQty = holding.getQuantity() - qty;
-        if (remainQty < 0) {
-            throw new IllegalStateException("보유 수량 부족");
+        long remainPending = holding.getPendingQuantity() - qty;
+        if (remainPending < 0) {
+            throw new IllegalStateException("대기 수량 부족");
         }
 
-        holding.setQuantity(remainQty);
+        holding.setPendingQuantity(remainPending);
         holdingsRepository.save(holding);
     }
 
