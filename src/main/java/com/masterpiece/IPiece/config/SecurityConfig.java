@@ -54,11 +54,11 @@ public class SecurityConfig {
                                 "/v1/market/products",
                                 "/v1/market/*/details",
                                 "/v1/market/*/chart",
-                                "/v1/market/*/orderbook",
+                                "/v1/market/*/orders",
                                 "/v1/market/*/detail",
                                 "/v1/main/home",
                                 "/v1/offerings",
-                                "/v1/offerings/{productId}/detail",
+                                "/v1/offerings/*/detail",
                                 "/error").permitAll()
                         .anyRequest().authenticated()
                 )
