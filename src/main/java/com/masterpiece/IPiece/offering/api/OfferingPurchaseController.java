@@ -6,6 +6,8 @@ import com.masterpiece.IPiece.common.util.JwtTokenProvider;
 import com.masterpiece.IPiece.common.web.Responses;
 import com.masterpiece.IPiece.offering.application.OfferingPurchaseService;
 import jakarta.servlet.http.HttpServletRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ public class OfferingPurchaseController {
 
     // 구매 사전 검증
     @GetMapping("/{product_id}/purchase/validate")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> validatePurchase(
             @PathVariable("product_id") Long productId,
             @RequestParam("quantity") Long quantity,
@@ -43,6 +46,7 @@ public class OfferingPurchaseController {
 
     // 구매 API
     @PostMapping("/{product_id}/purchase")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> purchase(
             @PathVariable("product_id") Long productId,
             @RequestParam("quantity") Long quantity,

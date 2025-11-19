@@ -8,6 +8,8 @@ import com.masterpiece.IPiece.blockchain.api.dto.response.MyDividendsResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.ProjectDividendsResponse;
 import com.masterpiece.IPiece.blockchain.application.DividendService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +31,7 @@ public class DividendController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<DividendExecuteResponse> executeDividend(
         @AuthenticationPrincipal Long userId,
         @Valid @RequestBody DividendExecuteRequest request
@@ -39,6 +42,7 @@ public class DividendController {
 
     @PostMapping("/simulate")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<DividendSimulateResponse> simulateDividend(
         @Valid @RequestBody DividendSimulateRequest request
     ) {
@@ -48,6 +52,7 @@ public class DividendController {
 
     @GetMapping("/my")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<MyDividendsResponse> getMyDividends(
         @AuthenticationPrincipal Long userId,
         @RequestParam(defaultValue = "1") int page,
@@ -59,6 +64,7 @@ public class DividendController {
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ProjectDividendsResponse> getProjectDividends(
         @PathVariable Long projectId
     ) {

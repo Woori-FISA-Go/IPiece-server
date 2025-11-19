@@ -45,7 +45,6 @@ public class SecurityConfig {
     }
 
 
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -53,6 +52,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/v1/auth/**",
+                                "/v1/otp/**",
+                                "/v1/signup/info",
                                 "/v1/auth/otp/**",
                                 "/v1/auth/token/login",
                                 "/v1/auth/token/refresh",
