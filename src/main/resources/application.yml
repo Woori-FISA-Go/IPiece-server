@@ -40,6 +40,8 @@ krwt:
   contract:
     address: ${KRWT_CONTRACT_ADDRESS}
 
+cors:
+  allowed-origins: "http://localhost:3000"
 
   solapi:
     api-key: ${SOLAPI_API_KEY}
