@@ -180,7 +180,9 @@ public class MypageMapper {
                 .sum();
 
         // 3. 보유 KRW (현금)
-        long totalKrw = account.getBalanceKrw();
+        long balanceKrw = account.getBalanceKrw();
+        long pendingPrice = account.getPendingPrice() != null ? account.getPendingPrice() : 0L;
+        long totalKrw = balanceKrw + pendingPrice;
 
         // 4. 총 보유자산 = 보유 KRW + 총 평가
         long totalAssets = totalKrw + totalEvaluation;
@@ -199,8 +201,8 @@ public class MypageMapper {
         // 8. 보유 상품 개수
         int holdingCount = allAssets.size();
 
-        // 9. 주문가능 금액 (보유 KRW와 동일)
-        long availableKrw = totalKrw;
+        // 9. 주문가능 금액 : balanceKrw
+        long availableKrw = balanceKrw;
 
         return MyhomeResponse.builder()
                 .userId(userId)
