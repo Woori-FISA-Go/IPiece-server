@@ -10,6 +10,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Map;
 
@@ -22,33 +25,46 @@ public class SecurityConfig {
 
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.addAllowedOrigin("http://localhost:3000");  // 프론트 URL 허용
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // 🔥 반드시 필요
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // 로그인 없이 접근 허용 경로를 설정
                         .requestMatchers(
-                                "/v1/auth/**",
-                                "/v1/otp/**",
-                                "/v1/signup/info",
+                                "/v1/auth/otp/**",
+                                "/v1/auth/token/login",
+                                "/v1/auth/token/refresh",
+                                "/v1/signup/**",
                                 "/v1/market/products",
                                 "/v1/market/*/details",
                                 "/v1/market/*/chart",
-                                "/v1/market/*/orders",
+                                "/v1/market/*/orderbook",
                                 "/v1/market/*/detail",
                                 "/v1/main/home",
                                 "/v1/offerings",
                                 "/v1/offerings/{productId}/detail",
                                 "/error").permitAll()
-                        .anyRequest().authenticated()   // 허용 경로 말고는 jwt토큰 달고 들어와야함
+                        .anyRequest().authenticated()
                 )
-
-                // 인증이 필요한데 토큰이 없거나 잘못된 경우 (401)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // ErrorCode.AUTH_REQUIRED 사용
                             ErrorCode code = ErrorCode.AUTH_REQUIRED;
-
                             response.setStatus(code.getStatus().value());
                             response.setContentType("application/problem+json; charset=UTF-8");
 
@@ -61,10 +77,8 @@ public class SecurityConfig {
                                             "instance", request.getRequestURI()
                                     ));
                         })
-                        // 권한이 없을 때 (403)
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             ErrorCode code = ErrorCode.PERMISSION_DENIED;
-
                             response.setStatus(code.getStatus().value());
                             response.setContentType("application/problem+json; charset=UTF-8");
 
@@ -78,11 +92,11 @@ public class SecurityConfig {
                                     ));
                         })
                 )
-                // 기본 필터 전에 직접 만든 JWT 필터를 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     // 직접 AuthenticationManager를 쓰지 않지만, Spring Security가 내부적으로 필요하기 때문에 등록
     @Bean
