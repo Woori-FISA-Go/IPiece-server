@@ -4,6 +4,7 @@ import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.web.Responses;
 import com.masterpiece.IPiece.user.api.dto.request.SignUpRequest;
 import com.masterpiece.IPiece.user.application.UserService;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,10 @@ public class UserController {
     }
 
     @GetMapping("/duplicate-check")
-    public ResponseEntity<?> duplicateCheck(@RequestParam("id") String userMadeId) {
+    public ResponseEntity<?> duplicateCheck(
+            @RequestParam("id") @NotBlank(message = "아이디는 필수입니다.") String userMadeId
+    ) {
+
 
         boolean available = !userService.duplicateCheck(userMadeId);
 
