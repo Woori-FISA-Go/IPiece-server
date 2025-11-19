@@ -62,4 +62,8 @@ public class UserService {
 
         userPrivateRepository.save(privateInfo);
     }
+
+    public boolean duplicateCheck(String userMadeId) {
+        return userRepository.existsByUserMadeId(userMadeId);
+    }
 }

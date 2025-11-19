@@ -3,6 +3,8 @@ package com.masterpiece.IPiece.blockchain.api;
 import com.masterpiece.IPiece.blockchain.api.dto.response.KrwtBalanceResponse;
 import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ public class BlockchainController {
 
     @GetMapping("/krwt")
     @PreAuthorize("hasRole('USER')")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<KrwtBalanceResponse> getKrwtBalance(@CurrentUser Long userId) { // Use CurrentUser
         // No need to parse userId from UserDetails anymore
         KrwtBalanceResponse response = blockchainService.getKrwtBalance(userId);
