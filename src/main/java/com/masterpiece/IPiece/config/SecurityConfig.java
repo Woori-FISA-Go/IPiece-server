@@ -33,6 +33,7 @@ public class SecurityConfig {
         config.addAllowedOriginPattern(allowedOrigins);  // 프론트 URL 허용
         config.addAllowedHeader("Authorization");
         config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Idempotency-Key");
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
