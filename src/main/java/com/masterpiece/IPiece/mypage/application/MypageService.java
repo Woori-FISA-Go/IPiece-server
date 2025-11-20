@@ -12,20 +12,20 @@ import com.masterpiece.IPiece.mypage.api.dto.AccountHistoryItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AccountJournalItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
-import com.masterpiece.IPiece.mypage.api.dto.response.AccountHistoryResponse;
-import com.masterpiece.IPiece.mypage.api.dto.response.AccountJournalResponse;
-import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
-import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
+import com.masterpiece.IPiece.mypage.api.dto.response.*;
 import com.masterpiece.IPiece.mypage.application.mapper.MypageMapper;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
+import com.masterpiece.IPiece.user.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.*;
 import java.util.Comparator;
 import java.util.List;
@@ -39,12 +39,14 @@ import java.util.stream.Stream;
 public class MypageService {
 
     private final VirtualAccountRepository virtualAccountRepository;
+    private final UserRepository userRepository;
     private final HoldingsRepository holdingsRepository;
     private final FavoriteListRepository favoriteListRepository;
     private final MypageMapper mypageMapper;
     private final VirtualAccountJournalRepository virtualAccountJournalRepository;
 
     private static final int PAGE_SIZE = 10;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * 마이홈 조회 (보유자산 페이징)
@@ -171,5 +173,55 @@ public class MypageService {
                 .pendingPrice(pendingPrice)
                 .items(items)
                 .build();
+    }
+
+    @Transactional
+    public VirtualAccountResponse createAccount(Long userId) {
+
+        var existing = virtualAccountRepository.findByUser_UserId(userId);
+        if (existing.isPresent()) {
+            return VirtualAccountResponse.from(existing.get(), false);
+        }
+
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+        VirtualAccount account = VirtualAccount.builder()
+                .user(user)
+                .accountNo(generateAccountNumber())
+                .walletAddress(generateWalletAddress())
+                .balanceKrw(0L)
+                .pendingPrice(0L)
+                .build();
+
+        try {
+            virtualAccountRepository.save(account);
+        } catch (DataIntegrityViolationException e) {
+            var latest = virtualAccountRepository.findByUser_UserId(userId)
+                    .orElseThrow(() -> e);
+            return VirtualAccountResponse.from(latest, false);
+        }
+
+        return VirtualAccountResponse.from(account, true);
+    }
+
+    /** 012-345-678910 형식 생성 */
+    private String generateAccountNumber() {
+        return String.format("%03d-%03d-%06d",
+                RANDOM.nextInt(1000),
+                RANDOM.nextInt(1000),
+                RANDOM.nextInt(1_000_000));
+    }
+
+    /** 0x + 40자리 hex */
+    private String generateWalletAddress() {
+        byte[] bytes = new byte[20]; // 20 bytes = 40 hex chars
+        RANDOM.nextBytes(bytes);
+
+        StringBuilder sb = new StringBuilder("0x");
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b & 0xff));
+        }
+        return sb.toString();
     }
 }

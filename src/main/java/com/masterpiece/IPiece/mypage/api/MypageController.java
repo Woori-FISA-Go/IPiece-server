@@ -1,9 +1,6 @@
 package com.masterpiece.IPiece.mypage.api;
 
-import com.masterpiece.IPiece.mypage.api.dto.response.AccountHistoryResponse;
-import com.masterpiece.IPiece.mypage.api.dto.response.AccountJournalResponse;
-import com.masterpiece.IPiece.mypage.api.dto.response.FavoriteListResponse;
-import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
+import com.masterpiece.IPiece.mypage.api.dto.response.*;
 import com.masterpiece.IPiece.mypage.application.MypageService;
 import com.masterpiece.IPiece.user.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,10 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/mypage")
@@ -79,5 +73,13 @@ public class MypageController {
     ) {
         AccountJournalResponse response = mypageService.getAccountJournals(userId);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/account")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<VirtualAccountResponse> createAccount(
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ResponseEntity.ok(mypageService.createAccount(userId));
     }
 }
