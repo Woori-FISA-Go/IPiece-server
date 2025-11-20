@@ -67,7 +67,7 @@ public class AdminProductController {
      *
      * POST /v1/admin/products/{productId}/enable-offering
      */
-    @PostMapping("/{productId}/enable-offering")
+    @PostMapping("/v1/admin/products/{productId}/enable-offering")
     @PreAuthorize("hasRole('ADMIN')") // 실제 권한 이름에 맞게 조정 필요
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminEnableSecondaryTradingResponse> enableSecondaryTrading(

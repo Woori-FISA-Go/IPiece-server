@@ -72,7 +72,6 @@ public class AdminProductService {
                 .offeringStartDate(offeringStart)
                 .offeringEndDate(offeringEnd)
                 .progressRate(0) // 최초 0%
-                .progressRate(0) // 최초 0%
                 .build();
 
         productOfferingInfoRepository.save(offeringInfo);
