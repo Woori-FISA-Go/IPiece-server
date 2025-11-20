@@ -1,6 +1,8 @@
 package com.masterpiece.IPiece.common.domain.product;
 
 import com.masterpiece.IPiece.common.domain.BaseEntity;
+import com.masterpiece.IPiece.common.exception.BusinessException;
+import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.dividends.domain.Dividends;
 import com.masterpiece.IPiece.favorite.domain.FavoriteList;
 import com.masterpiece.IPiece.market.domain.OrderBook;
@@ -119,5 +121,19 @@ public class Product extends BaseEntity {
 
     public Long getTokenQuantity() {
         return this.totalTokenQuantity;
+    }
+
+    public void enableSecondaryTrading() {
+        if (this.status == ProductStatus.TRADE) {
+            // 이미 2차거래 상태
+            throw new BusinessException(ErrorCode.PRODUCT_ALREADY_IN_TRADE_STATUS);
+        }
+
+        if (this.status != ProductStatus.OFFERING) {
+            // 공모(OFFERING) 상태가 아닌 경우 → 상태 충돌
+            throw new BusinessException(ErrorCode.PRODUCT_STATUS_NOT_OFFERING);
+        }
+
+        this.status = ProductStatus.TRADE;
     }
 }

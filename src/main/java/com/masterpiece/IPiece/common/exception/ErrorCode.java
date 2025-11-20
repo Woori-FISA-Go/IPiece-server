@@ -35,6 +35,9 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."),
     PRODUCT_NOT_OFFERING(HttpStatus.BAD_REQUEST, "공모중인 상품이 아닙니다."),
     OFFERING_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "공모 정보를 찾을 수 없습니다."),
+    PRODUCT_ALREADY_IN_TRADE_STATUS(HttpStatus.BAD_REQUEST, "이미 2차거래(TRADE) 상태인 상품입니다."),
+    PRODUCT_STATUS_NOT_OFFERING(HttpStatus.CONFLICT, "공모(OFFERING) 상태가 아니어서 2차거래를 시작할 수 없습니다."),
+    INVALID_SECONDARY_TRADING_CONFIRM(HttpStatus.BAD_REQUEST, "2차거래 시작 승인 요청의 confirm 값이 true가 아닙니다."),
 
 
     /* 공통 - 5xx */
@@ -58,6 +61,8 @@ public enum ErrorCode {
     /* 상품/블록체인 */
     CONTRACT_ADDRESS_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "컨트랙트 주소가 등록되지 않았습니다."),
     BLOCKCHAIN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "블록체인 연동 중 오류가 발생했습니다.");
+
+
 
     private final HttpStatus status;
     private final String message;

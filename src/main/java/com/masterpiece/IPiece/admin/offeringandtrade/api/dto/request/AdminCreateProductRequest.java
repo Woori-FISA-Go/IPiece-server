@@ -1,4 +1,4 @@
-package com.masterpiece.IPiece.admin.api.dto.request;
+package com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
