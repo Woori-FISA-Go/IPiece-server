@@ -42,6 +42,7 @@ public class FavoriteController {
     ) {
         String instanceUri = "/v1/products/" + productIdPath + "/favorite";
 
+
         try {
             // 2. path의 product_id를 Long으로 변환
             Long productId;
@@ -121,6 +122,7 @@ public class FavoriteController {
         try {
             // 2. path의 product_id를 Long으로 변환
             Long productId = Long.parseLong(productIdPath);
+
 
             // 3. 서비스 호출 (즐겨찾기 해제)
             FavoriteService.FavoriteUnlikeResult result =

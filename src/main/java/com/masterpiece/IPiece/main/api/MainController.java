@@ -3,6 +3,8 @@ package com.masterpiece.IPiece.main.api;
 import com.masterpiece.IPiece.common.web.Responses;
 import com.masterpiece.IPiece.main.api.dto.response.MainPageResponse;
 import com.masterpiece.IPiece.main.application.MainService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +20,7 @@ public class MainController {
     private final MainService mainService;
 
     @GetMapping("/home")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> getMainPage(
             @AuthenticationPrincipal Long userId
     ){

@@ -72,15 +72,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        String userIdStr = jwtTokenProvider.getSubject(token);
         try {
-            String userIdStr = jwtTokenProvider.getSubject(token);
+            Long userId = Long.valueOf(userIdStr); // userIdStr을 Long으로 변환
+
+            // UserDetailsService를 통해 UserDetails 객체를 로드하여 권한 정보를 가져옵니다.
             UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
+            // UserDetails에서 추출한 권한 정보를 사용합니다.
+            var authorities = userDetails.getAuthorities();
+
+            // Principal은 Long 타입 userId를 유지하고, 권한 정보만 추가합니다.
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (Exception ex) {
-            // UsernameNotFoundException, JwtException 등 모든 예외 처리
+        } catch (Exception ex) { // UsernameNotFoundException, JwtException 등 모든 예외 처리
             sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
             return;
         }

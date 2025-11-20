@@ -30,4 +30,12 @@ public class OfferingListResponse {
     /** 다음 요청에 사용할 cursor 
      * (null이면 마지막 페이지) */
     private Long nextCursor;
+
+    private Long totalCount;
+
+    private Long beforeCount;
+
+    private Long ingCount;
+
+    private Long afterCount;
 }

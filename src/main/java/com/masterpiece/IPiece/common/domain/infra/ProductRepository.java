@@ -51,4 +51,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("limit") int limit
     );
 
+    Long countProductsByStatus(ProductStatus productStatus);
+
+
+
+
 }

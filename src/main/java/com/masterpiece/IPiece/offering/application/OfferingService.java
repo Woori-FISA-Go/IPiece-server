@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,11 +115,21 @@ public class OfferingService {
                 ? itemsToReturn.get(itemsToReturn.size() - 1).getProductId() - 1
                 : null;
 
+        Long totalCount = productRepository.countProductsByStatus(ProductStatus.OFFERING);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Long upcoming = productOfferingInfoRepository.countUpcoming(now);
+        Long ongoing = productOfferingInfoRepository.countOngoing(now);
+        Long closed = productOfferingInfoRepository.countClosedOrSoldOut(now);
 
         return OfferingListResponse.builder()
                 .items(responses)
                 .hasNext(hasNext)
                 .nextCursor(nextCursor)
+                .totalCount(totalCount)
+                .beforeCount(upcoming)
+                .ingCount(ongoing)
+                .afterCount(closed)
                 .build();
     }
 
