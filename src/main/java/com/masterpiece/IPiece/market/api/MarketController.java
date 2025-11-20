@@ -1,7 +1,6 @@
 package com.masterpiece.IPiece.market.api;
 
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
-import com.masterpiece.IPiece.market.api.dto.request.PendingOrderRequest;
 import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.MarketService;
 import jakarta.validation.Valid;
@@ -46,7 +45,7 @@ public class MarketController {
     @GetMapping("/{product_id}/chart")
     public ResponseEntity<ChartResponse> getChart(
             @PathVariable("product_id") Long productId,
-            @RequestParam(value = "interval", defaultValue = "1d") String interval,
+            @RequestParam(value = "interval", defaultValue = "1w") String interval,
             @RequestParam(value = "cursor", required = false) String cursor
     ) {
         ChartResponse response = marketService.getChart(productId, interval, cursor);
@@ -88,13 +87,9 @@ public class MarketController {
     public ResponseEntity<PendingOrderListResponse> pendingOrders(
             @PathVariable("product_id") Long productId,
             @AuthenticationPrincipal Long userId,
-            @Valid @ModelAttribute PendingOrderRequest request
+            @RequestParam(defaultValue = "1") @Min(1) int page
     ) {
-        var response = marketService.getPendingOrders(
-                userId,
-                productId,
-                request.getPage()
-        );
+        var response = marketService.getPendingOrders(userId, productId, page);
 
         return ResponseEntity.ok(response);
     }

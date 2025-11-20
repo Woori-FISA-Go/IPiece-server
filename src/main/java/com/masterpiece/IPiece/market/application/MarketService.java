@@ -172,7 +172,6 @@ public class MarketService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
     public ChartResponse getChart(Long productId,
                                   String interval,
                                   String cursorOptional) {
@@ -181,14 +180,18 @@ public class MarketService {
 
         ZoneId timezone = ZoneId.of("Asia/Seoul");
         OffsetDateTime now = OffsetDateTime.now(timezone);
-        OffsetDateTime start;
-        OffsetDateTime end;
 
+        long windowDays = switch (interval) {
+            case "1d" -> 1L;
+            case "1w" -> 7L;
+            case "1m" -> 30L;
+            default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        };
+
+        ZonedDateTime lastDayStartZoned;
         if (cursorOptional == null) {
-            start = now.atZoneSameInstant(timezone)
-                    .truncatedTo(ChronoUnit.DAYS)
-                    .toOffsetDateTime();
-            end = start.plusDays(1).minusSeconds(1);
+            lastDayStartZoned = now.atZoneSameInstant(timezone)
+                    .truncatedTo(ChronoUnit.DAYS);
         } else {
             String[] parts = cursorOptional.split(":");
             if (parts.length < 2) {
@@ -196,12 +199,19 @@ public class MarketService {
             }
             try {
                 long epoch = Long.parseLong(parts[1]);
-                start = Instant.ofEpochSecond(epoch).atZone(timezone).toOffsetDateTime();
-                end = start.plusDays(1).minusSeconds(1);
+                lastDayStartZoned = Instant.ofEpochSecond(epoch)
+                        .atZone(timezone)
+                        .truncatedTo(ChronoUnit.DAYS);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid cursor epoch value", e);
             }
         }
+
+        ZonedDateTime windowStartZoned = lastDayStartZoned.minusDays(windowDays - 1);
+        ZonedDateTime windowEndZoned = lastDayStartZoned.plusDays(1).minusSeconds(1);
+
+        OffsetDateTime start = windowStartZoned.toOffsetDateTime();
+        OffsetDateTime end = windowEndZoned.toOffsetDateTime();
 
         List<TradeExecution> executions =
                 tradeExecutionRepository.findInWindow(productId, start, end);
@@ -214,13 +224,19 @@ public class MarketService {
                         .build())
                 .toList();
 
-        OffsetDateTime previousDay = start.minusDays(1);
-        long epochCursor = previousDay.toEpochSecond();
+        ZonedDateTime prevLastDayStartZoned = lastDayStartZoned.minusDays(windowDays);
+        long epochCursor = prevLastDayStartZoned.toEpochSecond();
         String nextCursor = "c:" + epochCursor + ":" + interval;
-        
-        OffsetDateTime prevStart = start.minusDays(1);
-        OffsetDateTime prevEnd = prevStart.plusDays(1).minusSeconds(1);
-        boolean hasMore = !tradeExecutionRepository.findInWindow(productId, prevStart, prevEnd).isEmpty();
+
+        ZonedDateTime prevWindowStartZoned = prevLastDayStartZoned.minusDays(windowDays - 1);
+        ZonedDateTime prevWindowEndZoned = prevLastDayStartZoned.plusDays(1).minusSeconds(1);
+
+        OffsetDateTime prevStart = prevWindowStartZoned.toOffsetDateTime();
+        OffsetDateTime prevEnd = prevWindowEndZoned.toOffsetDateTime();
+
+        boolean hasMore = !tradeExecutionRepository
+                .findInWindow(productId, prevStart, prevEnd)
+                .isEmpty();
 
         return ChartResponse.builder()
                 .product_id(productId)
@@ -240,7 +256,7 @@ public class MarketService {
         if (interval == null || interval.isBlank()) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
-        Set<String> allowed = Set.of("1d", "1h", "1w");
+        Set<String> allowed = Set.of("1d", "1w", "1m");
         if (!allowed.contains(interval)) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
@@ -258,12 +274,15 @@ public class MarketService {
                     ZonedDateTime zoned = match.atZoneSameInstant(zoneId);
                     OffsetDateTime bucketStart;
                     switch (interval) {
-                        case "1h" -> bucketStart = zoned.truncatedTo(ChronoUnit.HOURS).toOffsetDateTime();
+                        case "1d" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
                         case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                                 .truncatedTo(ChronoUnit.DAYS)
                                 .toOffsetDateTime();
-                        case "1d" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
-                        default -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
+                        case "1m" -> bucketStart = zoned
+                                .with(TemporalAdjusters.firstDayOfMonth())
+                                .truncatedTo(ChronoUnit.DAYS)
+                                .toOffsetDateTime();
+                        default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR);
                     }
 
                     AggregatedPoint current = buckets.get(bucketStart);
