@@ -64,19 +64,39 @@ public class AdminProductController {
 
     /**
      * 공모(OFFERING) 상품에 대해 2차거래(TRADE) 시작 승인
-     *
+     * <p>
      * POST /v1/admin/products/{productId}/enable-offering
      */
     @PostMapping("/v1/admin/products/{productId}/enable-offering")
-    @PreAuthorize("hasRole('ADMIN')") // 실제 권한 이름에 맞게 조정 필요
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminEnableSecondaryTradingResponse> enableSecondaryTrading(
-            @AuthenticationPrincipal Long operatorId,                  // JWT에서 온 user_id
+            Authentication authentication,
             @PathVariable("productId") Long productId,
             @Valid @RequestBody AdminEnableSecondaryTradingRequest request
     ) {
+        // 1. 인증 체크 (createProduct와 동일)
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        // 2. 토큰 subject를 userId로 가정하고 DB에서 유저 조회
+        Long userId;
+        try {
+            userId = Long.valueOf(authentication.getName());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(401).build();
+        }
+
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null || !"admin".equals(user.getUserMadeId())) {
+            // 유저가 없거나, user_made_id가 "admin"이 아니면 관리자 아님 → 403
+            return ResponseEntity.status(403).build();
+        }
+
+        // 3. 비즈니스 처리
         AdminEnableSecondaryTradingResponse response =
-                adminProductService.enableSecondaryTrading(productId, operatorId, request);
+                adminProductService.enableSecondaryTrading(productId, request);
 
         return ResponseEntity.ok(response);
     }

@@ -1,14 +1,12 @@
 package com.masterpiece.IPiece.dividends.infra;
 
-
+import com.masterpiece.IPiece.dividends.domain.Dividends;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.dividends.domain.DividendPayouts;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.time.OffsetDateTime;
-
 
 public interface DividendPayoutsRepository extends JpaRepository<DividendPayouts, Long> {
     List<DividendPayouts> findByDividends_Product_ProductIdAndPayoutStatusOrderByPayoutDateDesc(
@@ -23,4 +21,8 @@ public interface DividendPayoutsRepository extends JpaRepository<DividendPayouts
             OffsetDateTime to,
             String payoutStatus
     );
+
+    List<DividendPayouts> findByDividends(Dividends dividends);
+
+    List<DividendPayouts> findByDividendsAndPayoutStatus(Dividends dividends, String payoutStatus);
 }
