@@ -256,7 +256,7 @@ public class MarketService {
         if (interval == null || interval.isBlank()) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
-        Set<String> allowed = Set.of("1d", "1h", "1w");
+        Set<String> allowed = Set.of("1d", "1w", "1m");
         if (!allowed.contains(interval)) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
@@ -274,12 +274,15 @@ public class MarketService {
                     ZonedDateTime zoned = match.atZoneSameInstant(zoneId);
                     OffsetDateTime bucketStart;
                     switch (interval) {
-                        case "1h" -> bucketStart = zoned.truncatedTo(ChronoUnit.HOURS).toOffsetDateTime();
+                        case "1d" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
                         case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                                 .truncatedTo(ChronoUnit.DAYS)
                                 .toOffsetDateTime();
-                        case "1d" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
-                        default -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
+                        case "1m" -> bucketStart = zoned
+                                .with(TemporalAdjusters.firstDayOfMonth())
+                                .truncatedTo(ChronoUnit.DAYS)
+                                .toOffsetDateTime();
+                        default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR);
                     }
 
                     AggregatedPoint current = buckets.get(bucketStart);
