@@ -15,4 +15,5 @@ public class ProductCardResponse {
     private String productName;
     private Long currentPrice;
     private String thumbnailImg;
+    private boolean isFavorite;
 }

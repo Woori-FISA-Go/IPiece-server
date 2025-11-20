@@ -4,20 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.util.JwtTokenProvider;
 import com.masterpiece.IPiece.user.application.TokenBlacklistService;
-import com.masterpiece.IPiece.user.infra.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Component;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -35,7 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenBlacklistService tokenBlacklistService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final UserRepository userRepository;
     private final UserDetailsService userDetailsService;
 
     @Override
@@ -75,15 +72,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        /// 1) 토큰에서 userId 추출
-        String userIdStr = jwtTokenProvider.getSubject(token);
         try {
-            Long userId = Long.valueOf(jwtTokenProvider.getSubject(token));
-
-            Authentication authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, null);
+            String userIdStr = jwtTokenProvider.getSubject(token);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (UsernameNotFoundException ex) {
+        } catch (Exception ex) {
+            // UsernameNotFoundException, JwtException 등 모든 예외 처리
             sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
             return;
         }

@@ -3,13 +3,14 @@ package com.masterpiece.IPiece.blockchain.domain;
 import com.masterpiece.IPiece.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "wallets")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Wallet extends BaseEntity {
 
     @Id

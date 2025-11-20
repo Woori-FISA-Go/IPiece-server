@@ -14,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.masterpiece.IPiece.config.JwtAuthenticationFilter;
 
 import java.util.Map;
 
@@ -72,7 +73,8 @@ public class SecurityConfig {
                                 "/v1/main/home",
                                 "/v1/offerings",
                                 "/v1/offerings/*/detail",
-                                "/error").permitAll()
+                                "/error",
+                                "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
