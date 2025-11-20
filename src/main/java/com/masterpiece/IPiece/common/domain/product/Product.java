@@ -79,8 +79,21 @@ public class Product extends BaseEntity {
     @Column(name = "deployed_at")
     private OffsetDateTime deployedAt;
 
+    @Column(name = "token_contract_address", length = 42)
+    private String tokenContractAddress;
+
+    @Column(name = "token_symbol", length = 10)
+    private String tokenSymbol;
+
+    @Column(name = "dividend_ratio")
+    private Double dividendRatio;
+
+    @Column(name = "project_name", length = 100)
+    private String projectName;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Holdings> holdings;
+
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderBook> orderBooks;
@@ -101,7 +114,7 @@ public class Product extends BaseEntity {
     }
 
     public String getProjectName() {
-        return this.productName;
+        return this.projectName;
     }
 
     public Long getTokenQuantity() {

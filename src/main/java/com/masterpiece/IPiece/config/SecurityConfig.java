@@ -34,6 +34,7 @@ public class SecurityConfig {
         config.addAllowedOriginPattern(allowedOrigins);  // 프론트 URL 허용
         config.addAllowedHeader("Authorization");
         config.addAllowedHeader("Content-Type");
+
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
@@ -72,7 +73,8 @@ public class SecurityConfig {
                                 "/v1/main/home",
                                 "/v1/offerings",
                                 "/v1/offerings/*/detail",
-                                "/error").permitAll()
+                                "/error",
+                                "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
