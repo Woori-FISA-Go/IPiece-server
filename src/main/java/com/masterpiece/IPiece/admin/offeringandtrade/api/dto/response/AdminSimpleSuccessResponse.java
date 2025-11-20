@@ -1,4 +1,4 @@
-package com.masterpiece.IPiece.admin.api.dto.response;
+package com.masterpiece.IPiece.admin.offeringandtrade.api.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

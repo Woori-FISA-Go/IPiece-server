@@ -1,9 +1,13 @@
-package com.masterpiece.IPiece.admin.application;
+package com.masterpiece.IPiece.admin.offeringandtrade.application;
 
-import com.masterpiece.IPiece.admin.api.dto.request.AdminCreateProductRequest;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminCreateProductRequest;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminEnableSecondaryTradingRequest;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.response.AdminEnableSecondaryTradingResponse;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductStatus;
+import com.masterpiece.IPiece.common.exception.BusinessException;
+import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +72,7 @@ public class AdminProductService {
                 .offeringStartDate(offeringStart)
                 .offeringEndDate(offeringEnd)
                 .progressRate(0) // 최초 0%
+                .progressRate(0) // 최초 0%
                 .build();
 
         productOfferingInfoRepository.save(offeringInfo);
@@ -76,5 +81,40 @@ public class AdminProductService {
     private OffsetDateTime parseOffsetDateTime(String value) {
         // 예: 2025-12-01T00:00:00+09:00 형식 가정
         return OffsetDateTime.parse(value);
+    }
+
+    @Transactional
+    public AdminEnableSecondaryTradingResponse enableSecondaryTrading(
+            Long productId,
+            Long operatorId,
+            AdminEnableSecondaryTradingRequest request
+    ) {
+        // 1. confirm 검증
+        if (Boolean.FALSE.equals(request.getConfirm())) {
+            // confirm이 false면 잘못된 승인 요청
+            throw new BusinessException(ErrorCode.INVALID_SECONDARY_TRADING_CONFIRM);
+        }
+
+        // 2. 상품 조회
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        ProductStatus previousStatus = product.getStatus();
+
+        // 3. 상태 전환 (비즈니스 로직은 Product 안에 캡슐화)
+        product.enableSecondaryTrading(); // 여기서 이미 상태 검증 및 예외 처리
+
+        // 4. 승인/적용 시각
+        OffsetDateTime enabledAt = OffsetDateTime.now();
+
+        // 5. 응답 DTO 생성
+        return AdminEnableSecondaryTradingResponse.builder()
+                .success(true)
+                .productId(product.getProductId())
+                .previousStatus(previousStatus.name())
+                .newStatus(product.getStatus().name())
+                .enabledAt(enabledAt)
+                .operatorId(operatorId)
+                .build();
     }
 }

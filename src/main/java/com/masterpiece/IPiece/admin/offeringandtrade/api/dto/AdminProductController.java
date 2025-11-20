@@ -1,14 +1,21 @@
-package com.masterpiece.IPiece.admin.api;
+package com.masterpiece.IPiece.admin.offeringandtrade.api.dto;
 
-import com.masterpiece.IPiece.admin.api.dto.request.AdminCreateProductRequest;
-import com.masterpiece.IPiece.admin.api.dto.response.AdminSimpleSuccessResponse;
-import com.masterpiece.IPiece.admin.application.AdminProductService;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminCreateProductRequest;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminEnableSecondaryTradingRequest;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.response.AdminEnableSecondaryTradingResponse;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.response.AdminSimpleSuccessResponse;
+import com.masterpiece.IPiece.admin.offeringandtrade.application.AdminProductService;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,5 +60,24 @@ public class AdminProductController {
 
         // 4. 성공 응답
         return ResponseEntity.ok(new AdminSimpleSuccessResponse(true));
+    }
+
+    /**
+     * 공모(OFFERING) 상품에 대해 2차거래(TRADE) 시작 승인
+     *
+     * POST /v1/admin/products/{productId}/enable-offering
+     */
+    @PostMapping("/{productId}/enable-offering")
+    @PreAuthorize("hasRole('ADMIN')") // 실제 권한 이름에 맞게 조정 필요
+    @Operation(security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<AdminEnableSecondaryTradingResponse> enableSecondaryTrading(
+            @AuthenticationPrincipal Long operatorId,                  // JWT에서 온 user_id
+            @PathVariable("productId") Long productId,
+            @Valid @RequestBody AdminEnableSecondaryTradingRequest request
+    ) {
+        AdminEnableSecondaryTradingResponse response =
+                adminProductService.enableSecondaryTrading(productId, operatorId, request);
+
+        return ResponseEntity.ok(response);
     }
 }
