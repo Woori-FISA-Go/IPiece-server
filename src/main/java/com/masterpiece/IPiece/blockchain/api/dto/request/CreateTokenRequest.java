@@ -3,6 +3,7 @@ package com.masterpiece.IPiece.blockchain.api.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public class CreateTokenRequest {
     private String name;
 
     @NotBlank(message = "토큰 심볼은 필수입니다.")
+    @Pattern(regexp = "^[A-Z]{2,10}$", message = "토큰 심볼은 2-10자의 대문자로만 구성되어야 합니다.")
     private String symbol;
 
     @NotNull(message = "총 발행량은 필수입니다.")

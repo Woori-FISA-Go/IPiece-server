@@ -20,10 +20,10 @@ public class BlockchainToken extends BaseEntity {
     @Column(name = "token_id")
     private Long tokenId;
 
-    @Column(name = "contract_address", nullable = false, unique = true)
+    @Column(name = "contract_address", nullable = false, unique = true, length = 42)
     private String contractAddress;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
     @Column(name = "symbol", nullable = false, unique = true)
@@ -38,23 +38,14 @@ public class BlockchainToken extends BaseEntity {
     @Column(name = "owner_user_id", nullable = false)
     private Long ownerUserId;
 
-    @Column(name = "transaction_hash", nullable = false, unique = true)
+    @Column(name = "transaction_hash", nullable = false, unique = true, length = 66)
     private String transactionHash;
 
-        @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TokenStatus status; // Enum for token deployment status
 
-        @Column(name = "status", nullable = false)
-
-        private TokenStatus status; // Enum for token deployment status
-
-    
-
-        public void updateStatus(TokenStatus status) {
-
-            this.status = status;
-
-        }
-
+    public void updateStatus(TokenStatus status) {
+        this.status = status;
     }
-
-    
+}

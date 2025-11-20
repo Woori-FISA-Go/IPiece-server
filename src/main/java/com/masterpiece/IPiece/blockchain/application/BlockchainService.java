@@ -65,14 +65,10 @@ public class BlockchainService {
                 .ownerUserId(adminUserId)
                 .contractAddress(dummyContractAddress)
                 .transactionHash(dummyTransactionHash)
-                .status(TokenStatus.PENDING)
+                .status(TokenStatus.DEPLOYED) // Set directly to DEPLOYED as per review
                 .build();
 
         BlockchainToken savedToken = blockchainTokenRepository.save(token);
-
-        // Simulate successful deployment by updating status
-        // In a real scenario, this would be updated by a listener or a callback after confirming the transaction
-        savedToken.updateStatus(TokenStatus.DEPLOYED);
 
         return CreateTokenResponse.builder()
                 .contractAddress(savedToken.getContractAddress())
