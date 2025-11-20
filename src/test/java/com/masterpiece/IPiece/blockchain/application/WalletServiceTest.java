@@ -266,7 +266,7 @@ class WalletServiceTest {
     @Transactional // Ensure transaction for save operations
     void burnKrwt_Success() {
         // Given
-        KrwtBurnRequest request = KrwtBurnRequest.builder().amount(50000L).memo("Withdrawal").build();
+        KrwtBurnRequest request = KrwtBurnRequest.builder().userId(userId).amount(50000L).memo("Withdrawal").build();
         long initialBalance = mockVirtualAccount.getBalanceKrw();
 
         when(virtualAccountRepository.findByUser_UserId(userId)).thenReturn(Optional.of(mockVirtualAccount));
@@ -278,7 +278,7 @@ class WalletServiceTest {
         });
 
         // When
-        KrwtBurnResponse response = walletService.burnKrwt(userId, request);
+        KrwtBurnResponse response = walletService.burnKrwt(adminUserId, userId, request);
 
         // Then
         assertThat(response).isNotNull();
@@ -295,10 +295,10 @@ class WalletServiceTest {
     @DisplayName("KRWT 소각 시 금액이 0 이하이면 예외를 던진다")
     void burnKrwt_InvalidAmount_Zero() {
         // Given
-        KrwtBurnRequest request = KrwtBurnRequest.builder().amount(0L).memo("Invalid burn").build();
+        KrwtBurnRequest request = KrwtBurnRequest.builder().userId(userId).amount(0L).memo("Invalid burn").build();
 
         // When & Then
-        BusinessException exception = assertThrows(BusinessException.class, () -> walletService.burnKrwt(userId, request));
+        BusinessException exception = assertThrows(BusinessException.class, () -> walletService.burnKrwt(adminUserId, userId, request));
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_AMOUNT);
     }
 
@@ -306,11 +306,11 @@ class WalletServiceTest {
     @DisplayName("KRWT 소각 시 잔고가 부족하면 예외를 던진다")
     void burnKrwt_InsufficientFunds() {
         // Given
-        KrwtBurnRequest request = KrwtBurnRequest.builder().amount(200000L).memo("Insufficient funds").build(); // More than initial 100000L
+        KrwtBurnRequest request = KrwtBurnRequest.builder().userId(userId).amount(200000L).memo("Insufficient funds").build(); // More than initial 100000L
         when(virtualAccountRepository.findByUser_UserId(userId)).thenReturn(Optional.of(mockVirtualAccount));
 
         // When & Then
-        BusinessException exception = assertThrows(BusinessException.class, () -> walletService.burnKrwt(userId, request));
+        BusinessException exception = assertThrows(BusinessException.class, () -> walletService.burnKrwt(adminUserId, userId, request));
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_BALANCE);
     }
 
@@ -318,11 +318,12 @@ class WalletServiceTest {
     @DisplayName("KRWT 소각 시 사용자 지갑을 찾을 수 없으면 예외를 던진다")
     void burnKrwt_UserNotFound() {
         // Given
-        KrwtBurnRequest request = KrwtBurnRequest.builder().amount(1000L).memo("Burn from non-existent user").build();
-        when(virtualAccountRepository.findByUser_UserId(userId)).thenReturn(Optional.empty());
+        Long nonExistentUserId = 999L;
+        KrwtBurnRequest request = KrwtBurnRequest.builder().userId(nonExistentUserId).amount(1000L).memo("Burn from non-existent user").build();
+        when(virtualAccountRepository.findByUser_UserId(nonExistentUserId)).thenReturn(Optional.empty());
 
         // When & Then
-        BusinessException exception = assertThrows(BusinessException.class, () -> walletService.burnKrwt(userId, request));
+        BusinessException exception = assertThrows(BusinessException.class, () -> walletService.burnKrwt(adminUserId, nonExistentUserId, request));
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
         assertThat(exception.getMessage()).contains("사용자 지갑을 찾을 수 없습니다.");
     }

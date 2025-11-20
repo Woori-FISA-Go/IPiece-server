@@ -64,13 +64,13 @@ public class WalletController {
     }
 
     @PostMapping("/krwt/burn")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<KrwtBurnResponse> burnKrwt(
-            @CurrentUser Long userId,
+            @CurrentUser Long adminUserId,
             @Valid @RequestBody KrwtBurnRequest request
     ) {
-        KrwtBurnResponse response = walletService.burnKrwt(userId, request);
+        KrwtBurnResponse response = walletService.burnKrwt(adminUserId, request.getUserId(), request);
         return ResponseEntity.ok(response);
     }
 }

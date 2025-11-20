@@ -154,7 +154,6 @@ public class WalletService {
                 .txHash("0x" + UUID.randomUUID().toString().replace("-", "")) // 더미 트랜잭션 해시
                 .status(TransactionStatus.SUCCESS) // Corrected enum access
                 .memo(request.getMemo())
-                .createdAt(OffsetDateTime.now()) // Corrected builder method name
                 .completedAt(OffsetDateTime.now())
                 .build();
         krwtOperationRepository.save(krwtOperation);
@@ -172,14 +171,14 @@ public class WalletService {
     }
 
     @Transactional
-    public KrwtBurnResponse burnKrwt(Long userId, KrwtBurnRequest request) {
+    public KrwtBurnResponse burnKrwt(Long adminUserId, Long targetUserId, KrwtBurnRequest request) {
         // 1. amount 유효성 검증
         if (request.getAmount() <= 0) {
             throw new BusinessException(ErrorCode.INVALID_AMOUNT, "출금 금액은 0보다 커야 합니다.");
         }
 
-        // 2. 사용자 VirtualAccount 조회
-        VirtualAccount userAccount = virtualAccountRepository.findByUser_UserId(userId)
+        // 2. 대상 사용자 VirtualAccount 조회
+        VirtualAccount userAccount = virtualAccountRepository.findByUser_UserId(targetUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자 지갑을 찾을 수 없습니다."));
 
         // 3. 잔고 확인
@@ -205,7 +204,6 @@ public class WalletService {
                 .txHash("0x" + UUID.randomUUID().toString().replace("-", "")) // 더미 트랜잭션 해시
                 .status(TransactionStatus.SUCCESS) // Corrected enum access
                 .memo(request.getMemo())
-                .createdAt(OffsetDateTime.now()) // Corrected builder method name
                 .completedAt(OffsetDateTime.now())
                 .build();
         krwtOperationRepository.save(krwtOperation);
@@ -213,7 +211,7 @@ public class WalletService {
         // 7. 응답 반환
         return KrwtBurnResponse.builder()
                 .transactionId(krwtOperation.getOperationId())
-                .userId(userId)
+                .userId(targetUserId)
                 .previousBalance(previousBalance)
                 .burnAmount(request.getAmount())
                 .newBalance(userAccount.getBalanceKrw())

@@ -14,6 +14,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class KrwtBurnRequest {
+    @NotNull(message = "소각 대상 사용자 ID는 필수입니다.")
+    private Long userId;
+
     @NotNull(message = "출금할 금액은 필수입니다.")
     @Min(value = 1, message = "출금 금액은 0보다 커야 합니다.")
     private Long amount;

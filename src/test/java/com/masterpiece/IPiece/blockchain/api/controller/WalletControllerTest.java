@@ -207,47 +207,140 @@ class WalletControllerTest {
                 .andExpect(status().isForbidden()); // 403 Forbidden
     }
 
-    @Test
-    @WithMockUser(username = "1", roles = "USER")
-    void KRWT를_성공적으로_소각한다() throws Exception {
-        // Given
-        Long userId = 1L;
-        KrwtBurnRequest request = KrwtBurnRequest.builder().amount(5000L).memo("User Burn").build();
-        KrwtBurnResponse mockResponse = KrwtBurnResponse.builder()
-                .transactionId(2L)
-                .userId(1L)
-                .previousBalance(10000L)
-                .burnAmount(5000L)
-                .newBalance(5000L)
-                .transactionHash("0xburnTxHash")
-                .completedAt(OffsetDateTime.now())
-                .build();
+        @Test
 
-        when(walletService.burnKrwt(eq(userId), any(KrwtBurnRequest.class))).thenReturn(mockResponse);
+        @WithMockUser(username = "1", roles = "ADMIN") // Changed to ADMIN role
 
-        // When & Then
-        mockMvc.perform(post("/v1/blockchain/wallet/krwt/burn")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.burnAmount").value(5000L));
+        void KRWT를_성공적으로_소각한다() throws Exception {
 
-        // Verify
-        verify(walletService).burnKrwt(eq(userId), any(KrwtBurnRequest.class));
+            // Given
+
+            Long adminUserId = 1L;
+
+            Long targetUserId = 2L; // Target user for admin to burn
+
+            KrwtBurnRequest request = KrwtBurnRequest.builder().userId(targetUserId).amount(5000L).memo("Admin Burn").build();
+
+            KrwtBurnResponse mockResponse = KrwtBurnResponse.builder()
+
+                    .transactionId(2L)
+
+                    .userId(targetUserId)
+
+                    .previousBalance(10000L)
+
+                    .burnAmount(5000L)
+
+                    .newBalance(5000L)
+
+                    .transactionHash("0xburnTxHash")
+
+                    .completedAt(OffsetDateTime.now())
+
+                    .build();
+
+    
+
+            when(walletService.burnKrwt(eq(adminUserId), eq(targetUserId), any(KrwtBurnRequest.class))).thenReturn(mockResponse);
+
+    
+
+            // When & Then
+
+            mockMvc.perform(post("/v1/blockchain/wallet/krwt/burn")
+
+                            .contentType(MediaType.APPLICATION_JSON)
+
+                            .content(objectMapper.writeValueAsString(request)))
+
+                    .andDo(print())
+
+                    .andExpect(status().isOk())
+
+                    .andExpect(jsonPath("$.burnAmount").value(5000L));
+
+    
+
+            // Verify
+
+            verify(walletService).burnKrwt(eq(adminUserId), eq(targetUserId), any(KrwtBurnRequest.class));
+
+        }
+
+    
+
+        @Test
+
+        @WithMockUser(username = "1", roles = "USER") // USER role should be forbidden
+
+        void KRWT_소각은_USER_권한이_없으면_실패한다() throws Exception {
+
+            // Given
+
+            Long targetUserId = 2L;
+
+            KrwtBurnRequest request = KrwtBurnRequest.builder().userId(targetUserId).amount(5000L).memo("User trying to burn").build();
+
+    
+
+            // When & Then
+
+            mockMvc.perform(post("/v1/blockchain/wallet/krwt/burn")
+
+                            .contentType(MediaType.APPLICATION_JSON)
+
+                            .content(objectMapper.writeValueAsString(request)))
+
+                    .andDo(print())
+
+                    .andExpect(status().isForbidden()); // 403 Forbidden
+
+        }
+
+    
+
+        @Test
+
+        @WithMockUser(username = "1", roles = "ADMIN") // Changed to ADMIN role
+
+        void KRWT_소각_시_금액이_유효하지_않으면_실패한다() throws Exception {
+
+            // Given
+
+            Long adminUserId = 1L;
+
+            Long targetUserId = 2L;
+
+            KrwtBurnRequest request = KrwtBurnRequest.builder().userId(targetUserId).amount(0L).memo("Invalid Burn").build();
+
+    
+
+            when(walletService.burnKrwt(eq(adminUserId), eq(targetUserId), any(KrwtBurnRequest.class)))
+
+                    .thenThrow(new BusinessException(ErrorCode.INVALID_AMOUNT));
+
+    
+
+            // When & Then
+
+            mockMvc.perform(post("/v1/blockchain/wallet/krwt/burn")
+
+                            .contentType(MediaType.APPLICATION_JSON)
+
+                            .content(objectMapper.writeValueAsString(request)))
+
+                    .andDo(print())
+
+                    .andExpect(status().isBadRequest()); // 400 Bad Request
+
+    
+
+            // Verify
+
+            verify(walletService).burnKrwt(eq(adminUserId), eq(targetUserId), any(KrwtBurnRequest.class));
+
+        }
+
     }
 
-    @Test
-    @WithMockUser(username = "1", roles = "USER")
-    void KRWT_소각_시_금액이_유효하지_않으면_실패한다() throws Exception {
-        // Given
-        KrwtBurnRequest request = KrwtBurnRequest.builder().amount(0L).memo("Invalid Burn").build();
-
-        // When & Then
-        mockMvc.perform(post("/v1/blockchain/wallet/krwt/burn")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest()); // 400 Bad Request
-    }
-}
+    
