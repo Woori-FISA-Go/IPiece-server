@@ -41,7 +41,6 @@ public class FavoriteController {
             @PathVariable("product_id") String productIdPath
     ) {
         String instanceUri = "/v1/products/" + productIdPath + "/favorite";
-        System.out.println("***********************************" + productIdPath);
 
 
         try {

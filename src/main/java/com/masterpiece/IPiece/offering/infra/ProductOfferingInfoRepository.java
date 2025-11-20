@@ -20,6 +20,7 @@ public interface ProductOfferingInfoRepository extends JpaRepository<ProductOffe
         SELECT COUNT(o)
         FROM ProductOfferingInfo o
         WHERE o.offeringStartDate > :now
+        AND o.progressRate != 100
     """)
     Long countUpcoming(@Param("now") OffsetDateTime now);
 
@@ -28,6 +29,7 @@ public interface ProductOfferingInfoRepository extends JpaRepository<ProductOffe
         FROM ProductOfferingInfo o
         WHERE o.offeringStartDate <= :now
         AND o.offeringEndDate >= :now
+        AND o.progressRate != 100
     """)
     Long countOngoing(@Param("now") OffsetDateTime now);
 
