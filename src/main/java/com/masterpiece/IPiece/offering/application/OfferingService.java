@@ -10,12 +10,14 @@ import com.masterpiece.IPiece.offering.api.dto.response.OfferingListResponse;
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductDetailResponse;
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductResponse;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
+import com.masterpiece.IPiece.offering.infra.OfferingSubscriptionsRepository;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +40,7 @@ public class OfferingService {
     private final ProductRepository productRepository;
     private final ProductOfferingInfoRepository productOfferingInfoRepository;
     private final FavoriteQueryPort favoriteQueryPort;
+    private final ProductOfferingInfoRepository offeringInfoRepository;
 
     /** 무한스크롤 페이지 사이즈 (한 번에 로드할 항목 수) */
     private static final int PAGE_SIZE = 12;
@@ -114,11 +117,22 @@ public class OfferingService {
                 ? itemsToReturn.get(itemsToReturn.size() - 1).getProductId() - 1
                 : null;
 
+        Long totalCount = productRepository.countProductsByStatus(ProductStatus.OFFERING);
+        Long offeringCount = productRepository.countProductsByStatus(ProductStatus.OFFERING);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Long upcoming = offeringInfoRepository.countUpcoming(now);
+        Long ongoing = offeringInfoRepository.countOngoing(now);
+        Long closed = offeringInfoRepository.countClosedOrSoldOut(now);
 
         return OfferingListResponse.builder()
                 .items(responses)
                 .hasNext(hasNext)
                 .nextCursor(nextCursor)
+                .totalCount(totalCount)
+                .beforeCount(upcoming)
+                .ingCount(ongoing)
+                .afterCount(closed)
                 .build();
     }
 

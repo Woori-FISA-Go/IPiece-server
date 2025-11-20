@@ -9,6 +9,8 @@ import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductDetailRes
 import com.masterpiece.IPiece.offering.api.dto.response.OfferingProductResponse;
 import com.masterpiece.IPiece.offering.application.OfferingService;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +54,7 @@ public class OfferingController {
      * }
      */
     @GetMapping
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> getOfferingProducts(
             @RequestParam(value = "cursor", required = false) Long cursor,
             HttpServletRequest request
@@ -81,6 +84,7 @@ public class OfferingController {
      */
 
     @GetMapping("/{product_id}/detail")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<?> getOfferingProductDetail(
             @PathVariable("product_id") Long productId,
             HttpServletRequest request

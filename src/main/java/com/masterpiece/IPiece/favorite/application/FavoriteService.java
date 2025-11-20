@@ -29,6 +29,9 @@ public class FavoriteService {
      */
     @Transactional
     public FavoriteRegisterResult registerFavorite(Long userId, Long productId) {
+
+        System.out.println("==================등록====================" + userId + " : " + productId);
+
         // 1. 유저 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
@@ -59,6 +62,9 @@ public class FavoriteService {
      */
     @Transactional
     public FavoriteUnlikeResult unregisterFavorite(Long userId, Long productId) {
+        
+        System.out.println("==================해제====================" + userId + " : " + productId);
+
         FavoriteList favorite = favoriteListRepository
                 .findByUser_UserIdAndProduct_ProductId(userId, productId)
                 .orElseThrow(() -> new FavoriteNotFoundException(userId, productId));
