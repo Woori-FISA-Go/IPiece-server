@@ -9,5 +9,4 @@ import java.util.Optional;
 @Repository
 public interface BlockchainTokenRepository extends JpaRepository<BlockchainToken, Long> {
     Optional<BlockchainToken> findByContractAddress(String contractAddress);
-    Optional<BlockchainToken> findByProductProductId(Long productId);
 }

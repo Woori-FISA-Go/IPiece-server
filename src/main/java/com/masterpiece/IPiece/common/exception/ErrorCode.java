@@ -59,6 +59,7 @@ public enum ErrorCode {
     INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "공모 가능한 수량이 없습니다."),
 
     /* 상품/블록체인 */
+    TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "토큰 정보를 찾을 수 없습니다."),
     CONTRACT_ADDRESS_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "컨트랙트 주소가 등록되지 않았습니다."),
     BLOCKCHAIN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "블록체인 연동 중 오류가 발생했습니다.");
 
