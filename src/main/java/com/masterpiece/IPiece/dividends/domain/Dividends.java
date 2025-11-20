@@ -9,12 +9,14 @@ import org.hibernate.annotations.ColumnDefault;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "dividends")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Dividends extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

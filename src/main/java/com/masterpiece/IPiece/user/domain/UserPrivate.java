@@ -7,11 +7,13 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Getter
 @Table(name = "user_private")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
 public class UserPrivate extends BaseEntity {
 

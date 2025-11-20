@@ -7,12 +7,14 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "blockchain_tokens")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class BlockchainToken extends BaseEntity {
 
     @Id

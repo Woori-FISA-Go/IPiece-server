@@ -9,12 +9,14 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "krwt_operations")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class KrwtOperation extends BaseEntity {
 
     @Id

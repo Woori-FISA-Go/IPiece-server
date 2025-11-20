@@ -8,12 +8,14 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "virtual_account")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class VirtualAccount extends BaseEntity {
 
     @Id
@@ -23,8 +25,7 @@ public class VirtualAccount extends BaseEntity {
 
     @Version
     @Column(name = "version", nullable = false)
-    @Builder.Default
-    private Long version = 0L;
+    private long version;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
