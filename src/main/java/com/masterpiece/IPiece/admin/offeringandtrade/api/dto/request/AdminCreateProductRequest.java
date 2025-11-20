@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.admin.api.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminCreateProductOfferingRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
