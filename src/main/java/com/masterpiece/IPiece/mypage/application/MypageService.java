@@ -220,7 +220,7 @@ public class MypageService {
 
         StringBuilder sb = new StringBuilder("0x");
         for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
+            sb.append(String.format("%02x", b & 0xff));
         }
         return sb.toString();
     }
