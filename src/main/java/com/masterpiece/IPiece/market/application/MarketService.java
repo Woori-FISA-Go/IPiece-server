@@ -185,7 +185,7 @@ public class MarketService {
             case "1d" -> 1L;
             case "1w" -> 7L;
             case "1m" -> 30L;
-            default -> throw new IllegalArgumentException("Unsupported interval: " + interval);
+            default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         };
 
         ZonedDateTime lastDayStartZoned;
