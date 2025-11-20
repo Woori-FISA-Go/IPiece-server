@@ -24,7 +24,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class BesuClient {
@@ -95,5 +97,25 @@ public class BesuClient {
         } catch (Exception e) {
             throw new BlockchainException("Failed to fetch KRWT balance for wallet: " + walletAddress, e);
         }
+    }
+
+    /**
+     * Adds a user's wallet address to the whitelist of a specific token contract.
+     * This is a placeholder method.
+     * @param contractAddress The address of the token smart contract.
+     * @param userWalletAddress The wallet address of the user to be whitelisted.
+     */
+    public void addToWhitelist(String contractAddress, String userWalletAddress) {
+        // Validate contract address format
+        if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
+        }
+        // Validate user wallet address format
+        if (!StringUtils.hasText(userWalletAddress) || !userWalletAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid user wallet address: " + userWalletAddress);
+        }
+        log.info("[MOCK] Adding address {} to whitelist for contract {}", userWalletAddress, contractAddress);
+        // In a real implementation, this would encode and send a transaction
+        // to the 'addToWhitelist' function of the smart contract at 'contractAddress'.
     }
 }
