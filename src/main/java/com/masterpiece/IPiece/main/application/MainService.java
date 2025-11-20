@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductStatus;
+import com.masterpiece.IPiece.favorite.infra.FavoriteListRepository;
 import com.masterpiece.IPiece.main.api.dto.response.BannerResponse;
 import com.masterpiece.IPiece.main.api.dto.response.MainPageResponse;
 import com.masterpiece.IPiece.main.api.dto.response.ProductCardResponse;
@@ -15,12 +16,16 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Slf4j
 @Service
@@ -31,6 +36,7 @@ public class MainService {
     private final ProductRepository productRepository;
     private final ObjectMapper objectMapper;
     private List<BannerResponse> cachedBanners;
+    private final FavoriteListRepository favoriteListRepository;
 
     @PostConstruct
     public void init() {
@@ -43,26 +49,25 @@ public class MainService {
      * - 공모중 상품 (최신순, 4개)
      * - 거래중 상품 (최신순, 4개)
      */
-    public MainPageResponse getMainPage() {
-        // 1. 배너 로드 (JSON 파일에서)
+    public MainPageResponse getMainPage(Long userId) {
+
+        // 1. 배너
         List<BannerResponse> banners = cachedBanners;
 
-        // 2. 공모중 상품 (최신순, 4개)
-        Pageable offeringPageable = PageRequest.of(0, 4, 
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+        // 2. 공모 상품
+        Pageable offeringPageable = PageRequest.of(0, 4, Sort.by(DESC, "createdAt"));
         List<ProductCardResponse> offeringProducts = productRepository
                 .findByStatus(ProductStatus.OFFERING, offeringPageable)
                 .stream()
-                .map(this::convertToProductCardResponse)
+                .map(product -> convertToProductCardResponse(product, userId))   // userId 전달
                 .collect(Collectors.toList());
 
-        // 3. 거래중 상품 (최신순, 4개)
-        Pageable tradingPageable = PageRequest.of(0, 4, 
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+        // 3. 거래 상품
+        Pageable tradingPageable = PageRequest.of(0, 4, Sort.by(DESC, "createdAt"));
         List<ProductCardResponse> tradingProducts = productRepository
                 .findByStatus(ProductStatus.TRADE, tradingPageable)
                 .stream()
-                .map(this::convertToProductCardResponse)
+                .map(product -> convertToProductCardResponse(product, userId))   // userId 전달
                 .collect(Collectors.toList());
 
         return MainPageResponse.builder()
@@ -71,6 +76,7 @@ public class MainService {
                 .tradingProducts(tradingProducts)
                 .build();
     }
+
 
     /**
      * resources/banners.json 파일에서 배너 데이터 로드
@@ -91,12 +97,22 @@ public class MainService {
      * Product → ProductCardDto 변환
      * (필요한 필드만 매핑)
      */
-    private ProductCardResponse convertToProductCardResponse(Product product) {
+    private ProductCardResponse convertToProductCardResponse(Product product, Long userId) {
+
+        boolean isFavorite = false;
+
+        // 로그인 O → favorite 여부 조회
+        if (userId != null) {
+            isFavorite = favoriteListRepository.existsByUser_UserIdAndProduct_ProductId(userId, product.getProductId());
+        }
+
         return ProductCardResponse.builder()
                 .productId(product.getProductId())
-                .productName(product.getProductName())        // "다이넷"
-                .currentPrice(product.getCurrentPrice())      // 200
-                .thumbnailImg(product.getThumbnailImg())      // 이미지 경로
+                .productName(product.getProductName())
+                .thumbnailImg(product.getThumbnailImg())
+                .currentPrice(product.getCurrentPrice())
+                .isFavorite(isFavorite)
                 .build();
     }
+
 }
