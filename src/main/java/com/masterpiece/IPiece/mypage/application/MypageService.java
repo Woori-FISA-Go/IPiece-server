@@ -18,6 +18,7 @@ import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +46,7 @@ public class MypageService {
     private final VirtualAccountJournalRepository virtualAccountJournalRepository;
 
     private static final int PAGE_SIZE = 10;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * 마이홈 조회 (보유자산 페이징)
@@ -182,7 +184,7 @@ public class MypageService {
         }
 
         var user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
         VirtualAccount account = VirtualAccount.builder()
                 .user(user)
@@ -192,25 +194,29 @@ public class MypageService {
                 .pendingPrice(0L)
                 .build();
 
-        virtualAccountRepository.save(account);
+        try {
+            virtualAccountRepository.save(account);
+        } catch (DataIntegrityViolationException e) {
+            var latest = virtualAccountRepository.findByUser_UserId(userId)
+                    .orElseThrow(() -> e);
+            return VirtualAccountResponse.from(latest, false);
+        }
 
         return VirtualAccountResponse.from(account, true);
     }
 
     /** 012-345-678910 형식 생성 */
     private String generateAccountNumber() {
-        SecureRandom random = new SecureRandom();
         return String.format("%03d-%03d-%06d",
-                random.nextInt(1000),
-                random.nextInt(1000),
-                random.nextInt(1_000_000));
+                RANDOM.nextInt(1000),
+                RANDOM.nextInt(1000),
+                RANDOM.nextInt(1_000_000));
     }
 
     /** 0x + 40자리 hex */
     private String generateWalletAddress() {
-        SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[20]; // 20 bytes = 40 hex chars
-        random.nextBytes(bytes);
+        RANDOM.nextBytes(bytes);
 
         StringBuilder sb = new StringBuilder("0x");
         for (byte b : bytes) {
