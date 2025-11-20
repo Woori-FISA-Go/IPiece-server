@@ -59,7 +59,7 @@ public class MainService {
         List<ProductCardResponse> offeringProducts = productRepository
                 .findByStatus(ProductStatus.OFFERING, offeringPageable)
                 .stream()
-                .map(product -> convertToProductCardResponse(product, userId))   // ⭐ userId 전달
+                .map(product -> convertToProductCardResponse(product, userId))   // userId 전달
                 .collect(Collectors.toList());
 
         // 3. 거래 상품
@@ -67,7 +67,7 @@ public class MainService {
         List<ProductCardResponse> tradingProducts = productRepository
                 .findByStatus(ProductStatus.TRADE, tradingPageable)
                 .stream()
-                .map(product -> convertToProductCardResponse(product, userId))   // ⭐ userId 전달
+                .map(product -> convertToProductCardResponse(product, userId))   // userId 전달
                 .collect(Collectors.toList());
 
         return MainPageResponse.builder()
