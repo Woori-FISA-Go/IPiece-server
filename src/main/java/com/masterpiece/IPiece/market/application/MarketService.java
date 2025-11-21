@@ -219,11 +219,16 @@ public class MarketService {
                 tradeExecutionRepository.findInWindow(productId, start, end);
 
         List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
-                .map(p -> ChartResponse.Point.builder()
-                        .ts(formatTimestamp(p.ts(), interval))
+                .map(p -> {
+                    OffsetDateTime displayTs = "1d".equals(interval)
+                            ? (p.lastMatch() != null ? p.lastMatch() : p.ts())
+                            : p.ts();
+                    return ChartResponse.Point.builder()
+                            .ts(formatTimestamp(displayTs, interval))
                         .price(p.price())
                         .volume(p.volume())
-                        .build())
+                            .build();
+                })
                 .toList();
 
         ZonedDateTime prevLastDayStartZoned = lastDayStartZoned.minusDays(windowDays);
@@ -264,7 +269,7 @@ public class MarketService {
         }
     }
 
-    private record AggregatedPoint(OffsetDateTime ts, Long price, Long volume) {}
+    private record AggregatedPoint(OffsetDateTime ts, OffsetDateTime lastMatch, Long price, Long volume) {}
 
     private List<AggregatedPoint> aggregateByInterval(List<TradeExecution> executions, String interval, ZoneId zoneId) {
         Map<OffsetDateTime, AggregatedPoint> buckets = new LinkedHashMap<>();
@@ -289,11 +294,11 @@ public class MarketService {
 
                     AggregatedPoint current = buckets.get(bucketStart);
                     if (current == null) {
-                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, exec.getTradePrice(), exec.getTradeQuantity()));
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, match, exec.getTradePrice(), exec.getTradeQuantity()));
                     } else {
                         long newVolume = current.volume() + exec.getTradeQuantity();
                         long newPrice = exec.getTradePrice(); // 마지막 체결가
-                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, newPrice, newVolume));
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, match, newPrice, newVolume));
                     }
                 });
 
@@ -302,7 +307,7 @@ public class MarketService {
 
     private String formatTimestamp(OffsetDateTime ts, String interval) {
         if ("1d".equals(interval)) {
-            return ts.toLocalDate().toString();
+            return ts.toString();
         }
         return ts.toString();
     }

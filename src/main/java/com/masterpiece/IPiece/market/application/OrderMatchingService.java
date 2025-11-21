@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.market.application;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
@@ -28,6 +29,7 @@ import jakarta.persistence.OptimisticLockException;
 @Transactional
 public class OrderMatchingService {
 
+    private final ProductRepository productRepository;
     private final OrderBookRepository orderBookRepository;
     private final TradeExecutionRepository tradeExecutionRepository;
     private final VirtualAccountRepository virtualAccountRepository;
@@ -181,6 +183,7 @@ public class OrderMatchingService {
                 .build();
 
         tradeExecutionRepository.save(trade);
+        updateProductPrice(buyOrder.getProduct(), price);
 
         // 체결을 기준으로 virtual_account / holdings 업데이트
         updateAccountsAndHoldings(buyOrder, sellOrder, qty, price);
@@ -228,6 +231,11 @@ public class OrderMatchingService {
         virtualAccountRepository.save(seller);
 
         printTradeLog(buyOrder, sellOrder, qty, tradePrice, refund);
+    }
+
+    private void updateProductPrice(Product product, long tradePrice) {
+        product.updateCurrentPrice(tradePrice);
+        productRepository.save(product);
     }
 
     // ==========================
