@@ -1,7 +1,7 @@
 package com.masterpiece.IPiece.market.application;
 
 import com.masterpiece.IPiece.market.api.dto.response.OrderBookResponse;
-import com.masterpiece.IPiece.market.infra.messaging.OrderBookPublisher;
+import com.masterpiece.IPiece.market.infra.messaging.RealtimePublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,10 +10,10 @@ import org.springframework.stereotype.Service;
 public class OrderBookPushService {
 
     private final OrderBookQueryService orderBookQueryService;
-    private final OrderBookPublisher orderBookPublisher;
+    private final RealtimePublisher realtimePublisher;
 
     public void pushOrderBook(Long productId) {
         OrderBookResponse response = orderBookQueryService.getOrderBook(productId);
-        orderBookPublisher.publishOrderBook(productId, response);
+        realtimePublisher.publishOrderBook(productId, response);
     }
 }

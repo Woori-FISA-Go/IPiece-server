@@ -14,6 +14,7 @@ import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
 import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
+import com.masterpiece.IPiece.market.application.OrderBookPushService;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
 import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
@@ -71,8 +72,11 @@ public class MarketService {
     private final ProductMapper productMapper;
 
     private final OrderMatchingService orderMatchingService;
-    private final OrderBookPushService orderBookPushService;
     private final OrderBookQueryService orderBookQueryService;
+    private final OrderBookPushService orderBookPushService;
+    private final PendingOrderPushService pendingOrderPushService;
+    private final HoldingAssetQueryService holdingAssetQueryService;
+
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
@@ -364,6 +368,7 @@ public class MarketService {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
         orderBookPushService.pushOrderBook(productId);
+        pendingOrderPushService.pushPendingOrders(userId, productId);
         registerAfterCommitMatching(savedOrder.getOrderId());
 
         return OrderResponse.builder()
@@ -434,6 +439,7 @@ public class MarketService {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
         orderBookPushService.pushOrderBook(productId);
+        pendingOrderPushService.pushPendingOrders(userId, productId);
         registerAfterCommitMatching(savedOrder.getOrderId());
 
         return OrderResponse.builder()
@@ -490,40 +496,7 @@ public class MarketService {
 
     @Transactional(readOnly = true)
     public HoldingAssetResponse getHoldingAsset(Long userId, Long productId) {
-
-        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-
-        var holding = holdingsRepository.findByVirtualAccountAndProduct(account, product)
-                .orElseThrow(() -> new IllegalArgumentException("No holdings for this product"));
-
-        long quantity = holding.getQuantity();
-        long avgBuyPrice = holding.getAvgBuyPrice();
-
-        long currentPrice = product.getCurrentPrice();
-        long totalAmount = quantity * currentPrice;
-
-        // 수익 금액 = (현재가 - 매수평균가) * 수량
-        long profitAmount = (currentPrice - avgBuyPrice) * quantity;
-
-        // 수익률 = (수익금액 / (매수평균가 * 수량)) * 100
-        double profitRate = (avgBuyPrice > 0)
-                ? Math.abs((profitAmount * 100.0) / (avgBuyPrice * quantity))
-                : 0.0;
-
-        profitRate = Math.round(profitRate * 10) / 10.0;
-
-        return HoldingAssetResponse.builder()
-                .product_name(product.getProductName())
-                .quantity(quantity)
-                .avg_buy_price(avgBuyPrice)
-                .total_amount(totalAmount)
-                .total_profit_amount(profitAmount)
-                .total_profit_rate(profitRate)
-                .build();
+        return holdingAssetQueryService.getHoldingAsset(userId, productId);
     }
 
     public OrderBookResponse getOrderBook(Long productId) {

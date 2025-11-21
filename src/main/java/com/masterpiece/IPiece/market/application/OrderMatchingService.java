@@ -36,6 +36,10 @@ public class OrderMatchingService {
     private final HoldingsRepository holdingsRepository;
     private final PlatformTransactionManager transactionManager;
     private final OrderBookPushService orderBookPushService;
+    private final HoldingAssetPushService holdingAssetPushService;
+    private final PendingOrderPushService pendingOrderPushService;
+    private final TradeTickPushService tradeTickPushService;
+    private final ProductPricePushService productPricePushService;
 
     /**
      * /v1/market/{product_id}/buy, /sell 에서
@@ -171,6 +175,10 @@ public class OrderMatchingService {
                            long qty,
                            long price) {
 
+        Long productId = buyOrder.getProduct().getProductId();
+        Long buyerUserId = buyOrder.getVirtualAccount().getUser().getUserId();
+        Long sellerUserId = sellOrder.getVirtualAccount().getUser().getUserId();
+
         TradeExecution trade = TradeExecution.builder()
                 .product(buyOrder.getProduct())
                 .buyOrder(buyOrder)
@@ -184,9 +192,16 @@ public class OrderMatchingService {
 
         tradeExecutionRepository.save(trade);
         updateProductPrice(buyOrder.getProduct(), price);
+        productPricePushService.pushPrice(productId, price);
+        tradeTickPushService.pushTick(productId, price, qty, trade.getMatchTime());
 
         // 체결을 기준으로 virtual_account / holdings 업데이트
         updateAccountsAndHoldings(buyOrder, sellOrder, qty, price);
+
+        holdingAssetPushService.pushAsset(buyerUserId, productId);
+        holdingAssetPushService.pushAsset(sellerUserId, productId);
+        pendingOrderPushService.pushPendingOrders(buyerUserId, productId);
+        pendingOrderPushService.pushPendingOrders(sellerUserId, productId);
     }
 
     // ==========================
