@@ -16,7 +16,7 @@ RUN gradle clean build -x test --no-daemon --stacktrace
 
 # JAR 파일 확인
 RUN ls -la /app/build/libs/ && \
-    test -f /app/build/libs/*.jar
+    test -f /app/build/libs/IPiece-0.0.1-SNAPSHOT.jar
 
 # ===========================
 # Stage 2: Runtime Stage (보안 강화)
