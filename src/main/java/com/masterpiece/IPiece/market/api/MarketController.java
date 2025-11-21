@@ -45,7 +45,7 @@ public class MarketController {
     @GetMapping("/{product_id}/chart")
     public ResponseEntity<ChartResponse> getChart(
             @PathVariable("product_id") Long productId,
-            @RequestParam(value = "interval", defaultValue = "1w") String interval,
+            @RequestParam(value = "interval", defaultValue = "1d") String interval,
             @RequestParam(value = "cursor", required = false) String cursor
     ) {
         ChartResponse response = marketService.getChart(productId, interval, cursor);

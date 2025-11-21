@@ -184,9 +184,9 @@ public class MarketService {
         OffsetDateTime now = OffsetDateTime.now(timezone);
 
         long windowDays = switch (interval) {
-            case "1d" -> 1L;
-            case "1w" -> 7L;
-            case "1m" -> 30L;
+            case "1d" -> 30L;
+            case "1w" -> 60L;
+            case "1m" -> 90L;
             default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         };
 
@@ -220,7 +220,7 @@ public class MarketService {
 
         List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
                 .map(p -> ChartResponse.Point.builder()
-                        .ts(p.ts().toString())
+                        .ts(formatTimestamp(p.ts(), interval))
                         .price(p.price())
                         .volume(p.volume())
                         .build())
@@ -298,6 +298,13 @@ public class MarketService {
                 });
 
         return List.copyOf(buckets.values());
+    }
+
+    private String formatTimestamp(OffsetDateTime ts, String interval) {
+        if ("1d".equals(interval)) {
+            return ts.toLocalDate().toString();
+        }
+        return ts.toString();
     }
 
     @Transactional(readOnly = false)
