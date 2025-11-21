@@ -33,6 +33,7 @@ public class OrderMatchingService {
     private final VirtualAccountRepository virtualAccountRepository;
     private final HoldingsRepository holdingsRepository;
     private final PlatformTransactionManager transactionManager;
+    private final OrderBookPushService orderBookPushService;
 
     /**
      * /v1/market/{product_id}/buy, /sell 에서
@@ -44,6 +45,8 @@ public class OrderMatchingService {
         } else {
             matchSellOrder(incomingOrder);
         }
+
+        orderBookPushService.pushOrderBook(incomingOrder.getProduct().getProductId());
     }
 
     /**
