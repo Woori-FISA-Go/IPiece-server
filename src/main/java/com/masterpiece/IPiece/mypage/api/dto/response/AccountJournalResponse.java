@@ -9,7 +9,8 @@ import lombok.Getter;
 @Builder
 public class AccountJournalResponse {
 
+    private String accountNo;
     private Long totalBalance;                  // 현재 보유 현금 (KRW)
-    private Long pendingPrice;                 // 거래 대기 금액
+    private Long pendingPrice;                 // 거래 대기
     private List<AccountJournalItemDto> items; // 입출금/배당/거래 내역
 }

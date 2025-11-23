@@ -13,4 +13,5 @@ public class PortfolioRatioDto {
 
     private String productName;
     private Double ratio;  // 비중 (%)
+    private String thumbnailImg;
 }

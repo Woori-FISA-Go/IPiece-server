@@ -1,7 +1,9 @@
 package com.masterpiece.IPiece.offering.application;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountJournalRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductStatus;
@@ -26,7 +28,7 @@ public class OfferingPurchaseService {
     private final ProductOfferingInfoRepository offeringInfoRepository;
     private final OfferingSubscriptionsRepository subscriptionsRepository;
     private final VirtualAccountRepository virtualAccountRepository;
-
+    private final VirtualAccountJournalRepository virtualAccountJournalRepository;
 
     // 구매 전 사전 검증
     public void validatePurchase(Long productId, Long userId, long quantity) {
@@ -88,9 +90,10 @@ public class OfferingPurchaseService {
         long pricePerToken = offeringInfo.getOfferingPrice();
         long totalPrice = pricePerToken * quantity;
 
-        //계좌 잔액에서 해당 금액 줄이고, 펜딩 금액에서 해당 금액만큼 더함
+        //계좌 잔액에서 해당 금액 줄이기
         account.decreaseBalanceKrw(totalPrice);
-        account.increasePendingPrice(totalPrice);
+
+
 
         OfferingSubscriptions subscription = OfferingSubscriptions.builder()
                 .virtualAccount(account)
@@ -100,6 +103,17 @@ public class OfferingPurchaseService {
                 .build();
 
         subscriptionsRepository.save(subscription);
+
+        VirtualAccountJournal journal = VirtualAccountJournal.builder()
+                .virtualAccount(account)
+                .txType("OFFERING_BUY") //
+                .amountKrw(-totalPrice) // 출금이므로 음수
+                .balanceAfter(account.getBalanceKrw()) // 차감된 잔액
+                .description("공모 구매: " + offeringInfo.getProduct().getProductName())
+                .numberOfToken(quantity)
+                .build();
+
+        virtualAccountJournalRepository.save(journal);
 
         updateProgressRate(productId);
     }
