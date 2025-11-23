@@ -64,14 +64,17 @@ public class AdminBlockchainTransactionService {
 
     private Item toItem(BlockchainTransaction tx) {
         return Item.builder()
-                .transactionId(tx.getTransactionId())
+                // DB: tx_id
+                .transactionId(tx.getTxId())
                 .txHash(tx.getTxHash())
                 .transactionStatus(tx.getTransactionStatus().name())
                 .transactionType(tx.getTransactionType().name())
-                .userId(tx.getOwnerUserId())
+                // DB: user_id (ManyToOne User user)
+                .userId(tx.getUser() != null ? tx.getUser().getUserId() : null)
                 .fromAddress(tx.getFromAddress())
                 .toAddress(tx.getToAddress())
-                .contractAddress(tx.getContractAddress())
+                // DB: token_address
+                .contractAddress(tx.getTokenAddress())
                 .amount(tx.getAmount())
                 .blockNumber(tx.getBlockNumber())
                 .createdAt(tx.getCreatedAt())

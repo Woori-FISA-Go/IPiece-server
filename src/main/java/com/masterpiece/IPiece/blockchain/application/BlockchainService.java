@@ -1,6 +1,8 @@
 package com.masterpiece.IPiece.blockchain.application;
 
 import com.masterpiece.IPiece.blockchain.api.dto.request.CreateTokenRequest;
+import com.masterpiece.IPiece.user.infra.UserRepository;
+import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.blockchain.api.dto.request.TokenTransferRequest;
 import com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest;
 import com.masterpiece.IPiece.blockchain.api.dto.response.CreateTokenResponse;
@@ -47,6 +49,8 @@ public class BlockchainService {
     private final WalletRepository walletRepository;
     private final BlockchainTokenRepository blockchainTokenRepository;
     private final BlockchainTransactionRepository blockchainTransactionRepository; // Inject repository
+    private final UserRepository userRepository;
+
 
     public KrwtBalanceResponse getKrwtBalance(Long userId) {
         String walletAddress = walletRepository.findByUserId(userId)
@@ -131,6 +135,10 @@ public class BlockchainService {
         BlockchainToken token = blockchainTokenRepository.findByContractAddress(contractAddress)
                 .orElseThrow(() -> new TokenNotFoundException("Token with address " + contractAddress + " not found"));
 
+        // 2. Admin User 조회 (user_id NOT NULL 을 만족시키기 위해)
+        User adminUser = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new WalletNotFoundException("Admin user " + adminUserId + " not found"));
+
         // 2. Call BesuClient to execute the smart contract function
         try {
             // This is a mocked call for now. In a real scenario, this would interact with the blockchain.
@@ -140,16 +148,21 @@ public class BlockchainService {
             // Save transfer record to BlockchainTransaction entity
             BlockchainTransaction transaction = BlockchainTransaction.builder()
                     .txHash(transactionHash)
-                    .fromAddress(besuClient.getAdminAddress()) // Get admin's address from BesuClient
+                    .fromAddress(besuClient.getAdminAddress())
                     .toAddress(request.getToAddress())
-                    .contractAddress(contractAddress)
+                    .tokenAddress(contractAddress) // token_address 컬럼
                     .amount(BigDecimal.valueOf(request.getAmount()))
                     .transactionType(TransactionType.TRANSFER)
-                    .transactionStatus(TransactionStatus.SUCCESS) // Assuming success for mock
-                    .ownerUserId(adminUserId)
-                    .investmentId(request.getInvestmentId())
+                    .transactionStatus(TransactionStatus.SUCCESS)
+                    .blockNumber(null)
+                    .blockHash(null)
+                    .gasUsed(null)
+                    .errorMessage(null)
+                    .user(adminUser) // ★ user_id NOT NULL
                     .build();
+
             blockchainTransactionRepository.save(transaction);
+
 
             return TokenTransferResponse.builder()
                     .fromAddress(besuClient.getAdminAddress()) // Admin's wallet address

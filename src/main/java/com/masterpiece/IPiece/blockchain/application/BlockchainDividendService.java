@@ -92,7 +92,7 @@ public class BlockchainDividendService {
                 .amount(BigDecimal.valueOf(request.getTotalAmount()))
                 .blockNumber(transactionReceipt.getBlockNumber().longValue())
                 .transactionStatus(transactionReceipt.isStatusOK() ? TransactionStatus.SUCCESS : TransactionStatus.FAILED)
-                .ownerUserId(adminUser.getUserId())
+                .user(adminUser)
                 .build();
         blockchainTransactionRepository.save(tx);
 

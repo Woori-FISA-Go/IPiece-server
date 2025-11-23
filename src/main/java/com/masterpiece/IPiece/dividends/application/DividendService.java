@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * 배당 배정/집행 서비스
@@ -214,16 +216,16 @@ public class DividendService {
 
                     // 2) BlockchainTransaction 로그 (SUCCESS)
                     txLog = BlockchainTransaction.builder()
-                            .txType(TransactionType.DIVIDEND)
+                            .transactionType(TransactionType.DIVIDEND)
                             .txHash(txHash)
                             .fromAddress(adminAddress)
                             .toAddress(walletAddress)
-                            .amount(amount)
+                            .amount(BigDecimal.valueOf(amount))
                             .tokenAddress(null) // KRWT 컨트랙트 주소 넣고 싶으면 주입
                             .blockNumber(null) // 필요하면 receipt 조회 추가
                             .blockHash(null)
                             .gasUsed(null)
-                            .status(TransactionStatus.SUCCESS)
+                            .transactionStatus(TransactionStatus.SUCCESS)
                             .user(account.getUser())
                             .build();
                     blockchainTransactionRepository.save(txLog);
@@ -265,16 +267,16 @@ public class DividendService {
                     // BlockchainTransaction 로그 (FAILED)
                     if (txLog == null) {
                         BlockchainTransaction failedTx = BlockchainTransaction.builder()
-                                .txType(TransactionType.DIVIDEND)
+                                .transactionType(TransactionType.DIVIDEND)
                                 .txHash(null)
                                 .fromAddress(adminAddress)
                                 .toAddress(walletAddress)
-                                .amount(amount)
+                                .amount(BigDecimal.valueOf(amount))
                                 .tokenAddress(null)
                                 .blockNumber(null)
                                 .blockHash(null)
                                 .gasUsed(null)
-                                .status(TransactionStatus.FAILED)
+                                .transactionStatus(TransactionStatus.FAILED)
                                 .errorMessage(ex.getMessage())
                                 .user(account.getUser())
                                 .build();
