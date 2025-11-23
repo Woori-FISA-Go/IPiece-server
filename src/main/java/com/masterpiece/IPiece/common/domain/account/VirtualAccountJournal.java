@@ -35,7 +35,8 @@ public class VirtualAccountJournal extends BaseEntity {
     private Long balanceAfter; // 이 이벤트 이후 계좌 잔액
 
     @Column(name = "number_of_token", nullable = false)
-    private Long numberOfToken;
+    @Builder.Default
+    private Long numberOfToken = 0L;
 
     @Column(name = "description", length = 255)
     private String description;
