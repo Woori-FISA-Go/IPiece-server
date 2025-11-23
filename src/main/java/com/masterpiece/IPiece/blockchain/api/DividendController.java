@@ -6,7 +6,7 @@ import com.masterpiece.IPiece.blockchain.api.dto.response.DividendExecuteRespons
 import com.masterpiece.IPiece.blockchain.api.dto.response.DividendSimulateResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.MyDividendsResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.ProjectDividendsResponse;
-import com.masterpiece.IPiece.blockchain.application.DividendService;
+import com.masterpiece.IPiece.blockchain.application.BlockchainDividendService;
 import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class DividendController {
 
-    private final DividendService dividendService;
+    private final BlockchainDividendService blockchainDividendService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -38,7 +38,7 @@ public class DividendController {
         @CurrentUser Long userId,
         @Valid @RequestBody DividendExecuteRequest request
     ) {
-        DividendExecuteResponse response = dividendService.executeDividend(userId, request);
+        DividendExecuteResponse response = blockchainDividendService.executeDividend(userId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -48,7 +48,7 @@ public class DividendController {
     public ResponseEntity<DividendSimulateResponse> simulateDividend(
         @Valid @RequestBody DividendSimulateRequest request
     ) {
-        DividendSimulateResponse response = dividendService.simulateDividend(request);
+        DividendSimulateResponse response = blockchainDividendService.simulateDividend(request);
         return ResponseEntity.ok(response);
     }
 
@@ -60,7 +60,7 @@ public class DividendController {
         @RequestParam(defaultValue = "1") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        MyDividendsResponse response = dividendService.getMyDividends(userId, page, size);
+        MyDividendsResponse response = blockchainDividendService.getMyDividends(userId, page, size);
         return ResponseEntity.ok(response);
     }
 
@@ -70,7 +70,7 @@ public class DividendController {
     public ResponseEntity<ProjectDividendsResponse> getProjectDividends(
         @PathVariable Long projectId
     ) {
-        ProjectDividendsResponse response = dividendService.getProjectDividends(projectId);
+        ProjectDividendsResponse response = blockchainDividendService.getProjectDividends(projectId);
         return ResponseEntity.ok(response);
     }
 }

@@ -36,16 +36,14 @@ import org.web3j.tx.gas.DefaultGasProvider;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 @ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
-public class DividendService {
+public class BlockchainDividendService {
 
     private final Web3j web3j;
     private final Credentials adminCredentials;

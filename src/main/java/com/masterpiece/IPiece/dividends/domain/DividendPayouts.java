@@ -41,5 +41,21 @@ public class DividendPayouts extends BaseEntity {
     @Column(name = "payout_date", nullable = false)
     private OffsetDateTime payoutDate;
 
+    /**
+     * 배당 지급 성공 시 상태/일시 갱신
+     */
+    public void markPaid(OffsetDateTime paidAt) {
+        this.payoutStatus = "PAID";
+        this.payoutDate = paidAt != null ? paidAt : OffsetDateTime.now();
+    }
+
+    /**
+     * 배당 지급 실패 시 상태/일시 갱신
+     */
+    public void markFailed(OffsetDateTime failedAt) {
+        this.payoutStatus = "FAILED";
+        this.payoutDate = failedAt != null ? failedAt : OffsetDateTime.now();
+    }
+
 
 }

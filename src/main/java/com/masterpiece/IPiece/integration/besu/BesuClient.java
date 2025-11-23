@@ -18,7 +18,13 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.EthCall;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.tx.RawTransactionManager;
+import org.web3j.tx.TransactionManager;
+import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Convert;
+import lombok.extern.slf4j.Slf4j;
+
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -64,6 +70,13 @@ public class BesuClient {
         }
     }
 
+    /**
+     * 배당/송금 로그에 사용하기 위한 admin 지갑 주소 반환
+     */
+    public String getAdminAddress() {
+        return credentials.getAddress();
+    }
+
     public BigDecimal getKrwtBalance(String walletAddress) {
         // Validate wallet address format
         if (!StringUtils.hasText(walletAddress) || !walletAddress.matches("^0x[0-9a-fA-F]{40}$")) {
@@ -99,6 +112,53 @@ public class BesuClient {
 
         } catch (Exception e) {
             throw new BlockchainException("Failed to fetch KRWT balance for wallet: " + walletAddress, e);
+        }
+    }
+
+    public String transferKrwt(String toAddress, long amount) {
+        if (!StringUtils.hasText(toAddress) || !toAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid receiver address: " + toAddress);
+        }
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Transfer amount must be positive");
+        }
+
+        try {
+            Function function = new Function(
+                    "transfer",
+                    java.util.Arrays.asList(
+                            new Address(toAddress),
+                            new Uint256(BigInteger.valueOf(amount))
+                    ),
+                    java.util.Collections.<TypeReference<?>>emptyList()
+            );
+
+            String data = FunctionEncoder.encode(function);
+
+            // Gas 설정 (프라이빗 체인이라 넉넉한 기본값 사용, 필요시 튜닝)
+            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+            BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
+
+            TransactionManager txManager = new RawTransactionManager(web3j, credentials);
+            EthSendTransaction response = txManager.sendTransaction(
+                    gasPrice,
+                    gasLimit,
+                    krwtContractAddress,
+                    data,
+                    BigInteger.ZERO
+            );
+
+            if (response.hasError()) {
+                throw new BlockchainException("KRWT transfer failed: " + response.getError().getMessage());
+            }
+
+            String txHash = response.getTransactionHash();
+            log.info("KRWT transfer submitted: from={} to={} amount={} txHash={}",
+                    credentials.getAddress(), toAddress, amount, txHash);
+            return txHash;
+
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to send KRWT transfer to " + toAddress, e);
         }
     }
 
