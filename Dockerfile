@@ -8,7 +8,7 @@ WORKDIR /app
 # Gradle 캐시 레이어 (의존성만 먼저)
 COPY build.gradle settings.gradle ./
 COPY gradle ./gradle
-RUN gradle dependencies --no-daemon || return 0
+RUN gradle dependencies --no-daemon || true
 
 # 소스 코드 복사 및 빌드
 COPY src ./src
