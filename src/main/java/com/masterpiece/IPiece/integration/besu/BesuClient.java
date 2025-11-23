@@ -22,11 +22,11 @@ import org.web3j.utils.Convert;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.OffsetDateTime; // Added import
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map; // Added import
-import java.util.UUID; // Added import
+import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -146,11 +146,7 @@ public class BesuClient {
         log.info("[MOCK] Transferring {} tokens from admin to {} for contract {}", amount, toAddress, contractAddress);
         // In a real implementation, this would encode and send a transaction
         // to the 'transfer' function of the smart contract at 'contractAddress'.
-<<<<<<< HEAD
-        return "0x" + UUID.randomUUID().toString().replace("-", ""); // Dummy transaction hash
-=======
         return randomHash(); // Dummy transaction hash
->>>>>>> release/#test
     }
 
     /**
@@ -169,13 +165,8 @@ public class BesuClient {
                 "hash", transactionHash,
                 "status", "success",
                 "blockNumber", 12345L,
-<<<<<<< HEAD
-                "from", "0x" + UUID.randomUUID().toString().replace("-", "").substring(0, 40),
-                "to", "0x" + UUID.randomUUID().toString().replace("-", "").substring(0, 40),
-=======
                 "from", randomAddress(),
                 "to", randomAddress(),
->>>>>>> release/#test
                 "value", "100",
                 "gasUsed", "21000",
                 "timestamp", OffsetDateTime.now().toString()
@@ -200,24 +191,15 @@ public class BesuClient {
                         "owner", credentials.getAddress()
                 ),
                 "tokenFactory", Map.of(
-<<<<<<< HEAD
-                        "address", "0x" + UUID.randomUUID().toString().replace("-", "").substring(0, 40),
-=======
                         "address", randomAddress(),
->>>>>>> release/#test
                         "tokensCreated", 5,
                         "owner", credentials.getAddress()
                 ),
                 "tokens", List.of(
                         Map.of(
                                 "projectId", UUID.randomUUID().toString(),
-<<<<<<< HEAD
-                                "address", "0x" + UUID.randomUUID().toString().replace("-", "").substring(0, 40),
-                                "dividendAddress", "0x" + UUID.randomUUID().toString().replace("-", "").substring(0, 40)
-=======
                                 "address", randomAddress(),
                                 "dividendAddress", randomAddress()
->>>>>>> release/#test
                         )
                 )
         );
@@ -230,10 +212,7 @@ public class BesuClient {
     public String getAdminAddress() {
         return credentials.getAddress();
     }
-<<<<<<< HEAD
-=======
 
->>>>>>> release/#test
     // 체인 상태 조회용 메서드
     public long getLatestBlockNumber() {
         try {
@@ -322,8 +301,6 @@ public class BesuClient {
             long gasLimit,
             int txCount
     ) {}
-<<<<<<< HEAD
-=======
 
     // Helper method to generate a dummy Ethereum transaction hash (0x + 64 hex chars)
     private String randomHash() {
@@ -338,5 +315,4 @@ public class BesuClient {
                 + UUID.randomUUID().toString().replace("-", "");
         return "0x" + hex.substring(0, 40);
     }
->>>>>>> release/#test
 }

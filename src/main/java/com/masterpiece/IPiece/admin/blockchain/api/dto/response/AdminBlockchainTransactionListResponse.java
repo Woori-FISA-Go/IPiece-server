@@ -32,17 +32,17 @@ public class AdminBlockchainTransactionListResponse {
     @AllArgsConstructor
     public static class Item {
 
-        @JsonProperty("tx_id")
-        private Long txId;
+        @JsonProperty("transaction_id")
+        private Long transactionId;
 
         @JsonProperty("tx_hash")
         private String txHash;
 
-        @JsonProperty("status")
-        private String status;
+        @JsonProperty("transaction_status")
+        private String transactionStatus;
 
-        @JsonProperty("tx_type")
-        private String txType;
+        @JsonProperty("transaction_type")
+        private String transactionType;
 
         @JsonProperty("user_id")
         private Long userId;
@@ -53,20 +53,14 @@ public class AdminBlockchainTransactionListResponse {
         @JsonProperty("to_address")
         private String toAddress;
 
-        @JsonProperty("token_address")
-        private String tokenAddress;
+        @JsonProperty("contract_address")
+        private String contractAddress;
 
         @JsonProperty("amount")
-        private Long amount;
+        private java.math.BigDecimal amount;
 
         @JsonProperty("block_number")
         private Long blockNumber;
-
-        @JsonProperty("block_hash")
-        private String blockHash;
-
-        @JsonProperty("gas_used")
-        private Long gasUsed;
 
         @JsonProperty("created_at")
         private OffsetDateTime createdAt;
