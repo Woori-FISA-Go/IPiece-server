@@ -4,6 +4,7 @@ import com.masterpiece.IPiece.blockchain.application.UserWalletService;
 import com.masterpiece.IPiece.blockchain.domain.Wallet;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountJournalRepository;
 import com.masterpiece.IPiece.common.exception.BusinessException;
@@ -18,6 +19,7 @@ import com.masterpiece.IPiece.mypage.api.dto.response.*;
 import com.masterpiece.IPiece.mypage.application.mapper.MypageMapper;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
+import com.masterpiece.IPiece.offering.infra.OfferingSubscriptionsRepository;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,6 +48,7 @@ public class MypageService {
     private final FavoriteListRepository favoriteListRepository;
     private final MypageMapper mypageMapper;
     private final VirtualAccountJournalRepository virtualAccountJournalRepository;
+    private final OfferingSubscriptionsRepository offeringSubscriptionsRepository;
     private final UserWalletService userWalletService;   // ← 온체인 지갑 서비스 주입
 
 
@@ -55,7 +58,11 @@ public class MypageService {
     /**
      * 마이홈 조회 (보유자산 페이징)
      */
-    public MyhomeResponse getMyHome(Long userId, int page) {
+    public MyhomeResponse getMyHome(Long userId, int page, int offeringPage) {
+
+        // 0. 사용자 ID 조회
+        String userMadeId = userRepository.findUserMadeIdByUserId(userId);
+
         // 1. 가상계좌 조회
         VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -77,8 +84,23 @@ public class MypageService {
                 ? allAssets.subList(start, end)
                 : List.of();
 
+        List<OfferingAssetDto> allOfferingAssets =
+                offeringSubscriptionsRepository.findOfferingAssetsByAccountId(account.getAccountId());
+
+        int PAGE_SIZE = 10;
+
+        int pageIndexOffering = offeringPage - 1;
+        int startOffering = pageIndexOffering * PAGE_SIZE;
+        int endOffering = Math.min(startOffering + PAGE_SIZE, allOfferingAssets.size());
+
+        List<OfferingAssetDto> pagedOfferingAssets = (startOffering < allOfferingAssets.size())
+                ? allOfferingAssets.subList(startOffering, endOffering)
+                : List.of();
+
+
+
         // 5. MyhomeResponse 생성
-        return mypageMapper.toMyhomeResponse(userId, account, allHoldings, allAssets, pagedAssets);
+        return mypageMapper.toMyhomeResponse(userId,userMadeId, account, allHoldings, allAssets, pagedAssets, pagedOfferingAssets);
     }
 
     public FavoriteListResponse getFavorites(Long userId) {
@@ -130,12 +152,22 @@ public class MypageService {
         List<AccountHistoryItemDto> dividendHistory =
                 mypageMapper.toAccountDividendHistory(account, fromDateTime, toDateTime);
 
-        List<AccountHistoryItemDto> history = Stream.concat(
-                        tradeHistory.stream(),
-                        dividendHistory.stream()
+
+        List<AccountHistoryItemDto> journalHistory =
+                virtualAccountJournalRepository.findByVirtualAccountAndCreatedAtBetween(account,fromDateTime, toDateTime)
+                        .stream()
+                        .map(mypageMapper::toOfferingHistoryItem)
+                        .collect(Collectors.toList());
+
+        List<AccountHistoryItemDto> history = Stream.of(
+                        tradeHistory,
+                        dividendHistory,
+                        journalHistory
                 )
+                .flatMap(List::stream)
                 .sorted(Comparator.comparing(AccountHistoryItemDto::getCreatedAt).reversed())
                 .collect(Collectors.toList());
+
 
         // 4. 합계 값
         long totalBalance = account.getBalanceKrw();
@@ -173,6 +205,7 @@ public class MypageService {
         long pendingPrice = account.getPendingPrice() != null ? account.getPendingPrice() : 0L;
 
         return AccountJournalResponse.builder()
+                .accountNo(account.getAccountNo())
                 .totalBalance(totalBalance)
                 .pendingPrice(pendingPrice)
                 .items(items)

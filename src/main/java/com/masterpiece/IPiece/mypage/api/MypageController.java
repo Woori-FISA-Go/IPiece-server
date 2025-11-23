@@ -28,9 +28,10 @@ public class MypageController {
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<MyhomeResponse> getMyHome(
             @AuthenticationPrincipal Long userId,
-            @RequestParam(defaultValue = "1") int page
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "1") int offeringPage
     ) {
-        MyhomeResponse response = mypageService.getMyHome(userId, page);
+        MyhomeResponse response = mypageService.getMyHome(userId, page, offeringPage);
         return ResponseEntity.ok(response);
     }
 
