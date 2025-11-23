@@ -212,4 +212,92 @@ public class BesuClient {
     public String getAdminAddress() {
         return credentials.getAddress();
     }
+    // 체인 상태 조회용 메서드
+    public long getLatestBlockNumber() {
+        try {
+            return web3j.ethBlockNumber().send().getBlockNumber().longValue();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch latest block number", e);
+        }
+    }
+
+    public int getPeerCount() {
+        try {
+            return web3j.netPeerCount().send().getQuantity().intValue();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch peer count", e);
+        }
+    }
+
+    public boolean isSyncing() {
+        try {
+            var response = web3j.ethSyncing().send();
+            return response.isSyncing();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch syncing status", e);
+        }
+    }
+
+    public long getGasPrice() {
+        try {
+            return web3j.ethGasPrice().send().getGasPrice().longValue();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch gas price", e);
+        }
+    }
+
+    public String getNetworkId() {
+        try {
+            return web3j.netVersion().send().getNetVersion();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch network id", e);
+        }
+    }
+
+    // ==========================
+    // 추가: 체인 ID 및 최신 블록 요약
+    // ==========================
+
+    public String getChainId() {
+        try {
+            // eth_chainId는 BigInteger로 체인 ID를 반환
+            var response = web3j.ethChainId().send();
+            java.math.BigInteger chainId = response.getChainId();
+
+            // 0x-prefixed hex string 으로 변환
+            return "0x" + chainId.toString(16);
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch chain id", e);
+        }
+    }
+
+    public LatestBlockSummary getLatestBlockSummary() {
+        try {
+            var response = web3j.ethGetBlockByNumber(
+                    DefaultBlockParameterName.LATEST,
+                    false // 트랜잭션 전체가 아니라 hash만 가져오도록
+            ).send();
+
+            var block = response.getBlock();
+            if (block == null) {
+                throw new BlockchainException("Latest block is null");
+            }
+
+            long number = block.getNumber().longValue();
+            long gasUsed = block.getGasUsed().longValue();
+            long gasLimit = block.getGasLimit().longValue();
+            int txCount = block.getTransactions().size();
+
+            return new LatestBlockSummary(number, gasUsed, gasLimit, txCount);
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch latest block summary", e);
+        }
+    }
+
+    public record LatestBlockSummary(
+            long number,
+            long gasUsed,
+            long gasLimit,
+            int txCount
+    ) {}
 }
