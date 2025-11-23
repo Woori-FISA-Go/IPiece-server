@@ -1,10 +1,13 @@
 package com.masterpiece.IPiece.blockchain.api;
 
 import com.masterpiece.IPiece.blockchain.api.dto.request.CreateTokenRequest;
+import com.masterpiece.IPiece.blockchain.api.dto.request.TokenTransferRequest;
 import com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest;
 import com.masterpiece.IPiece.blockchain.api.dto.response.CreateTokenResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.KrwtBalanceResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.TokenInfoResponse;
+import com.masterpiece.IPiece.blockchain.api.dto.response.TokenTransferResponse;
+import com.masterpiece.IPiece.blockchain.api.dto.response.TransactionInfoResponse;
 import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,5 +61,23 @@ public class BlockchainController {
                                                @Valid @RequestBody WhitelistRequest request) {
         blockchainService.addToWhitelist(address, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/tokens/{address}/transfer")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "토큰 전송", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<TokenTransferResponse> transferToken(@PathVariable String address,
+                                                               @Valid @RequestBody TokenTransferRequest request,
+                                                               @CurrentUser Long adminUserId) {
+        TokenTransferResponse response = blockchainService.transferToken(address, request, adminUserId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/transactions/{hash}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "트랜잭션 조회", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<TransactionInfoResponse> getTransactionByHash(@PathVariable String hash) {
+        TransactionInfoResponse response = blockchainService.getTransactionByHash(hash);
+        return ResponseEntity.ok(response);
     }
 }
