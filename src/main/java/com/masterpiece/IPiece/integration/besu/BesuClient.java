@@ -28,8 +28,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -178,6 +182,97 @@ public class BesuClient {
         // to the 'addToWhitelist' function of the smart contract at 'contractAddress'.
     }
 
+    /**
+     * Transfers a specified amount of tokens from the admin's wallet to a target address.
+     * This is a placeholder method.
+     * @param contractAddress The address of the token smart contract.
+     * @param toAddress The recipient's wallet address.
+     * @param amount The amount of tokens to transfer.
+     * @return A dummy transaction hash.
+     */
+    public String transferToken(String contractAddress, String toAddress, Integer amount) {
+        // Validate contract address format
+        if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
+        }
+        // Validate recipient address format
+        if (!StringUtils.hasText(toAddress) || !toAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid recipient address: " + toAddress);
+        }
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Transfer amount must be greater than 0.");
+        }
+
+        log.info("[MOCK] Transferring {} tokens from admin to {} for contract {}", amount, toAddress, contractAddress);
+        // In a real implementation, this would encode and send a transaction
+        // to the 'transfer' function of the smart contract at 'contractAddress'.
+        return randomHash(); // Dummy transaction hash
+    }
+
+    /**
+     * Retrieves a transaction receipt by its hash.
+     * This is a placeholder method.
+     * @param transactionHash The hash of the transaction.
+     * @return A dummy transaction receipt.
+     */
+    public Map<String, Object> getTransactionReceipt(String transactionHash) {
+        if (!StringUtils.hasText(transactionHash) || !transactionHash.matches("^0x[0-9a-fA-F]{64}$")) {
+            throw new IllegalArgumentException("Invalid transaction hash: " + transactionHash);
+        }
+        log.info("[MOCK] Getting transaction receipt for hash {}", transactionHash);
+        // In a real implementation, this would query the blockchain for the transaction receipt.
+        return Map.of(
+                "hash", transactionHash,
+                "status", "success",
+                "blockNumber", 12345L,
+                "from", randomAddress(),
+                "to", randomAddress(),
+                "value", "100",
+                "gasUsed", "21000",
+                "timestamp", OffsetDateTime.now().toString()
+        );
+    }
+
+    /**
+     * Retrieves information about deployed contracts (KRWT, TokenFactory, etc.).
+     * This is a placeholder method.
+     * @return A dummy map containing contract information.
+     */
+    public Map<String, Object> getContractInfo() {
+        log.info("[MOCK] Getting contract information.");
+        // In a real implementation, this would query the blockchain for contract details.
+        return Map.of(
+                "krwt", Map.of(
+                        "address", krwtContractAddress,
+                        "name", "Korean Won Token",
+                        "symbol", "KRWT",
+                        "decimals", 0,
+                        "totalSupply", "10000000000",
+                        "owner", credentials.getAddress()
+                ),
+                "tokenFactory", Map.of(
+                        "address", randomAddress(),
+                        "tokensCreated", 5,
+                        "owner", credentials.getAddress()
+                ),
+                "tokens", List.of(
+                        Map.of(
+                                "projectId", UUID.randomUUID().toString(),
+                                "address", randomAddress(),
+                                "dividendAddress", randomAddress()
+                        )
+                )
+        );
+    }
+
+    /**
+     * Returns the wallet address of the admin user.
+     * @return The admin's wallet address.
+     */
+    public String getAdminAddress() {
+        return credentials.getAddress();
+    }
+
     // 체인 상태 조회용 메서드
     public long getLatestBlockNumber() {
         try {
@@ -266,4 +361,18 @@ public class BesuClient {
             long gasLimit,
             int txCount
     ) {}
+
+    // Helper method to generate a dummy Ethereum transaction hash (0x + 64 hex chars)
+    private String randomHash() {
+        String hex = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+        return "0x" + hex.substring(0, 64);
+    }
+
+    // Helper method to generate a dummy Ethereum address (0x + 40 hex chars)
+    private String randomAddress() {
+        String hex = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+        return "0x" + hex.substring(0, 40);
+    }
 }

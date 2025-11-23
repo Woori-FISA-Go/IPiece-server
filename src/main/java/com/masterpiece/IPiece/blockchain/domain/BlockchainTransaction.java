@@ -1,16 +1,16 @@
 package com.masterpiece.IPiece.blockchain.domain;
 
 import com.masterpiece.IPiece.common.domain.BaseEntity;
-import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.OffsetDateTime;
-
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal; // Assuming amount can be BigDecimal for blockchain transactions
+
 @Entity
-@Table(name = "blockchain_transactions")
+@Table(name = "blockchain_transaction")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,12 +19,8 @@ public class BlockchainTransaction extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "tx_id")
-    private Long txId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tx_type", nullable = false, length = 20)
-    private TransactionType txType;
+    @Column(name = "transaction_id")
+    private Long transactionId;
 
     @Column(name = "tx_hash", nullable = false, unique = true, length = 66)
     private String txHash;
@@ -35,41 +31,26 @@ public class BlockchainTransaction extends BaseEntity {
     @Column(name = "to_address", nullable = false, length = 42)
     private String toAddress;
 
-    @Column(name = "amount")
-    private Long amount;
+    @Column(name = "contract_address", nullable = false, length = 42)
+    private String contractAddress;
 
-    @Column(name = "token_address", length = 42)
-    private String tokenAddress;
-
-    @Column(name = "block_number", nullable = false)
-    private Long blockNumber;
-
-    @Column(name = "block_hash", length = 66)
-    private String blockHash;
-
-    @Column(name = "gas_used")
-    private Long gasUsed;
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2) // Use BigDecimal for amounts
+    private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    @Builder.Default
-    private TransactionStatus status = TransactionStatus.PENDING;
+    @Column(name = "transaction_type", nullable = false, length = 20)
+    private TransactionType transactionType;
 
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    private String errorMessage;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_status", nullable = false, length = 20)
+    private TransactionStatus transactionStatus;
 
-    // 연관관계
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "owner_user_id") // Nullable
+    private Long ownerUserId;
 
-    //== 비즈니스 로직 ==//
-    public void updateStatus(TransactionStatus status) {
-        this.status = status;
-    }
+    @Column(name = "investment_id", length = 36) // UUID length
+    private String investmentId;
 
-    public void recordError(String errorMessage) {
-        this.status = TransactionStatus.FAILED;
-        this.errorMessage = errorMessage;
-    }
+    @Column(name = "block_number")
+    private Long blockNumber;
 }

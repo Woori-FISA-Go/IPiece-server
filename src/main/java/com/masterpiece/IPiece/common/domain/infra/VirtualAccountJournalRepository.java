@@ -2,6 +2,10 @@ package com.masterpiece.IPiece.common.domain.infra;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,4 +16,10 @@ public interface VirtualAccountJournalRepository
     List<VirtualAccountJournal> findByVirtualAccountOrderByCreatedAtDesc(
             VirtualAccount account
     );
+    List<VirtualAccountJournal> findByVirtualAccountAndCreatedAtBetween(
+            VirtualAccount virtualAccount,
+            OffsetDateTime from,
+            OffsetDateTime to
+    );
+
 }

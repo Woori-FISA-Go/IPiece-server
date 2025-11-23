@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# Gradle
+.gradle
+build
+!build/libs/*.jar
+gradle-wrapper.jar
+
+# IDE
+.idea
+.vscode
+.settings
+*.iml
+*.ipr
+*.iws
+
+# 민감 정보
+.env
+*.pem
+*.key
+secrets/
+
+# 기타
+*.md
+*.log
+*.tmp
+target/
+node_modules/
