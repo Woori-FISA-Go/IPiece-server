@@ -85,7 +85,6 @@ public class AdminProductService {
     @Transactional
     public AdminEnableSecondaryTradingResponse enableSecondaryTrading(
             Long productId,
-            Long operatorId,
             AdminEnableSecondaryTradingRequest request
     ) {
         // 1. confirm 검증
@@ -113,7 +112,6 @@ public class AdminProductService {
                 .previousStatus(previousStatus.name())
                 .newStatus(product.getStatus().name())
                 .enabledAt(enabledAt)
-                .operatorId(operatorId)
                 .build();
     }
 }

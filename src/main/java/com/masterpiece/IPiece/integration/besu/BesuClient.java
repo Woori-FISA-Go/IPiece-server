@@ -24,7 +24,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class BesuClient {
@@ -96,4 +98,113 @@ public class BesuClient {
             throw new BlockchainException("Failed to fetch KRWT balance for wallet: " + walletAddress, e);
         }
     }
+
+    /**
+     * Adds a user's wallet address to the whitelist of a specific token contract.
+     * This is a placeholder method.
+     * @param contractAddress The address of the token smart contract.
+     * @param userWalletAddress The wallet address of the user to be whitelisted.
+     */
+    public void addToWhitelist(String contractAddress, String userWalletAddress) {
+        // Validate contract address format
+        if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
+        }
+        // Validate user wallet address format
+        if (!StringUtils.hasText(userWalletAddress) || !userWalletAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid user wallet address: " + userWalletAddress);
+        }
+        log.info("[MOCK] Adding address {} to whitelist for contract {}", userWalletAddress, contractAddress);
+        // In a real implementation, this would encode and send a transaction
+        // to the 'addToWhitelist' function of the smart contract at 'contractAddress'.
+    }
+
+    // 체인 상태 조회용 메서드
+    public long getLatestBlockNumber() {
+        try {
+            return web3j.ethBlockNumber().send().getBlockNumber().longValue();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch latest block number", e);
+        }
+    }
+
+    public int getPeerCount() {
+        try {
+            return web3j.netPeerCount().send().getQuantity().intValue();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch peer count", e);
+        }
+    }
+
+    public boolean isSyncing() {
+        try {
+            var response = web3j.ethSyncing().send();
+            return response.isSyncing();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch syncing status", e);
+        }
+    }
+
+    public long getGasPrice() {
+        try {
+            return web3j.ethGasPrice().send().getGasPrice().longValue();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch gas price", e);
+        }
+    }
+
+    public String getNetworkId() {
+        try {
+            return web3j.netVersion().send().getNetVersion();
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch network id", e);
+        }
+    }
+
+    // ==========================
+    // 추가: 체인 ID 및 최신 블록 요약
+    // ==========================
+
+    public String getChainId() {
+        try {
+            // eth_chainId는 BigInteger로 체인 ID를 반환
+            var response = web3j.ethChainId().send();
+            java.math.BigInteger chainId = response.getChainId();
+
+            // 0x-prefixed hex string 으로 변환
+            return "0x" + chainId.toString(16);
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch chain id", e);
+        }
+    }
+
+    public LatestBlockSummary getLatestBlockSummary() {
+        try {
+            var response = web3j.ethGetBlockByNumber(
+                    DefaultBlockParameterName.LATEST,
+                    false // 트랜잭션 전체가 아니라 hash만 가져오도록
+            ).send();
+
+            var block = response.getBlock();
+            if (block == null) {
+                throw new BlockchainException("Latest block is null");
+            }
+
+            long number = block.getNumber().longValue();
+            long gasUsed = block.getGasUsed().longValue();
+            long gasLimit = block.getGasLimit().longValue();
+            int txCount = block.getTransactions().size();
+
+            return new LatestBlockSummary(number, gasUsed, gasLimit, txCount);
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch latest block summary", e);
+        }
+    }
+
+    public record LatestBlockSummary(
+            long number,
+            long gasUsed,
+            long gasLimit,
+            int txCount
+    ) {}
 }

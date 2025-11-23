@@ -1,5 +1,7 @@
 package com.masterpiece.IPiece.mypage.application;
 
+import com.masterpiece.IPiece.blockchain.application.UserWalletService;
+import com.masterpiece.IPiece.blockchain.domain.Wallet;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
@@ -47,6 +49,8 @@ public class MypageService {
     private final MypageMapper mypageMapper;
     private final VirtualAccountJournalRepository virtualAccountJournalRepository;
     private final OfferingSubscriptionsRepository offeringSubscriptionsRepository;
+    private final UserWalletService userWalletService;   // ← 온체인 지갑 서비스 주입
+
 
     private static final int PAGE_SIZE = 10;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -219,10 +223,13 @@ public class MypageService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
+        // 1) 유저 온체인 지갑 생성 또는 기존 지갑 조회
+        Wallet wallet = userWalletService.getOrCreateWallet(user);
+
         VirtualAccount account = VirtualAccount.builder()
                 .user(user)
                 .accountNo(generateAccountNumber())
-                .walletAddress(generateWalletAddress())
+                .walletAddress(wallet.getAddress())
                 .balanceKrw(0L)
                 .pendingPrice(0L)
                 .build();
@@ -246,8 +253,8 @@ public class MypageService {
                 RANDOM.nextInt(1_000_000));
     }
 
-    /** 0x + 40자리 hex */
-    private String generateWalletAddress() {
+   // 기존 랜덤 주소 형성 제거
+    /*private String generateWalletAddress() {
         byte[] bytes = new byte[20]; // 20 bytes = 40 hex chars
         RANDOM.nextBytes(bytes);
 
@@ -256,5 +263,5 @@ public class MypageService {
             sb.append(String.format("%02x", b & 0xff));
         }
         return sb.toString();
-    }
+    }*/
 }

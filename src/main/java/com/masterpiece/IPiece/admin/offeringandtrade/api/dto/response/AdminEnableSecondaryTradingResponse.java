@@ -24,6 +24,4 @@ public class AdminEnableSecondaryTradingResponse {
     @JsonProperty("enabled_at")
     private OffsetDateTime enabledAt; // 승인/적용 일시 (ISO-8601)
 
-    @JsonProperty("operator_id")
-    private Long operatorId;          // 처리한 관리자 ID
 }
