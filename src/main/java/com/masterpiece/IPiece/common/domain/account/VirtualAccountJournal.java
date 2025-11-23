@@ -32,6 +32,9 @@ public class VirtualAccountJournal extends BaseEntity {
     @Column(name = "balance_after", nullable = false)
     private Long balanceAfter; // 이 이벤트 이후 계좌 잔액
 
+    @Column(name = "number_of_token")
+    private Long numberOfToken; // 거래 시 토큰 수량(+/-)
+
     @Column(name = "description", length = 255)
     private String description;
 }

@@ -1,8 +1,10 @@
 package com.masterpiece.IPiece.market.application;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountJournalRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.market.domain.OrderBook;
@@ -33,6 +35,7 @@ public class OrderMatchingService {
     private final OrderBookRepository orderBookRepository;
     private final TradeExecutionRepository tradeExecutionRepository;
     private final VirtualAccountRepository virtualAccountRepository;
+    private final VirtualAccountJournalRepository virtualAccountJournalRepository;
     private final HoldingsRepository holdingsRepository;
     private final PlatformTransactionManager transactionManager;
     private final OrderBookPushService orderBookPushService;
@@ -245,6 +248,9 @@ public class OrderMatchingService {
         virtualAccountRepository.save(buyer);
         virtualAccountRepository.save(seller);
 
+        saveTradeJournal(buyer, -totalTradeAmount, qty, "TRADE_BUY", "매수 체결");
+        saveTradeJournal(seller, totalTradeAmount, -qty, "TRADE_SELL", "매도 체결");
+
         printTradeLog(buyOrder, sellOrder, qty, tradePrice, refund);
     }
 
@@ -295,6 +301,23 @@ public class OrderMatchingService {
 
         holding.setPendingQuantity(remainPending);
         holdingsRepository.save(holding);
+    }
+
+    private void saveTradeJournal(VirtualAccount account,
+                                  long amountKrw,
+                                  long numberOfToken,
+                                  String txType,
+                                  String description) {
+        VirtualAccountJournal journal = VirtualAccountJournal.builder()
+                .virtualAccount(account)
+                .txType(txType)
+                .amountKrw(amountKrw)
+                .balanceAfter(account.getBalanceKrw())
+                .numberOfToken(numberOfToken)
+                .description(description)
+                .build();
+
+        virtualAccountJournalRepository.save(journal);
     }
 
     private void printTradeLog(OrderBook buyOrder,
