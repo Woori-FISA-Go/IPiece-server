@@ -60,6 +60,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
+                                "/actuator/health",
                                 "/v1/auth/**",
                                 "/v1/otp/**",
                                 "/v1/signup/info",
