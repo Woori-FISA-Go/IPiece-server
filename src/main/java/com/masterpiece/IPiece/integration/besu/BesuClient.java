@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -161,6 +160,13 @@ public class BesuClient {
             throw new BlockchainException("Failed to send KRWT transfer to " + toAddress, e);
         }
     }
+    /**
+     * KRWT 컨트랙트 주소 반환
+     * - BlockchainTransaction.contractAddress 로 사용
+     */
+    public String getKrwtContractAddress() {
+        return krwtContractAddress;
+    }
 
     /**
      * Adds a user's wallet address to the whitelist of a specific token contract.
@@ -263,14 +269,6 @@ public class BesuClient {
                         )
                 )
         );
-    }
-
-    /**
-     * Returns the wallet address of the admin user.
-     * @return The admin's wallet address.
-     */
-    public String getAdminAddress() {
-        return credentials.getAddress();
     }
 
     // 체인 상태 조회용 메서드

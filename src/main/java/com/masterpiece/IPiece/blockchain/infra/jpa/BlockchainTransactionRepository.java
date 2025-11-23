@@ -12,6 +12,6 @@ import java.util.Optional;
 @Repository
 public interface BlockchainTransactionRepository extends JpaRepository<BlockchainTransaction, Long> {
     Optional<BlockchainTransaction> findByTxHash(String txHash);
-    Page<BlockchainTransaction> findByOwnerUserId(Long userId, Pageable pageable);
+    Page<BlockchainTransaction> findByUser_UserId(Long userId, Pageable pageable);
     Page<BlockchainTransaction> findByTransactionType(TransactionType transactionType, Pageable pageable);
 }
