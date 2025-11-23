@@ -33,6 +33,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.tx.gas.DefaultGasProvider;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import java.time.LocalTime;
@@ -87,15 +88,19 @@ public class DividendService {
         // 3. 트랜잭션 발생 후 `BlockchainTransaction` 엔티티 생성 및 저장
         BlockchainTransaction tx = BlockchainTransaction.builder()
                 .txHash(transactionReceipt.getTransactionHash())
-                .txType(TransactionType.DIVIDEND)
+                .transactionType(TransactionType.DIVIDEND)
                 .fromAddress(transactionReceipt.getFrom())
                 .toAddress(transactionReceipt.getTo())
-                .amount(request.getTotalAmount())
+                .amount(BigDecimal.valueOf(request.getTotalAmount()))
                 .blockNumber(transactionReceipt.getBlockNumber().longValue())
-                .status(transactionReceipt.isStatusOK() ? TransactionStatus.SUCCESS : TransactionStatus.FAILED)
-                .user(adminUser)
+                .transactionStatus(transactionReceipt.isStatusOK() ? TransactionStatus.SUCCESS : TransactionStatus.FAILED)
+                .ownerUserId(adminUser.getUserId())
                 .build();
         blockchainTransactionRepository.save(tx);
+
+
+
+
 
         // 4. `Dividend` 엔티티 생성 및 저장
         Dividends dividend = Dividends.builder()

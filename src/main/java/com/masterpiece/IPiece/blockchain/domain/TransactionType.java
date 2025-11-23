@@ -1,10 +1,9 @@
 package com.masterpiece.IPiece.blockchain.domain;
 
 public enum TransactionType {
+    TRANSFER,
     MINT,
     BURN,
-    TRANSFER,
     DIVIDEND,
-    WHITELIST,
-    DEPLOY
+    OTHER
 }

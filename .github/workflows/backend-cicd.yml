@@ -1,0 +1,184 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: ipiece-server
+
+jobs:
+  security-scan:
+    name: Security & Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Secret Scanner
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Run Tests
+        run: ./gradlew test --no-daemon
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: test
+          DB_USER: test
+          DB_PASS: test
+          JWT_SECRET: test-jwt-secret-key-minimum-256-bits-for-testing
+          BESU_RPC_URL: http://localhost:8545
+          KRWT_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000"
+          ADMIN_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000000"
+          SOLAPI_API_KEY: test
+          SOLAPI_API_SECRET: test
+          SOLAPI_SENDER: "01012345678"
+
+  build-and-push:
+    name: Build and Push to ECR
+    needs: security-scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image-tag: ${{ steps.image-tag.outputs.sha }}
+      image-uri: ${{ steps.build-image.outputs.image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Build with Gradle
+        run: |
+          chmod +x gradlew
+          ./gradlew clean build -x test --no-daemon
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: test
+          DB_USER: test
+          DB_PASS: test
+          JWT_SECRET: test-jwt-secret-key-minimum-256-bits-for-testing
+          BESU_RPC_URL: http://localhost:8545
+          KRWT_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000"
+          ADMIN_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000000"
+          SOLAPI_API_KEY: test
+          SOLAPI_API_SECRET: test
+          SOLAPI_SENDER: "01012345678"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate image tags
+        id: image-tag
+        run: |
+          SHA_SHORT=$(echo $GITHUB_SHA | cut -c1-7)
+          DATE_TAG=$(date +%Y%m%d-%H%M%S)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            ENV_TAG="prod"
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            ENV_TAG="dev"
+          elif [[ "$BRANCH_NAME" == release/* ]]; then
+            ENV_TAG="staging"
+          else
+            ENV_TAG="feature"
+          fi
+          
+          echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
+          echo "date=$DATE_TAG" >> $GITHUB_OUTPUT
+          echo "env=$ENV_TAG" >> $GITHUB_OUTPUT
+          
+          echo "### 🏷️ Generated Tags" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA: \`$SHA_SHORT\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: \`$DATE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: \`$ENV_TAG\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build and push Docker image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SHA_TAG: ${{ steps.image-tag.outputs.sha }}
+          DATE_TAG: ${{ steps.image-tag.outputs.date }}
+          ENV_TAG: ${{ steps.image-tag.outputs.env }}
+        run: |
+          echo "🔨 Building Docker image..."
+          
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --cache-to type=inline \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$DATE_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --push \
+            .
+          
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG" >> $GITHUB_OUTPUT
+          
+          echo "### ✅ Build Success" >> $GITHUB_STEP_SUMMARY
+          echo "**Image URI:** \`$ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Trigger ECR image scan
+        run: |
+          aws ecr start-image-scan \
+            --repository-name $ECR_REPOSITORY \
+            --image-id imageTag=${{ steps.image-tag.outputs.sha }} \
+            --region ${{ secrets.AWS_REGION }} || echo "Scan already in progress"
+
+      - name: Notify build status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Build succeeded for commit ${{ github.sha }}"
+          else
+            echo "❌ Build failed for commit ${{ github.sha }}"
+          fi

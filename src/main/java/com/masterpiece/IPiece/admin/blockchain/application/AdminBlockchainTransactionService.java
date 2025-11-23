@@ -64,18 +64,16 @@ public class AdminBlockchainTransactionService {
 
     private Item toItem(BlockchainTransaction tx) {
         return Item.builder()
-                .txId(tx.getTxId())
+                .transactionId(tx.getTransactionId())
                 .txHash(tx.getTxHash())
-                .status(tx.getStatus().name())
-                .txType(tx.getTxType().name())
-                .userId(tx.getUser().getUserId())
+                .transactionStatus(tx.getTransactionStatus().name())
+                .transactionType(tx.getTransactionType().name())
+                .userId(tx.getOwnerUserId())
                 .fromAddress(tx.getFromAddress())
                 .toAddress(tx.getToAddress())
-                .tokenAddress(tx.getTokenAddress())
+                .contractAddress(tx.getContractAddress())
                 .amount(tx.getAmount())
                 .blockNumber(tx.getBlockNumber())
-                .blockHash(tx.getBlockHash())
-                .gasUsed(tx.getGasUsed())
                 .createdAt(tx.getCreatedAt())
                 .build();
     }
