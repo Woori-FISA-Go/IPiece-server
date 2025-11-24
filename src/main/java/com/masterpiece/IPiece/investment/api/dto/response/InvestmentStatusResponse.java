@@ -3,12 +3,14 @@ package com.masterpiece.IPiece.investment.api.dto.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.masterpiece.IPiece.investment.domain.Investment;
 import com.masterpiece.IPiece.investment.domain.InvestmentStatus;
+import com.masterpiece.IPiece.investment.domain.InvestmentStepStatus;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Builder
@@ -30,7 +32,7 @@ public class InvestmentStatusResponse {
     @Builder
     public static class Step {
         private String step;
-        private InvestmentStatus status;
+        private InvestmentStepStatus status; // Changed to InvestmentStepStatus
         @JsonProperty("transaction_hash")
         private String transactionHash;
         @JsonProperty("completed_at")
@@ -50,25 +52,24 @@ public class InvestmentStatusResponse {
         List<Step> steps = new ArrayList<>();
 
         // Step 1: Whitelist
-        if (investment.getWhitelistTxHash() != null) {
+        Optional.ofNullable(investment.getWhitelistTxHash()).ifPresent(txHash ->
             steps.add(Step.builder()
                     .step("whitelist")
-                    .status(investment.getStatus() == InvestmentStatus.FAILED ? InvestmentStatus.FAILED : InvestmentStatus.PROCESSING)
-                    .transactionHash(investment.getWhitelistTxHash())
-                    .completedAt(investment.getUpdatedAt()) // Assuming this is the timestamp for the last update
-                    .build());
-        }
+                    .status(investment.getWhitelistStatus())
+                    .transactionHash(txHash)
+                    .completedAt(investment.getWhitelistCompletedAt())
+                    .build())
+        );
 
         // Step 2: Token Transfer
-        if (investment.getTransferTxHash() != null) {
+        Optional.ofNullable(investment.getTransferTxHash()).ifPresent(txHash ->
             steps.add(Step.builder()
                     .step("token_transfer")
-                    .status(InvestmentStatus.COMPLETED)
-                    .transactionHash(investment.getTransferTxHash())
-                    .completedAt(investment.getUpdatedAt())
-                    .build());
-        }
-
+                    .status(investment.getTransferStatus())
+                    .transactionHash(txHash)
+                    .completedAt(investment.getTransferCompletedAt())
+                    .build())
+        );
 
         return InvestmentStatusResponse.builder()
                 .investmentId(investment.getId())

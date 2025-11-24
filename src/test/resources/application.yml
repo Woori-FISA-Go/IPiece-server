@@ -1,5 +1,7 @@
 blockchain:
   enabled: true
+  admin:
+    user-id: 1
 
 spring:
   main:

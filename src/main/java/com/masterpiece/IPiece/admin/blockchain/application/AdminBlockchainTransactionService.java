@@ -68,7 +68,7 @@ public class AdminBlockchainTransactionService {
                 .txHash(tx.getTxHash())
                 .status(tx.getTransactionStatus().name())
                 .txType(tx.getTransactionType().name())
-                .userId(tx.getUser().getUserId())
+                .userId(tx.getUser() != null ? tx.getUser().getUserId() : null)
                 .fromAddress(tx.getFromAddress())
                 .toAddress(tx.getToAddress())
                 .tokenAddress(tx.getTokenAddress())

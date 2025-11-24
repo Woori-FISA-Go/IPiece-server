@@ -21,6 +21,7 @@ import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,9 @@ public class InvestmentService {
     private final BlockchainService blockchainService;
     private final BlockchainTransactionRepository blockchainTransactionRepository; // For transaction history
     private final ProductRepository productRepository; // Inject ProductRepository
+
+    @Value("${blockchain.admin.user-id}")
+    private Long adminUserId;
 
     @Transactional
     public InvestmentResponse executeInvestment(Long userId, InvestmentRequest request) {
@@ -81,7 +85,7 @@ public class InvestmentService {
                             .toAddress(userWalletAddress)
                             .amount(request.getTokenAmount())
                             .build(),
-                    1L); // Assuming admin user ID is 1 for token transfer
+                    adminUserId); // Use injected admin user ID
             String transferTxHash = transferResponse.getTransactionHash();
             savedInvestment.recordTransferTx(transferTxHash);
             investmentRepository.save(savedInvestment); // Update status to COMPLETED
