@@ -86,12 +86,15 @@ public class BlockchainDividendService {
         // 3. 트랜잭션 발생 후 `BlockchainTransaction` 엔티티 생성 및 저장
         BlockchainTransaction tx = BlockchainTransaction.builder()
                 .txHash(transactionReceipt.getTransactionHash())
-                .transactionType(TransactionType.DIVIDEND)
                 .fromAddress(transactionReceipt.getFrom())
                 .toAddress(transactionReceipt.getTo())
+                .tokenAddress(product.getDividendContractAddress()) // 배당 컨트랙트 주소
                 .amount(BigDecimal.valueOf(request.getTotalAmount()))
-                .blockNumber(transactionReceipt.getBlockNumber().longValue())
+                .transactionType(TransactionType.DIVIDEND)
                 .transactionStatus(transactionReceipt.isStatusOK() ? TransactionStatus.SUCCESS : TransactionStatus.FAILED)
+                .blockNumber(transactionReceipt.getBlockNumber().longValue())
+                .blockHash(transactionReceipt.getBlockHash())
+                .gasUsed(transactionReceipt.getGasUsed().longValue())
                 .user(adminUser)
                 .build();
         blockchainTransactionRepository.save(tx);

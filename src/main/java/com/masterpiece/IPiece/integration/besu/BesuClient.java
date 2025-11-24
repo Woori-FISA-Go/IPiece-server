@@ -174,7 +174,7 @@ public class BesuClient {
      * @param contractAddress The address of the token smart contract.
      * @param userWalletAddress The wallet address of the user to be whitelisted.
      */
-    public void addToWhitelist(String contractAddress, String userWalletAddress) {
+    public String addToWhitelist(String contractAddress, String userWalletAddress) {
         // Validate contract address format
         if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
             throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
@@ -186,6 +186,7 @@ public class BesuClient {
         log.info("[MOCK] Adding address {} to whitelist for contract {}", userWalletAddress, contractAddress);
         // In a real implementation, this would encode and send a transaction
         // to the 'addToWhitelist' function of the smart contract at 'contractAddress'.
+        return randomHash();
     }
 
     /**
