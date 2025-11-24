@@ -125,12 +125,21 @@ public class AdminProductService {
             VirtualAccount account = virtualAccountRepository.findById(accountId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.VIRTUAL_ACCOUNT_NOT_FOUND));
 
-            Holdings holding = Holdings.builder()
-                    .virtualAccount(account)
-                    .product(product)
-                    .avgBuyPrice(offeringPrice)
-                    .quantity(quantity)
-                    .build();
+            Holdings holding = holdingsRepository
+                    .findByVirtualAccountAndProduct(account, product)
+                    .orElse(Holdings.builder()
+                            .virtualAccount(account)
+                            .product(product)
+                            .avgBuyPrice(0L)
+                            .quantity(0L)
+                            .build());
+
+            long existingQuantity = holding.getQuantity();
+            long totalQuantity = existingQuantity + quantity;
+            long newAvgPrice = ((holding.getAvgBuyPrice() * existingQuantity) + (offeringPrice * quantity)) / totalQuantity;
+
+            holding.setAvgBuyPrice(newAvgPrice);
+            holding.setQuantity(totalQuantity);
 
             holdingsRepository.save(holding);
         }
