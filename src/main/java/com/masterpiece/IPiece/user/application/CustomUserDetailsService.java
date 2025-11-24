@@ -9,13 +9,15 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private static final String ADMIN_USER_ID = "admin";
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -32,12 +34,18 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
 
         // 2. 조회한 User 정보를 Spring Security가 사용하는 UserDetails 객체로 변환합니다.
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER")); // 모든 사용자는 기본적으로 USER 권한을 가집니다.
+
+        // user_made_id가 "admin"이면 ADMIN 권한을 추가로 부여합니다.
+        if (ADMIN_USER_ID.equalsIgnoreCase(ourUser.getUserMadeId())) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 ourUser.getUserId().toString(),
                 ourUser.getPasswordHash(), // 비밀번호는 JWT 인증에서는 사용되지 않지만 형식상 넣어줍니다.
-                Collections.singletonList(new SimpleGrantedAuthority(
-                        ourUser.getUserMadeId().equals("admin") ? "ROLE_ADMIN" : "ROLE_USER" // user_made_id가 "admin"이면 ADMIN, 아니면 USER
-                )) // 사용자의 권한(Role)을 지정합니다.
+                authorities // 사용자의 권한(Role)을 지정합니다.
         );
     }
 }

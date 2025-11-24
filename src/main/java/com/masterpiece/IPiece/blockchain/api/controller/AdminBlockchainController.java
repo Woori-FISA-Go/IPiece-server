@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.blockchain.api.controller;
 
+import com.masterpiece.IPiece.blockchain.api.dto.response.ContractInfoResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.TokenListResponse;
 import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,14 @@ public class AdminBlockchainController {
     public ResponseEntity<TokenListResponse> getTokenList(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         TokenListResponse response = blockchainService.getTokenList(pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/contracts")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "컨트랙트 정보 조회", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ContractInfoResponse> getContractInfo() {
+        ContractInfoResponse response = blockchainService.getContractInfo();
         return ResponseEntity.ok(response);
     }
 }

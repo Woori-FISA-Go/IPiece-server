@@ -2,9 +2,14 @@ package com.masterpiece.IPiece.common.exception;
 
 import com.masterpiece.IPiece.common.web.Responses;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.Map;
 
 @RestControllerAdvice // Controller 전역 예외 처리
 public class GlobalExceptionHandler {
@@ -36,6 +41,38 @@ public class GlobalExceptionHandler {
                 code.getMessage(),
                 code.getMessage(),
                 request.getRequestURI(), // ← null 아님
+                null
+        );
+    }
+
+    // ★ 추가
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<?> handleAuthorizationDeniedException(
+            AuthorizationDeniedException ex, HttpServletRequest request
+    ) {
+        ErrorCode code = ErrorCode.PERMISSION_DENIED; // Assuming PERMISSION_DENIED maps to 403
+        return Responses.problem(
+                code.getStatus(),
+                code.name(),
+                code.getMessage(),
+                code.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    // ★ 추가 (혹시 AccessDeniedException도 있으면)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDeniedException(
+            AccessDeniedException ex, HttpServletRequest request
+    ) {
+        ErrorCode code = ErrorCode.PERMISSION_DENIED; // Assuming PERMISSION_DENIED maps to 403
+        return Responses.problem(
+                code.getStatus(),
+                code.name(),
+                code.getMessage(),
+                code.getMessage(),
+                request.getRequestURI(),
                 null
         );
     }

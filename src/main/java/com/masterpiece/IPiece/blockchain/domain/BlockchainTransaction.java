@@ -3,11 +3,12 @@ package com.masterpiece.IPiece.blockchain.domain;
 import com.masterpiece.IPiece.common.domain.BaseEntity;
 import com.masterpiece.IPiece.user.domain.User;
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.OffsetDateTime;
-
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "blockchain_transactions")
@@ -22,10 +23,6 @@ public class BlockchainTransaction extends BaseEntity {
     @Column(name = "tx_id")
     private Long txId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tx_type", nullable = false, length = 20)
-    private TransactionType txType;
-
     @Column(name = "tx_hash", nullable = false, unique = true, length = 66)
     private String txHash;
 
@@ -35,13 +32,21 @@ public class BlockchainTransaction extends BaseEntity {
     @Column(name = "to_address", nullable = false, length = 42)
     private String toAddress;
 
-    @Column(name = "amount")
-    private Long amount;
-
     @Column(name = "token_address", length = 42)
     private String tokenAddress;
 
-    @Column(name = "block_number", nullable = false)
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tx_type", nullable = false, length = 20)
+    private TransactionType transactionType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private TransactionStatus transactionStatus;
+
+    @Column(name = "block_number")
     private Long blockNumber;
 
     @Column(name = "block_hash", length = 66)
@@ -50,26 +55,16 @@ public class BlockchainTransaction extends BaseEntity {
     @Column(name = "gas_used")
     private Long gasUsed;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    @Builder.Default
-    private TransactionStatus status = TransactionStatus.PENDING;
-
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    // 연관관계
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    //== 비즈니스 로직 ==//
-    public void updateStatus(TransactionStatus status) {
-        this.status = status;
-    }
-
-    public void recordError(String errorMessage) {
-        this.status = TransactionStatus.FAILED;
-        this.errorMessage = errorMessage;
+    /** 에러 기록용 헬퍼 – 기존 코드에서 txLog.recordError(...) 호출하던 부분 대응 */
+    public void recordError(String message) {
+        this.errorMessage = message;
+        this.transactionStatus = TransactionStatus.FAILED;
     }
 }
