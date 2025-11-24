@@ -2,6 +2,8 @@ package com.masterpiece.IPiece.offering.infra;
 
 import com.masterpiece.IPiece.mypage.api.dto.response.OfferingAssetDto;
 import com.masterpiece.IPiece.offering.domain.OfferingSubscriptions;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -59,6 +61,39 @@ public interface OfferingSubscriptionsRepository extends JpaRepository<OfferingS
 """)
     List<OfferingAssetDto> findOfferingAssetsByAccountId(@Param("accountId") Long accountId);
 
+    @Query("""
+    SELECT new com.masterpiece.IPiece.mypage.api.dto.response.OfferingAssetDto(
+        p.productId,
+        p.productName,
+        p.tokenName,
+        p.thumbnailImg,
+        SUM(os.appliedQuantity),
+        SUM(os.appliedAmountKrw),
+        poi.offeringPrice,
+        poi.progressRate,
+        poi.offeringStartDate,
+        poi.offeringEndDate
+    )
+    FROM OfferingSubscriptions os
+    JOIN os.virtualAccount va
+    JOIN os.productOfferingInfo poi
+    JOIN poi.product p
+    WHERE va.accountId = :accountId
+      AND p.status = 'OFFERING'
+    GROUP BY 
+        p.productId,
+        p.productName,
+        p.tokenName,
+        p.thumbnailImg,
+        poi.offeringPrice,
+        poi.progressRate,
+        poi.offeringStartDate,
+        poi.offeringEndDate
+""")
+    Page<OfferingAssetDto> findOfferingAssetsByAccountIdWithPaging(
+            @Param("accountId") Long accountId,
+            Pageable pageable
+    );
 
     @Modifying
     @Query("DELETE FROM OfferingSubscriptions os WHERE os.productOfferingInfo.productId = :productId")

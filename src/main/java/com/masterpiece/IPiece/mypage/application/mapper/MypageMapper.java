@@ -175,8 +175,10 @@ public class MypageMapper {
             List<Holdings> holdings,
             List<AssetDto> allAssets,
             List<AssetDto> pagedAssets,
-            List<OfferingAssetDto> pagedOfferingAssets
-    ) {
+            List<OfferingAssetDto> pagedOfferingAssets,
+            Integer offeringTotalCount,
+            boolean offeringsHasNext,
+            Integer offeringNextPage) {
         // 1. 총 매수금액 (평균매수가 × 보유수량의 합)
         long totalBuyAmount = allAssets.stream()
                 .mapToLong(AssetDto::getTotalBuyPrice)
@@ -226,6 +228,9 @@ public class MypageMapper {
                 .portfolioRatio(portfolioRatio)        // 포트폴리오 비중
                 .assetList(pagedAssets)                  // 자산 목록
                 .offeringList(pagedOfferingAssets)      // 보유 공모 목록
+                .offeringTotalCount(offeringTotalCount)
+                .offeringHasNext(offeringsHasNext)
+                .offeringNextPage(offeringNextPage)
                 .build();
     }
 

@@ -84,23 +84,34 @@ public class MypageService {
                 ? allAssets.subList(start, end)
                 : List.of();
 
-        List<OfferingAssetDto> allOfferingAssets =
-                offeringSubscriptionsRepository.findOfferingAssetsByAccountId(account.getAccountId());
+        PageRequest offeringPageable =
+                PageRequest.of(offeringPage - 1, PAGE_SIZE);
 
-        int PAGE_SIZE = 10;
+        Page<OfferingAssetDto> offeringPageResult =
+                offeringSubscriptionsRepository.findOfferingAssetsByAccountIdWithPaging(
+                        account.getAccountId(),
+                        offeringPageable
+                );
 
-        int pageIndexOffering = offeringPage - 1;
-        int startOffering = pageIndexOffering * PAGE_SIZE;
-        int endOffering = Math.min(startOffering + PAGE_SIZE, allOfferingAssets.size());
-
-        List<OfferingAssetDto> pagedOfferingAssets = (startOffering < allOfferingAssets.size())
-                ? allOfferingAssets.subList(startOffering, endOffering)
-                : List.of();
+        List<OfferingAssetDto> pagedOfferingAssets = offeringPageResult.getContent();
+        int offeringTotalCount = (int) offeringPageResult.getTotalElements();
+        boolean offeringHasNext = offeringPageResult.hasNext();
+        Integer offeringNextPage = offeringHasNext ? offeringPage + 1 : null;
 
 
-
-        // 5. MyhomeResponse 생성
-        return mypageMapper.toMyhomeResponse(userId,userMadeId, account, allHoldings, allAssets, pagedAssets, pagedOfferingAssets);
+// ----- Response -----
+        return mypageMapper.toMyhomeResponse(
+                userId,
+                userMadeId,
+                account,
+                allHoldings,
+                allAssets,
+                pagedAssets,
+                pagedOfferingAssets,
+                offeringTotalCount,
+                offeringHasNext,
+                offeringNextPage
+        );
     }
 
     public FavoriteListResponse getFavorites(Long userId) {
