@@ -87,7 +87,7 @@ public class OfferingService {
         // 공모 정보 배치 조회
         // 배치 조회란??? 상품마다 공모정보를 조회하는게 아니라 상품Id들을 한번에 조회하는 방식!
         List<ProductOfferingInfo> offeringInfos = productOfferingInfoRepository
-                .findByProductIdIn(productIds);
+                .findAllOfferingProducts();
 
 
         Map<Long, ProductOfferingInfo> offeringInfoMap = offeringInfos.stream()

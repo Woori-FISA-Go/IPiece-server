@@ -15,32 +15,47 @@ public interface ProductOfferingInfoRepository extends JpaRepository<ProductOffe
 
     List<ProductOfferingInfo> findByProductIdIn(List<Long> productIds);
 
+    @Query("""
+    SELECT o
+    FROM ProductOfferingInfo o
+    JOIN o.product p
+    WHERE p.status = 'OFFERING'
+    """)
+    List<ProductOfferingInfo> findAllOfferingProducts();
+
 
     @Query("""
-        SELECT COUNT(o)
-        FROM ProductOfferingInfo o
-        WHERE o.offeringStartDate > :now
-        AND o.progressRate != 100
+    SELECT COUNT(o)
+    FROM ProductOfferingInfo o
+    JOIN o.product p
+    WHERE p.status = 'OFFERING'
+      AND o.offeringStartDate > :now
+      AND o.progressRate != 100
     """)
     Long countUpcoming(@Param("now") OffsetDateTime now);
 
     @Query("""
-        SELECT COUNT(o)
-        FROM ProductOfferingInfo o
-        WHERE o.offeringStartDate <= :now
-        AND o.offeringEndDate >= :now
-        AND o.progressRate != 100
+    SELECT COUNT(o)
+    FROM ProductOfferingInfo o
+    JOIN o.product p
+    WHERE p.status = 'OFFERING'
+      AND o.offeringStartDate <= :now
+      AND o.offeringEndDate >= :now
+      AND o.progressRate != 100
     """)
     Long countOngoing(@Param("now") OffsetDateTime now);
 
 
+
     @Query("""
-        SELECT COUNT(o)
-        FROM ProductOfferingInfo o
-        WHERE o.offeringEndDate < :now
-        OR o.progressRate = 100
+    SELECT COUNT(o)
+    FROM ProductOfferingInfo o
+    JOIN o.product p
+    WHERE p.status = 'OFFERING'
+      AND (o.offeringEndDate < :now OR o.progressRate = 100)
     """)
     Long countClosedOrSoldOut(@Param("now") OffsetDateTime now);
+
 
 
 
