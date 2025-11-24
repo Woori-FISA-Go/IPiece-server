@@ -258,8 +258,9 @@ public class OrderMatchingService {
         virtualAccountRepository.save(buyer);
         virtualAccountRepository.save(seller);
 
-        saveTradeJournal(buyer, -totalTradeAmount, qty, "TRADE_BUY", "매수 체결");
-        saveTradeJournal(seller, totalTradeAmount, -qty, "TRADE_SELL", "매도 체결");
+        String productName = buyOrder.getProduct().getProductName();
+        saveTradeJournal(buyer, -totalTradeAmount, qty, "TRADE_BUY", productName + " 토큰 구매");
+        saveTradeJournal(seller, totalTradeAmount, -qty, "TRADE_SELL", productName + " 토큰 판매");
 
         printTradeLog(buyOrder, sellOrder, qty, tradePrice, refund);
     }
