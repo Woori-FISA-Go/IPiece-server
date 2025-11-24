@@ -89,6 +89,7 @@ public interface OfferingSubscriptionsRepository extends JpaRepository<OfferingS
         poi.progressRate,
         poi.offeringStartDate,
         poi.offeringEndDate
+        ORDER BY p.productId DESC
 """)
     Page<OfferingAssetDto> findOfferingAssetsByAccountIdWithPaging(
             @Param("accountId") Long accountId,

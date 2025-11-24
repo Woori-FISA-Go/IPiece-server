@@ -55,9 +55,12 @@ public class MyhomeResponse {
     @JsonProperty("offering_list")
     private List<OfferingAssetDto> offeringList;
 
+    @JsonProperty("offering_total_count")
     private Integer offeringTotalCount;
 
+    @JsonProperty("offering_has_next")
     private boolean offeringHasNext;
 
+    @JsonProperty("offering_next_page")
     private Integer offeringNextPage;
 }

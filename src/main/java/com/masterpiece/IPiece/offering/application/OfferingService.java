@@ -81,10 +81,6 @@ public class OfferingService {
                 ? products.subList(0, PAGE_SIZE)  // PAGE_SIZE개만 반환
                 : products;                        // 모두 반환
 
-        System.out.println("=== ITEM Product IDs ===");
-        itemsToReturn.forEach(p ->
-                System.out.println("ProductId=" + p.getProductId())
-        );
 
 
         // productIds 추출
@@ -97,10 +93,6 @@ public class OfferingService {
         List<ProductOfferingInfo> offeringInfos = productOfferingInfoRepository
                 .findAllOfferingProducts();
 
-        System.out.println("=== OfferingInfo IDs ===");
-        offeringInfos.forEach(info ->
-                System.out.println("OfferingInfo ProductId=" + info.getProductId())
-        );
 
 
         Map<Long, ProductOfferingInfo> offeringInfoMap = offeringInfos.stream()
@@ -110,11 +102,7 @@ public class OfferingService {
                         (existing, replacement) -> existing
                 ));
 
-        for (Product p : itemsToReturn) {
-            if (!offeringInfoMap.containsKey(p.getProductId())) {
-                System.out.println("⚠️ Missing OfferingInfo for productId = " + p.getProductId());
-            }
-        }
+
 
 
         // 찜 정보 배치 조회 (userId가 null이면 빈 Set반환)
