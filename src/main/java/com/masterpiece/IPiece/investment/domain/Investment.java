@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import lombok.Builder; // Added import
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -52,7 +53,8 @@ public class Investment extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "whitelist_status", nullable = false, length = 20)
-    private InvestmentStepStatus whitelistStatus;
+    @Builder.Default
+    private InvestmentStepStatus whitelistStatus = InvestmentStepStatus.PENDING;
 
     @Column(name = "whitelist_completed_at")
     private OffsetDateTime whitelistCompletedAt;
@@ -62,7 +64,8 @@ public class Investment extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transfer_status", nullable = false, length = 20)
-    private InvestmentStepStatus transferStatus;
+    @Builder.Default
+    private InvestmentStepStatus transferStatus = InvestmentStepStatus.PENDING;
 
     @Column(name = "transfer_completed_at")
     private OffsetDateTime transferCompletedAt;

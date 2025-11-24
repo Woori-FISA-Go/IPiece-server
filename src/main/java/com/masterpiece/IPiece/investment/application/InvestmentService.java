@@ -19,6 +19,7 @@ import com.masterpiece.IPiece.investment.domain.InvestmentStatus;
 import com.masterpiece.IPiece.investment.infra.jpa.InvestmentRepository;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import com.masterpiece.IPiece.integration.besu.BesuClient; // Added import
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +41,7 @@ public class InvestmentService {
     private final BlockchainService blockchainService;
     private final BlockchainTransactionRepository blockchainTransactionRepository; // For transaction history
     private final ProductRepository productRepository; // Inject ProductRepository
+    private final BesuClient besuClient; // Inject BesuClient
 
     @Value("${blockchain.admin.user-id}")
     private Long adminUserId;
@@ -120,11 +122,19 @@ public class InvestmentService {
             throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
-        // For now, dummy token balance. In real scenario, fetch from blockchain.
+        String userWalletAddress = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new WalletNotFoundException("User " + userId + " has no wallet"))
+                .getAddress();
+        String tokenContractAddress = investment.getProduct().getTokenContractAddress();
+
+        // Fetch actual token balance from blockchain
+        BigDecimal actualBalance = besuClient.getKrwtBalance(userWalletAddress);
+        String actualContractAddress = besuClient.getKrwtContractAddress();
+
         InvestmentStatusResponse.TokenBalance tokenBalance = InvestmentStatusResponse.TokenBalance.builder()
-                .contractAddress("0xDummyTokenContractAddress")
-                .balance(investment.getTokenAmount())
-                .confirmed(true)
+                .contractAddress(actualContractAddress)
+                .balance(actualBalance.longValue()) // Assuming KRWT balance is an integer for simplicity
+                .confirmed(true) // Assuming balance from blockchain is confirmed
                 .build();
 
         return InvestmentStatusResponse.of(investment, tokenBalance);
