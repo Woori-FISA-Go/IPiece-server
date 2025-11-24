@@ -33,14 +33,14 @@ public class OrderBookQueryService {
                 ? ((double) (currentPrice - prevClose) / prevClose) * 100
                 : 0.0;
 
-        var now = OffsetDateTime.now();
+        var now = OffsetDateTime.now(ZoneId.of("Asia/Seoul"));
         var oneWeekAgo = now.minusDays(7);
 
         Long highest = tradeExecutionRepository.findHighestPrice(productId, oneWeekAgo, now).orElse(null);
         Long lowest = tradeExecutionRepository.findLowestPrice(productId, oneWeekAgo, now).orElse(null);
 
-        Long thisWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(7), now);
-        Long lastWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(14), now.minusDays(7));
+        Long thisWeekVol = tradeExecutionRepository.findVolume(productId, oneWeekAgo, now);
+        Long lastWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(14), oneWeekAgo);
 
         long limitUp = Math.round(prevClose * 1.30);
         long limitDown = Math.round(prevClose * 0.70);

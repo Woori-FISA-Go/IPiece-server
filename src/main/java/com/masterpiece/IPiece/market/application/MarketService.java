@@ -1,6 +1,5 @@
 package com.masterpiece.IPiece.market.application;
 
-import java.time.Instant;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
@@ -27,6 +26,7 @@ import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,7 +37,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -55,6 +54,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class MarketService {
 
     private final ProductQueryPort productQueryPort;
@@ -367,9 +367,7 @@ public class MarketService {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        orderBookPushService.pushOrderBook(productId);
-        pendingOrderPushService.pushPendingOrders(userId, productId);
-        registerAfterCommitMatching(savedOrder.getOrderId());
+        registerAfterCommitMatching(savedOrder, userId, productId);
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -438,9 +436,7 @@ public class MarketService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        orderBookPushService.pushOrderBook(productId);
-        pendingOrderPushService.pushPendingOrders(userId, productId);
-        registerAfterCommitMatching(savedOrder.getOrderId());
+        registerAfterCommitMatching(savedOrder, userId, productId);
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -503,7 +499,23 @@ public class MarketService {
         return orderBookQueryService.getOrderBook(productId);
     }
 
-    private void registerAfterCommitMatching(Long orderId) {
+    private void registerAfterCommitMatching(OrderBook order, Long userId, Long productId) {
+        Runnable pushAndMatch = () -> {
+            try {
+                orderBookPushService.pushOrderBook(productId);
+            } catch (RuntimeException e) {
+                log.warn("Order book push failed after commit. productId={}", productId, e);
+            }
+
+            try {
+                pendingOrderPushService.pushPendingOrders(userId, productId);
+            } catch (RuntimeException e) {
+                log.warn("Pending orders push failed after commit. userId={}, productId={}", userId, productId, e);
+            }
+
+            orderMatchingService.matchWithRetry(order.getOrderId());
+        };
+
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -523,14 +535,14 @@ public class MarketService {
 
                 @Override
                 public void afterCommit() {
-                    orderMatchingService.matchWithRetry(orderId);
+                    pushAndMatch.run();
                 }
 
                 @Override
                 public void afterCompletion(int status) {}
             });
         } else {
-            orderMatchingService.matchWithRetry(orderId);
+            pushAndMatch.run();
         }
     }
 }
