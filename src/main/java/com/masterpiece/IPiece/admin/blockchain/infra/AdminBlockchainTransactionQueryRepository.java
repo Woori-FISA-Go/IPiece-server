@@ -49,10 +49,10 @@ public class AdminBlockchainTransactionQueryRepository {
             conditions.add("t.user.userId = :userId");
         }
         if (txType != null) {
-            conditions.add("t.txType = :txType");
+            conditions.add("t.transactionType = :txType");
         }
         if (status != null) {
-            conditions.add("t.status = :status");
+            conditions.add("t.transactionStatus = :status");
         }
         if (productId != null) {
             conditions.add("p.productId = :productId");

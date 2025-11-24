@@ -134,8 +134,8 @@ public class BesuClient {
 
             String data = FunctionEncoder.encode(function);
 
-            // Gas 설정 (프라이빗 체인이라 넉넉한 기본값 사용, 필요시 튜닝)
-            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+            // 🔹 gasPrice 설정
+            BigInteger gasPrice = BigInteger.ZERO;
             BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
 
             TransactionManager txManager = new RawTransactionManager(web3j, credentials);
@@ -148,12 +148,15 @@ public class BesuClient {
             );
 
             if (response.hasError()) {
+                var err = response.getError();
+                log.error("[BesuClient] KRWT transfer RPC error: code={}, message={}",
+                        err.getCode(), err.getMessage());
                 throw new BlockchainException("KRWT transfer failed: " + response.getError().getMessage());
             }
 
             String txHash = response.getTransactionHash();
-            log.info("KRWT transfer submitted: from={} to={} amount={} txHash={}",
-                    credentials.getAddress(), toAddress, amount, txHash);
+            log.info("KRWT transfer submitted: from={} to={} amount={} txHash={} gasPrice={}",
+                    credentials.getAddress(), toAddress, amount, txHash, gasPrice);
             return txHash;
 
         } catch (Exception e) {
@@ -167,7 +170,6 @@ public class BesuClient {
     public String getKrwtContractAddress() {
         return krwtContractAddress;
     }
-
     /**
      * Adds a user's wallet address to the whitelist of a specific token contract.
      * This is a placeholder method.
@@ -216,27 +218,92 @@ public class BesuClient {
     }
 
     /**
-     * Retrieves a transaction receipt by its hash.
-     * This is a placeholder method.
-     * @param transactionHash The hash of the transaction.
-     * @return A dummy transaction receipt.
+     * 트랜잭션 해시로 실제 이더리움/Besu 트랜잭션 리시트를 조회한다.
+     * - eth_getTransactionReceipt 호출
+     * - 없으면(Pending) status=PENDING 으로 반환
+     * - 있으면 block/timestamp 정보까지 채워서 Map 으로 반환
      */
     public Map<String, Object> getTransactionReceipt(String transactionHash) {
         if (!StringUtils.hasText(transactionHash) || !transactionHash.matches("^0x[0-9a-fA-F]{64}$")) {
             throw new IllegalArgumentException("Invalid transaction hash: " + transactionHash);
         }
-        log.info("[MOCK] Getting transaction receipt for hash {}", transactionHash);
-        // In a real implementation, this would query the blockchain for the transaction receipt.
-        return Map.of(
-                "hash", transactionHash,
-                "status", "success",
-                "blockNumber", 12345L,
-                "from", randomAddress(),
-                "to", randomAddress(),
-                "value", "100",
-                "gasUsed", "21000",
-                "timestamp", OffsetDateTime.now().toString()
-        );
+
+        try {
+            var receiptResponse = web3j.ethGetTransactionReceipt(transactionHash).send();
+
+            if (receiptResponse.hasError()) {
+                throw new BlockchainException("Failed to get transaction receipt: "
+                        + receiptResponse.getError().getMessage());
+            }
+
+            var optReceipt = receiptResponse.getTransactionReceipt();
+
+            // 아직 블록에 포함되지 않은 경우 (pending)
+            if (optReceipt.isEmpty()) {
+                return Map.of(
+                        "hash", transactionHash,
+                        "status", "PENDING",
+                        "blockNumber", null,
+                        "from", null,
+                        "to", null,
+                        "value", "0",
+                        "gasUsed", null,
+                        "timestamp", null
+                );
+            }
+
+            var receipt = optReceipt.get();
+
+            String blockHash = receipt.getBlockHash();
+            Long blockNumber = receipt.getBlockNumber() != null
+                    ? receipt.getBlockNumber().longValue()
+                    : null;
+
+            // 블록 타임스탬프 조회
+            OffsetDateTime blockTimestamp = null;
+            if (blockHash != null) {
+                var blockResp = web3j.ethGetBlockByHash(blockHash, false).send();
+                if (blockResp.getBlock() != null && blockResp.getBlock().getTimestamp() != null) {
+                    var ts = blockResp.getBlock().getTimestamp().longValue(); // seconds
+                    blockTimestamp = OffsetDateTime.ofInstant(
+                            java.time.Instant.ofEpochSecond(ts),
+                            java.time.ZoneOffset.UTC
+                    );
+                }
+            }
+
+            // EVM status: 0x1(성공) / 0x0(실패) 기준으로 문자열 매핑
+            String rawStatus = receipt.getStatus();
+            String mappedStatus;
+            if ("0x1".equalsIgnoreCase(rawStatus)) {
+                mappedStatus = "SUCCESS";
+            } else if ("0x0".equalsIgnoreCase(rawStatus)) {
+                mappedStatus = "FAILED";
+            } else {
+                mappedStatus = rawStatus != null ? rawStatus : "UNKNOWN";
+            }
+
+            String gasUsed = receipt.getGasUsed() != null
+                    ? receipt.getGasUsed().toString()
+                    : null;
+
+            // value는 receipt 에 없으므로, 필요하다면 별도 조회가 필요하지만
+            // 기존 MOCK 구조를 유지하기 위해 "0" 고정
+            return Map.of(
+                    "hash", transactionHash,
+                    "status", mappedStatus,
+                    "blockNumber", blockNumber,
+                    "from", receipt.getFrom(),
+                    "to", receipt.getTo(),
+                    "value", "0",
+                    "gasUsed", gasUsed,
+                    "timestamp", blockTimestamp != null ? blockTimestamp.toString() : null
+            );
+
+        } catch (Exception e) {
+            log.error("Failed to get transaction receipt from Besu. txHash={}", transactionHash, e);
+            throw new BlockchainException("Failed to get transaction receipt for hash: " + transactionHash, e);
+        }
     }
 
     /**
