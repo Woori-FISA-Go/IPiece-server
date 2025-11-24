@@ -59,7 +59,7 @@ public class BlockchainController {
     @Operation(summary = "화이트리스트 추가", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<Void> addToWhitelist(@PathVariable String address,
                                                @Valid @RequestBody WhitelistRequest request) {
-        blockchainService.addToWhitelist(address, request);
+        blockchainService.addToWhitelist(address, request); // Return value is ignored to keep the API contract
         return ResponseEntity.noContent().build();
     }
 
