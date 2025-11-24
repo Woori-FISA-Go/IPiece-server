@@ -77,7 +77,9 @@ public class SecurityConfig {
                                 "/v1/offerings",
                                 "/v1/offerings/*/detail",
                                 "/error",
-                                "/images/**").permitAll()
+                                "/images/**",
+                                "/ws/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
