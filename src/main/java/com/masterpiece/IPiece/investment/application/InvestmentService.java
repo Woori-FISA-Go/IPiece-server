@@ -128,12 +128,12 @@ public class InvestmentService {
         String tokenContractAddress = investment.getProduct().getTokenContractAddress();
 
         // Fetch actual token balance from blockchain
-        BigDecimal actualBalance = besuClient.getKrwtBalance(userWalletAddress);
-        String actualContractAddress = besuClient.getKrwtContractAddress();
+        BigDecimal actualBalance = besuClient.getTokenBalance(tokenContractAddress, userWalletAddress);
+        String actualContractAddress = tokenContractAddress; // Use the project's token contract address
 
         InvestmentStatusResponse.TokenBalance tokenBalance = InvestmentStatusResponse.TokenBalance.builder()
                 .contractAddress(actualContractAddress)
-                .balance(actualBalance.longValue()) // Assuming KRWT balance is an integer for simplicity
+                .balance(actualBalance.longValue()) // Assuming token balance is an integer for simplicity
                 .confirmed(true) // Assuming balance from blockchain is confirmed
                 .build();
 
