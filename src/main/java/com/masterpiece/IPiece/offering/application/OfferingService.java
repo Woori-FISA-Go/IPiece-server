@@ -13,6 +13,8 @@ import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +81,8 @@ public class OfferingService {
                 ? products.subList(0, PAGE_SIZE)  // PAGE_SIZE개만 반환
                 : products;                        // 모두 반환
 
+
+
         // productIds 추출
         List<Long> productIds = itemsToReturn.stream()
                 .map(Product::getProductId)
@@ -87,7 +91,8 @@ public class OfferingService {
         // 공모 정보 배치 조회
         // 배치 조회란??? 상품마다 공모정보를 조회하는게 아니라 상품Id들을 한번에 조회하는 방식!
         List<ProductOfferingInfo> offeringInfos = productOfferingInfoRepository
-                .findByProductIdIn(productIds);
+                .findAllOfferingProducts();
+
 
 
         Map<Long, ProductOfferingInfo> offeringInfoMap = offeringInfos.stream()
@@ -96,6 +101,9 @@ public class OfferingService {
                         info -> info,
                         (existing, replacement) -> existing
                 ));
+
+
+
 
         // 찜 정보 배치 조회 (userId가 null이면 빈 Set반환)
         Set<Long> favoritedProductIds = favoriteQueryPort.findProductIdsByUserId(userId);
@@ -162,23 +170,21 @@ public class OfferingService {
      * @return 상품 리스트
      */
     private List<Product> fetchProducts(Long cursor, int limit) {
-        List<Product> products;
-        
+
         if (cursor == null) {
-            // 첫 로드: cursor 없음
-            products = productRepository.findByStatusInitial(ProductStatus.OFFERING, limit);
-        } else {
-            // 다음 로드: cursor 기반
-            products = productRepository.findByStatusCursorBased(
-                    ProductStatus.OFFERING,
-                    cursor
+            // 첫 페이지 로드
+            return productRepository.findInitialPage(
+                    ProductStatus.OFFERING.name(),
+                    limit
             );
         }
 
-        // Java에서 LIMIT 적용 (JPA가 지원하지 않아서)
-        return products.stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+        // 다음 페이지 로드
+        return productRepository.findNextPage(
+                ProductStatus.OFFERING.name(),
+                cursor,
+                limit
+        );
     }
 
     /**

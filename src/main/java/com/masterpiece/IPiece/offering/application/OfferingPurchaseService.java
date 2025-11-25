@@ -109,7 +109,7 @@ public class OfferingPurchaseService {
                 .txType("OFFERING_BUY") //
                 .amountKrw(-totalPrice) // 출금이므로 음수
                 .balanceAfter(account.getBalanceKrw()) // 차감된 잔액
-                .description("공모 구매: " + offeringInfo.getProduct().getProductName())
+                .description(offeringInfo.getProduct().getProductName() + " 공모 구매")
                 .numberOfToken(quantity)
                 .build();
 

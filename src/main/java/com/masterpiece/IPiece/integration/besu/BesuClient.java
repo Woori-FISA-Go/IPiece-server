@@ -170,13 +170,44 @@ public class BesuClient {
     public String getKrwtContractAddress() {
         return krwtContractAddress;
     }
+
+    public BigDecimal getTokenBalance(String contractAddress, String walletAddress) {
+        if (!StringUtils.hasText(walletAddress) || !walletAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid wallet address: " + walletAddress);
+        }
+        if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
+        }
+
+        Function function = new Function(
+                "balanceOf",
+                Collections.singletonList(new Address(walletAddress)),
+                Collections.singletonList(new TypeReference<Uint256>() {})
+        );
+
+        try {
+            String encodedFunction = FunctionEncoder.encode(function);
+            Transaction transaction = Transaction.createEthCallTransaction(
+                    credentials.getAddress(), contractAddress, encodedFunction);
+            EthCall response = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
+            List<Type> result = FunctionReturnDecoder.decode(response.getValue(), function.getOutputParameters());
+            if (result.isEmpty()) {
+                throw new BlockchainException("Failed to get balance, empty response from contract.");
+            }
+            BigInteger balanceInWei = (BigInteger) result.get(0).getValue();
+            return Convert.fromWei(new BigDecimal(balanceInWei), Convert.Unit.ETHER);
+        } catch (Exception e) {
+            throw new BlockchainException("Failed to fetch token balance for contract: " + contractAddress, e);
+        }
+    }
+
     /**
      * Adds a user's wallet address to the whitelist of a specific token contract.
      * This is a placeholder method.
      * @param contractAddress The address of the token smart contract.
      * @param userWalletAddress The wallet address of the user to be whitelisted.
      */
-    public void addToWhitelist(String contractAddress, String userWalletAddress) {
+    public String addToWhitelist(String contractAddress, String userWalletAddress) {
         // Validate contract address format
         if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
             throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
@@ -188,6 +219,7 @@ public class BesuClient {
         log.info("[MOCK] Adding address {} to whitelist for contract {}", userWalletAddress, contractAddress);
         // In a real implementation, this would encode and send a transaction
         // to the 'addToWhitelist' function of the smart contract at 'contractAddress'.
+        return randomHash();
     }
 
     /**

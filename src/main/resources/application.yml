@@ -58,6 +58,9 @@ besu:
   rpc-url: ${BESU_RPC_URL}
 admin:
   private-key: ${ADMIN_PRIVATE_KEY}
+blockchain:
+  admin:
+    user-id: 19
 
 springdoc:
   override-with-generic-response: false

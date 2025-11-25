@@ -1,7 +1,11 @@
 blockchain:
-  enabled: false
+  enabled: true
+  admin:
+    user-id: 1
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
   application:
     name: IPiece
   profiles:

@@ -111,7 +111,7 @@ public class BlockchainService {
     }
 
     @Transactional
-    public void addToWhitelist(String contractAddress, WhitelistRequest request) {
+    public String addToWhitelist(String contractAddress, WhitelistRequest request) {
         log.info("Attempting to add address {} to whitelist for contract {}", request.getUserWalletAddress(), contractAddress);
 
         // 1. Find the token contract info from our DB
@@ -121,8 +121,9 @@ public class BlockchainService {
         // 2. Call BesuClient to execute the smart contract function
         try {
             // This is a mocked call for now. In a real scenario, this would interact with the blockchain.
-            besuClient.addToWhitelist(token.getContractAddress(), request.getUserWalletAddress());
+            String txHash = besuClient.addToWhitelist(token.getContractAddress(), request.getUserWalletAddress());
             log.info("Successfully added address {} to whitelist for contract {}", request.getUserWalletAddress(), contractAddress);
+            return txHash;
         } catch (Exception e) {
             log.error("Failed to add address to whitelist for contract {}", contractAddress, e);
             throw new BlockchainException("Failed to add to whitelist for contract: " + contractAddress, e);
@@ -150,15 +151,11 @@ public class BlockchainService {
                     .txHash(transactionHash)
                     .fromAddress(besuClient.getAdminAddress())
                     .toAddress(request.getToAddress())
-                    .tokenAddress(contractAddress) // token_address 컬럼
+                    .tokenAddress(contractAddress)
                     .amount(BigDecimal.valueOf(request.getAmount()))
                     .transactionType(TransactionType.TRANSFER)
                     .transactionStatus(TransactionStatus.SUCCESS)
-                    .blockNumber(null)
-                    .blockHash(null)
-                    .gasUsed(null)
-                    .errorMessage(null)
-                    .user(adminUser) // ★ user_id NOT NULL
+                    .user(adminUser)
                     .build();
 
             blockchainTransactionRepository.save(transaction);
