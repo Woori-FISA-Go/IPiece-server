@@ -128,7 +128,7 @@ jobs:
           echo "🔐 Syncing GitHub Secrets to EKS..."
           
           # EKS 클러스터 연결
-          aws eks update-kubeconfig --region ap-northeast-2 --name k8s-ipiece-27c2020024
+          aws eks update-kubeconfig --region ap-northeast-2 --name ipiece-cluster1
 
           # 기존 시크릿 삭제 후 재생성
           kubectl delete secret ipiece-backend-env -n default --ignore-not-found
