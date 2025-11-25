@@ -146,8 +146,8 @@ public class BesuClient {
 
             String data = FunctionEncoder.encode(function);
 
-            // Gas 설정 (프라이빗 체인이라 넉넉한 기본값 사용, 필요시 튜닝)
-            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+            // 🔹 gasPrice 설정
+            BigInteger gasPrice = BigInteger.ZERO;
             BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
 
             TransactionManager txManager = new RawTransactionManager(web3j, credentials);
@@ -160,12 +160,15 @@ public class BesuClient {
             );
 
             if (response.hasError()) {
+                var err = response.getError();
+                log.error("[BesuClient] KRWT transfer RPC error: code={}, message={}",
+                        err.getCode(), err.getMessage());
                 throw new BlockchainException("KRWT transfer failed: " + response.getError().getMessage());
             }
 
             String txHash = response.getTransactionHash();
-            log.info("KRWT transfer submitted: from={} to={} amount={} txHash={}",
-                    credentials.getAddress(), toAddress, amount, txHash);
+            log.info("KRWT transfer submitted: from={} to={} amount={} txHash={} gasPrice={}",
+                    credentials.getAddress(), toAddress, amount, txHash, gasPrice);
             return txHash;
 
         } catch (Exception e) {
@@ -343,10 +346,10 @@ public class BesuClient {
     }
 
     /**
-     * Retrieves a transaction receipt by its hash.
-     * This is a placeholder method.
-     * @param transactionHash The hash of the transaction.
-     * @return A dummy transaction receipt.
+     * 트랜잭션 해시로 실제 이더리움/Besu 트랜잭션 리시트를 조회한다.
+     * - eth_getTransactionReceipt 호출
+     * - 없으면(Pending) status=PENDING 으로 반환
+     * - 있으면 block/timestamp 정보까지 채워서 Map 으로 반환
      */
     public Map<String, Object> getTransactionReceipt(String transactionHash) {
         if (!StringUtils.hasText(transactionHash) || !transactionHash.matches("^0x[0-9a-fA-F]{64}$")) {
