@@ -71,7 +71,7 @@ public class SecurityConfig {
                                 "/v1/auth/token/refresh",
                                 "/v1/blockchain/tokens/{address}",
                                 "/v1/signup/**",
-                                "/api/v1/market/products",
+                                "/v1/market/products",
                                 "/v1/market/*/details",
                                 "/v1/market/*/chart",
                                 "/v1/market/*/orders",
@@ -81,7 +81,8 @@ public class SecurityConfig {
                                 "/v1/offerings/*/detail",
                                 "/error",
                                 "/images/**",
-                                "/ws/**"
+                                "/ws/**",
+                                "/healthz"
                         ).permitAll()
                         .requestMatchers("/v1/blockchain/admin/**").hasRole("ADMIN") // 이 줄 추가
                         .anyRequest().authenticated()
