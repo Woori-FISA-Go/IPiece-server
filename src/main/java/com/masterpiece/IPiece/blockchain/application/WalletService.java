@@ -18,6 +18,7 @@ import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
+import com.masterpiece.IPiece.integration.besu.BesuClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -41,6 +43,7 @@ public class WalletService {
     private final VirtualAccountRepository virtualAccountRepository;
     private final HoldingsRepository holdingsRepository;
     private final KrwtOperationRepository krwtOperationRepository; // Inject KrwtOperationRepository
+    private final BesuClient besuClient;
 
     private static final long MAX_MINT_AMOUNT = 100_000_000L; // 1억원
 
@@ -143,6 +146,7 @@ public class WalletService {
         targetAccount.increaseBalanceKrw(request.getAmount());
         virtualAccountRepository.save(targetAccount); // 변경사항 저장
 
+        String txHash = besuClient.mintKrwt(targetAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
         // 6. KrwtOperation 기록
         KrwtOperation krwtOperation = KrwtOperation.builder()
                 .user(targetAccount.getUser())
@@ -151,7 +155,7 @@ public class WalletService {
                 .amount(BigDecimal.valueOf(request.getAmount())) // Convert Long to BigDecimal
                 .beforeBalance(BigDecimal.valueOf(previousBalance)) // Convert Long to BigDecimal
                 .afterBalance(BigDecimal.valueOf(targetAccount.getBalanceKrw())) // Convert Long to BigDecimal
-                .txHash("0x" + UUID.randomUUID().toString().replace("-", "")) // 더미 트랜잭션 해시
+                .txHash(txHash)
                 .status(TransactionStatus.SUCCESS) // Corrected enum access
                 .memo(request.getMemo())
                 .completedAt(OffsetDateTime.now())
@@ -193,6 +197,7 @@ public class WalletService {
         userAccount.decreaseBalanceKrw(request.getAmount());
         virtualAccountRepository.save(userAccount); // 변경사항 저장
 
+        String txHash = besuClient.burnKrwt(userAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
         // 6. KrwtOperation 기록
         KrwtOperation krwtOperation = KrwtOperation.builder()
                 .user(userAccount.getUser())
@@ -201,7 +206,7 @@ public class WalletService {
                 .amount(BigDecimal.valueOf(request.getAmount())) // Convert Long to BigDecimal
                 .beforeBalance(BigDecimal.valueOf(previousBalance)) // Convert Long to BigDecimal
                 .afterBalance(BigDecimal.valueOf(userAccount.getBalanceKrw())) // Convert Long to BigDecimal
-                .txHash("0x" + UUID.randomUUID().toString().replace("-", "")) // 더미 트랜잭션 해시
+                .txHash(txHash)
                 .status(TransactionStatus.SUCCESS) // Corrected enum access
                 .memo(request.getMemo())
                 .completedAt(OffsetDateTime.now())
