@@ -35,6 +35,7 @@ public class AdminProductService {
     private final HoldingsRepository holdingsRepository;
     private final VirtualAccountRepository virtualAccountRepository;
 
+
     @Transactional
     public void createProductWithOffering(AdminCreateProductRequest request) {
         // 1. 상품명 중복 체크 (대소문자 무시)
@@ -70,6 +71,7 @@ public class AdminProductService {
                 .lastPrice(request.getOffering().getOfferingPrice())
                 .build();
 
+
         productRepository.save(product);
 
         // 4. 공모 정보 엔티티 생성 (product_id 공유)
@@ -82,6 +84,7 @@ public class AdminProductService {
                 .offeringEndDate(offeringEnd)
                 .progressRate(0) // 최초 0%
                 .build();
+
 
         productOfferingInfoRepository.save(offeringInfo);
     }

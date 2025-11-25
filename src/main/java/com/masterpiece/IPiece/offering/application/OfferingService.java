@@ -13,8 +13,6 @@ import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,11 +81,6 @@ public class OfferingService {
 
 
 
-        // productIds 추출
-        List<Long> productIds = itemsToReturn.stream()
-                .map(Product::getProductId)
-                .collect(Collectors.toList());
-
         // 공모 정보 배치 조회
         // 배치 조회란??? 상품마다 공모정보를 조회하는게 아니라 상품Id들을 한번에 조회하는 방식!
         List<ProductOfferingInfo> offeringInfos = productOfferingInfoRepository
@@ -120,10 +113,10 @@ public class OfferingService {
         // nextCursor 계산
         // (마지막 상품의 productId - 1로 설정)
         Long nextCursor = hasNext 
-                ? itemsToReturn.get(itemsToReturn.size() - 1).getProductId() - 1
+                ? itemsToReturn.get(itemsToReturn.size() - 1).getProductId()
                 : null;
 
-        Long totalCount = productRepository.countProductsByStatus(ProductStatus.OFFERING);
+        Long totalCount = productOfferingInfoRepository.count();
         OffsetDateTime now = OffsetDateTime.now();
 
         Long upcoming = productOfferingInfoRepository.countUpcoming(now);
@@ -171,20 +164,7 @@ public class OfferingService {
      */
     private List<Product> fetchProducts(Long cursor, int limit) {
 
-        if (cursor == null) {
-            // 첫 페이지 로드
-            return productRepository.findInitialPage(
-                    ProductStatus.OFFERING.name(),
-                    limit
-            );
-        }
-
-        // 다음 페이지 로드
-        return productRepository.findNextPage(
-                ProductStatus.OFFERING.name(),
-                cursor,
-                limit
-        );
+        return productRepository.findProductsByOfferingInfo(cursor, limit);
     }
 
     /**
@@ -203,11 +183,14 @@ public class OfferingService {
                 .productName(product.getProductName())
                 .owner(product.getOwner())
                 .thumbnailImg(product.getThumbnailImg())
+                .projectName(product.getProjectName())
+                .status(product.getStatus())
                 .progressRate(offeringInfo.getProgressRate())
                 .offeringStartDate(offeringInfo.getOfferingStartDate())
                 .offeringEndDate(offeringInfo.getOfferingEndDate())
                 .offeringPrice(offeringInfo.getOfferingPrice())
                 .isFavorite(isFavorite)
+                .offeringAmount(offeringInfo.getOfferingAmount())
                 .build();
     }
 

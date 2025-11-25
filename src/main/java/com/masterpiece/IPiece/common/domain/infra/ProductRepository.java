@@ -56,9 +56,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("limit") int limit
     );
 
-    // 총 개수
+    @Query(value = """
+    SELECT p.*
+    FROM product p
+    JOIN product_offering_info o ON p.product_id = o.product_id
+    WHERE p.product_id < COALESCE(:cursor, 9999999999)
+    ORDER BY p.product_id DESC
+    LIMIT :limit
+    """, nativeQuery = true)
+    List<Product> findProductsByOfferingInfo(
+            @Param("cursor") Long cursor,
+            @Param("limit") int limit
+    );
 
-    Long countProductsByStatus(ProductStatus productStatus);
+
+
 
 
 

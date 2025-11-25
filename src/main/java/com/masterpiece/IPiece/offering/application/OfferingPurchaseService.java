@@ -125,7 +125,7 @@ public class OfferingPurchaseService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.OFFERING_INFO_NOT_FOUND));
 
         Long appliedSum = subscriptionsRepository.sumAppliedQuantityByProductId(productId);
-        long totalAmount = offeringInfo.getOfferingAmount();
+        long totalAmount = offeringInfo.getProduct().getTotalTokenQuantity();
 
         if(totalAmount <= 0){
             throw new BusinessException(ErrorCode.OFFERING_AMOUNT_INVALID);
