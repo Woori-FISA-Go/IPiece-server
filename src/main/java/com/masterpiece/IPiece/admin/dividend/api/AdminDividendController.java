@@ -38,7 +38,6 @@ public class AdminDividendController {
         User user = userRepository.findById(userId).orElse(null);
         return user != null && "admin".equals(user.getUserMadeId());
     }
-
     /**
      * 1) 배당 선언 생성/수정
      * POST /v1/admin/dividends
@@ -76,13 +75,37 @@ public class AdminDividendController {
     }
 
     /**
-     * 3) 배당 집행 결과 조회
+     * 3) 배당 집행 결과 조회 (path variable 버전)
      * GET /v1/admin/dividends/{dividendId}/payouts?status=
      */
     @GetMapping("/v1/admin/dividends/{dividendId}/payouts")
     public ResponseEntity<AdminDividendPayoutsResponse> getDividendPayouts(
             Authentication authentication,
             @PathVariable Long dividendId,
+            @RequestParam(value = "status", required = false) String status
+    ) {
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        AdminDividendPayoutsResponse response =
+                adminDividendService.getDividendPayouts(dividendId, status);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 3-1) 배당 집행 결과 조회 (query parameter 버전)
+     * GET /v1/admin/dividends/payouts?dividendId=&status=
+     *
+     * - 기존 프론트가 /v1/admin/dividends/payouts 로 호출하고 있어서
+     *   NoResourceFoundException 이 발생하던 부분을 위한 호환용 엔드포인트.
+     * - 내부적으로는 위의 getDividendPayouts(dividendId, status) 를 그대로 사용한다.
+     */
+    @GetMapping("/v1/admin/dividends/payouts")
+    public ResponseEntity<AdminDividendPayoutsResponse> getDividendPayoutsByQuery(
+            Authentication authentication,
+            @RequestParam("dividendId") Long dividendId,
             @RequestParam(value = "status", required = false) String status
     ) {
         if (!isAdmin(authentication)) {
