@@ -69,7 +69,7 @@ public class SecurityConfig {
                                 "/v1/auth/token/refresh",
                                 "/v1/blockchain/tokens/{address}",
                                 "/v1/signup/**",
-                                "/api/v1/market/products",
+                                "/v1/market/products",
                                 "/v1/market/*/details",
                                 "/v1/market/*/chart",
                                 "/v1/market/*/orders",
