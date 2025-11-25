@@ -7,9 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthCheckController {
 
-    @GetMapping("/healthz")
+    @GetMapping({"/healthz", "/api/healthz"})
     public ResponseEntity<String> healthCheck() {
-        // 쿠버네티스는 200 OK 응답이 오면 정상으로 간주합니다.
         return ResponseEntity.ok("ok");
     }
 }
