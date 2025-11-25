@@ -33,7 +33,18 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.Arrays;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.crypto.RawTransaction;
+import org.web3j.crypto.TransactionEncoder;
+import org.web3j.utils.Numeric;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Address;
+import org.web3j.abi.datatypes.generated.Uint256;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 
 @Slf4j
 @Component
@@ -162,162 +173,56 @@ public class BesuClient {
         }
     }
 
-    public String mintKrwt(String toAddress, BigInteger amount) { // amount 타입을 BigInteger로 유지
-        if (!StringUtils.hasText(toAddress) || !toAddress.matches("^0x[0-9a-fA-F]{40}$")) {
-            throw new IllegalArgumentException("Invalid recipient address: " + toAddress);
-        }
-        if (amount.compareTo(BigInteger.ZERO) <= 0) {
-            throw new IllegalArgumentException("Mint amount must be positive");
-        }
-
-        try {
-            // ✅ 1. 현재 nonce 명시적으로 가져오기
-            BigInteger currentNonce = web3j.ethGetTransactionCount(
-                    credentials.getAddress(),
-                    DefaultBlockParameterName.LATEST
-            ).send().getTransactionCount();
-
-            log.info("Minting KRWT: nonce={} to={} amount={}", currentNonce, toAddress, amount);
-
-            // 2. mint 함수 인코딩
-            Function function = new Function(
-                    "mint",
-                    java.util.Arrays.asList(
-                            new Address(toAddress),
-                            new Uint256(amount)
-                    ),
-                    java.util.Collections.<TypeReference<?>>emptyList()
-            );
-
-            String data = FunctionEncoder.encode(function);
-
-            // 3. 가스 설정
-            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
-            BigInteger gasLimit = BigInteger.valueOf(9000000); // 사용자님 제공 값
-
-            // ✅ 4. RawTransaction 생성 (nonce 명시)
-            RawTransaction rawTx = RawTransaction.createTransaction(
-                    currentNonce,           // ← 명시적 nonce
-                    gasPrice,
-                    gasLimit,
-                    krwtContractAddress,
-                    BigInteger.ZERO,
-                    data
-            );
-
-            // 5. 트랜잭션 서명
-            byte[] signedTx = org.web3j.crypto.TransactionEncoder.signMessage( // org.web3j.crypto.TransactionEncoder 명시
-                    rawTx,
-                    web3j.ethChainId().send().getChainId().longValue(), // chainId를 동적으로 가져옴
-                    credentials
-            );
-
-            String hexValue = org.web3j.utils.Numeric.toHexString(signedTx); // org.web3j.utils.Numeric 명시
-
-            // 6. 전송
-            EthSendTransaction response = web3j
-                    .ethSendRawTransaction(hexValue)
-                    .send();
-
-            if (response.hasError()) {
-                log.error("EthSendTransaction error in mintKrwt: {}", response.getError().getMessage());
-                throw new BlockchainException(
-                        "KRWT mint failed: " + response.getError().getMessage()
-                );
-            }
-
-            String txHash = response.getTransactionHash();
-            log.info("KRWT mint submitted: nonce={} txHash={}", currentNonce, txHash);
-
-            // Wait for the transaction to be mined
-            waitForTransactionReceipt(txHash);
-
-            return txHash;
-
-        } catch (Exception e) {
-            log.error("Failed to mint KRWT", e);
-            throw new BlockchainException("Failed to mint KRWT: " + e.getMessage(), e);
-        }
+    public String mintKrwt(String toAddress, BigInteger amount) {
+        log.info("Minting {} KRWT to {}", amount, toAddress);
+        Function mintFunction = new Function(
+                "mint",
+                Arrays.asList(new Address(toAddress), new Uint256(amount)),
+                Collections.emptyList());
+        return sendContractTransaction(mintFunction);
     }
 
-    /**
-     * Burns KRWT tokens from a specified address.
-     * Only callable by the contract owner (admin).
-     * @param fromAddress The address from which to burn KRWT.
-     * @param amount The amount of KRWT to burn.
-     * @return The transaction hash of the burn operation.
-     */
-    public String burnKrwt(String fromAddress, BigInteger amount) { // amount 타입을 BigInteger로 유지
-        if (!StringUtils.hasText(fromAddress) || !fromAddress.matches("^0x[0-9a-fA-F]{40}$")) {
-            throw new IllegalArgumentException("Invalid address to burn from: " + fromAddress);
-        }
-        if (amount.compareTo(BigInteger.ZERO) <= 0) {
-            throw new IllegalArgumentException("Burn amount must be positive");
-        }
+    public String burnKrwt(String fromAddress, BigInteger amount) {
+        log.info("Burning {} KRWT from {}", amount, fromAddress);
+        Function burnFunction = new Function(
+                "burn",
+                Arrays.asList(new Address(fromAddress), new Uint256(amount)),
+                Collections.emptyList());
+        return sendContractTransaction(burnFunction);
+    }
 
+    // ✅ 공통 트랜잭션 전송 로직을 헬퍼 메서드로 추출
+    private String sendContractTransaction(Function function) {
         try {
-            // ✅ 1. 현재 nonce 명시적으로 가져오기
             BigInteger currentNonce = web3j.ethGetTransactionCount(
-                    credentials.getAddress(),
-                    DefaultBlockParameterName.LATEST
+                    credentials.getAddress(), DefaultBlockParameterName.LATEST
             ).send().getTransactionCount();
 
-            log.info("Burning KRWT: nonce={} from={} amount={}", currentNonce, fromAddress, amount);
-
-            Function function = new Function(
-                    "burn",
-                    java.util.Arrays.asList(
-                            new Address(fromAddress),
-                            new Uint256(amount)
-                    ),
-                    java.util.Collections.<TypeReference<?>>emptyList()
-            );
-
             String data = FunctionEncoder.encode(function);
-
             BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
-            BigInteger gasLimit = BigInteger.valueOf(9000000); // 사용자님 제공 값
+            BigInteger gasLimit = BigInteger.valueOf(9000000); // 적절한 gasLimit 설정
 
-            // ✅ 4. RawTransaction 생성 (nonce 명시)
             RawTransaction rawTx = RawTransaction.createTransaction(
-                    currentNonce,           // ← 명시적 nonce
-                    gasPrice,
-                    gasLimit,
-                    krwtContractAddress,
-                    BigInteger.ZERO,
-                    data
-            );
+                    currentNonce, gasPrice, gasLimit, krwtContractAddress, BigInteger.ZERO, data);
 
-            // 5. 트랜잭션 서명
-            byte[] signedTx = org.web3j.crypto.TransactionEncoder.signMessage( // org.web3j.crypto.TransactionEncoder 명시
+            byte[] signedTx = TransactionEncoder.signMessage(
                     rawTx,
-                    web3j.ethChainId().send().getChainId().longValue(), // chainId를 동적으로 가져옴
-                    credentials
-            );
+                    web3j.ethChainId().send().getChainId().longValue(), credentials);
 
-            String hexValue = org.web3j.utils.Numeric.toHexString(signedTx); // org.web3j.utils.Numeric 명시
-
-            // 6. 전송
             EthSendTransaction response = web3j
-                    .ethSendRawTransaction(hexValue)
-                    .send();
+                    .ethSendRawTransaction(Numeric.toHexString(signedTx)).send();
 
             if (response.hasError()) {
-                log.error("EthSendTransaction error in burnKrwt: {}", response.getError().getMessage());
-                throw new BlockchainException("KRWT burn failed: " + response.getError().getMessage());
+                throw new BlockchainException("Transaction failed: " + response.getError().getMessage());
             }
 
             String txHash = response.getTransactionHash();
-            log.info("KRWT burn submitted: from={} amount={} txHash={}", fromAddress, amount, txHash);
-
-            // Wait for the transaction to be mined
-            waitForTransactionReceipt(txHash);
-
+            waitForTransactionReceipt(txHash); // 트랜잭션 마이닝 대기
             return txHash;
 
         } catch (Exception e) {
-            log.error("Failed to burn KRWT from " + fromAddress, e);
-            throw new BlockchainException("Failed to burn KRWT from " + fromAddress + ": " + e.getMessage(), e);
+            log.error("Failed to send contract transaction: {}", e.getMessage(), e);
+            throw new BlockchainException("Failed to send contract transaction", e);
         }
     }
 

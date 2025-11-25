@@ -230,7 +230,7 @@ class WalletServiceTest {
         assertThat(response.getNewBalance()).isEqualTo(initialBalance + request.getAmount());
         assertThat(mockVirtualAccount.getBalanceKrw()).isEqualTo(initialBalance + request.getAmount()); // Verify balance updated
         verify(virtualAccountRepository, times(1)).save(mockVirtualAccount);
-        verify(krwtOperationRepository, times(1)).save(any(KrwtOperation.class));
+        verify(krwtOperationRepository, times(2)).save(any(KrwtOperation.class));
         // ✅ besuClient.mintKrwt 호출 검증
         verify(besuClient, times(1)).mintKrwt(any(String.class), any(BigInteger.class));
     }
@@ -299,7 +299,7 @@ class WalletServiceTest {
         assertThat(response.getNewBalance()).isEqualTo(initialBalance - request.getAmount());
         assertThat(mockVirtualAccount.getBalanceKrw()).isEqualTo(initialBalance - request.getAmount()); // Verify balance updated
         verify(virtualAccountRepository, times(1)).save(mockVirtualAccount);
-        verify(krwtOperationRepository, times(1)).save(any(KrwtOperation.class));
+        verify(krwtOperationRepository, times(2)).save(any(KrwtOperation.class));
         // ✅ besuClient.burnKrwt 호출 검증
         verify(besuClient, times(1)).burnKrwt(any(String.class), any(BigInteger.class));
     }

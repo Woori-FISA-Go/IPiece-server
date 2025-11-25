@@ -20,6 +20,7 @@ import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Slf4j
 public class WalletService {
 
     private final VirtualAccountRepository virtualAccountRepository;
@@ -140,38 +141,51 @@ public class WalletService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "입금 받을 사용자를 찾을 수 없습니다."));
 
         // 4. 이전 잔고 기록
-        long previousBalance = targetAccount.getBalanceKrw(); // 이 라인만 남기고, 아래 중복 선언 제거
+        long previousBalance = targetAccount.getBalanceKrw();
 
-        // 블록체인 호출 먼저 수행
-        String txHash = besuClient.mintKrwt(targetAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
-
-        // 블록체인 성공 후 DB 업데이트
-        targetAccount.increaseBalanceKrw(request.getAmount());
-        virtualAccountRepository.save(targetAccount);
-
-        // 6. KrwtOperation 기록...
-        KrwtOperation krwtOperation = KrwtOperation.builder()
+        // ✅ 1. PENDING 상태로 먼저 KrwtOperation 기록
+        KrwtOperation pendingOp = KrwtOperation.builder()
                 .user(targetAccount.getUser())
                 .virtualAccount(targetAccount)
                 .operationType(OperationType.MINT)
                 .amount(BigDecimal.valueOf(request.getAmount()))
-                .beforeBalance(BigDecimal.valueOf(previousBalance)) // 최초 선언된 previousBalance 사용
-                .afterBalance(BigDecimal.valueOf(targetAccount.getBalanceKrw()))
-                .txHash(txHash)
-                .status(TransactionStatus.SUCCESS)
+                .beforeBalance(BigDecimal.valueOf(previousBalance))
+                .afterBalance(BigDecimal.valueOf(previousBalance + request.getAmount())) // 예상되는 최종 잔고
+                .status(TransactionStatus.PENDING) // PENDING 상태로 시작
                 .memo(request.getMemo())
-                .completedAt(OffsetDateTime.now())
+                .createdAt(OffsetDateTime.now()) // 생성 시간 기록
                 .build();
-        krwtOperationRepository.save(krwtOperation);
+        krwtOperationRepository.save(pendingOp);
+
+        String txHash;
+        try {
+            // ✅ 2. 블록체인 호출 수행
+            txHash = besuClient.mintKrwt(targetAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
+
+            // ✅ 3. 블록체인 성공 후 DB 업데이트
+            targetAccount.increaseBalanceKrw(request.getAmount());
+            virtualAccountRepository.save(targetAccount);
+
+            // ✅ 4. KrwtOperation 상태를 SUCCESS로 업데이트
+            pendingOp.updateStatus(TransactionStatus.SUCCESS, txHash, OffsetDateTime.now());
+            krwtOperationRepository.save(pendingOp);
+
+        } catch (Exception e) {
+            // ✅ 5. 블록체인 호출 실패 시 KrwtOperation 상태를 FAILED로 업데이트
+            pendingOp.updateStatus(TransactionStatus.FAILED, null, OffsetDateTime.now()); // txHash는 null
+            krwtOperationRepository.save(pendingOp);
+            log.error("Failed to mint KRWT on blockchain for user {}: {}", request.getUserId(), e.getMessage(), e);
+            throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED, "KRWT 발행 블록체인 트랜잭션 실패", e);
+        }
 
         return KrwtMintResponse.builder()
-                .transactionId(krwtOperation.getOperationId())
+                .transactionId(pendingOp.getOperationId())
                 .userId(request.getUserId())
                 .previousBalance(previousBalance)
                 .mintAmount(request.getAmount())
                 .newBalance(targetAccount.getBalanceKrw())
                 .transactionHash(txHash)
-                .completedAt(krwtOperation.getCompletedAt())
+                .completedAt(pendingOp.getCompletedAt())
                 .build();
     }
 
@@ -192,38 +206,51 @@ public class WalletService {
         }
 
         // 4. 이전 잔고 기록
-        long previousBalance = userAccount.getBalanceKrw(); // 이 라인만 남기고, 아래 중복 선언 제거
+        long previousBalance = userAccount.getBalanceKrw();
 
-        // 블록체인 호출 먼저 수행
-        String txHash = besuClient.burnKrwt(userAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
-
-        // 블록체인 성공 후 DB 업데이트
-        userAccount.decreaseBalanceKrw(request.getAmount());
-        virtualAccountRepository.save(userAccount);
-
-        // 6. KrwtOperation 기록...
-        KrwtOperation krwtOperation = KrwtOperation.builder()
+        // ✅ 1. PENDING 상태로 먼저 KrwtOperation 기록
+        KrwtOperation pendingOp = KrwtOperation.builder()
                 .user(userAccount.getUser())
                 .virtualAccount(userAccount)
                 .operationType(OperationType.BURN)
                 .amount(BigDecimal.valueOf(request.getAmount()))
-                .beforeBalance(BigDecimal.valueOf(previousBalance)) // 최초 선언된 previousBalance 사용
-                .afterBalance(BigDecimal.valueOf(userAccount.getBalanceKrw()))
-                .txHash(txHash)
-                .status(TransactionStatus.SUCCESS)
+                .beforeBalance(BigDecimal.valueOf(previousBalance))
+                .afterBalance(BigDecimal.valueOf(previousBalance - request.getAmount())) // 예상되는 최종 잔고
+                .status(TransactionStatus.PENDING) // PENDING 상태로 시작
                 .memo(request.getMemo())
-                .completedAt(OffsetDateTime.now())
+                .createdAt(OffsetDateTime.now()) // 생성 시간 기록
                 .build();
-        krwtOperationRepository.save(krwtOperation);
+        krwtOperationRepository.save(pendingOp);
+
+        String txHash;
+        try {
+            // ✅ 2. 블록체인 호출 수행
+            txHash = besuClient.burnKrwt(userAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
+
+            // ✅ 3. 블록체인 성공 후 DB 업데이트
+            userAccount.decreaseBalanceKrw(request.getAmount());
+            virtualAccountRepository.save(userAccount);
+
+            // ✅ 4. KrwtOperation 상태를 SUCCESS로 업데이트
+            pendingOp.updateStatus(TransactionStatus.SUCCESS, txHash, OffsetDateTime.now());
+            krwtOperationRepository.save(pendingOp);
+
+        } catch (Exception e) {
+            // ✅ 5. 블록체인 호출 실패 시 KrwtOperation 상태를 FAILED로 업데이트
+            pendingOp.updateStatus(TransactionStatus.FAILED, null, OffsetDateTime.now()); // txHash는 null
+            krwtOperationRepository.save(pendingOp);
+            log.error("Failed to burn KRWT on blockchain for user {}: {}", targetUserId, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED, "KRWT 소각 블록체인 트랜잭션 실패", e);
+        }
 
         return KrwtBurnResponse.builder()
-                .transactionId(krwtOperation.getOperationId())
+                .transactionId(pendingOp.getOperationId())
                 .userId(targetUserId)
                 .previousBalance(previousBalance)
                 .burnAmount(request.getAmount())
                 .newBalance(userAccount.getBalanceKrw())
                 .transactionHash(txHash)
-                .completedAt(krwtOperation.getCompletedAt())
+                .completedAt(pendingOp.getCompletedAt())
                 .build();
     }
 }
