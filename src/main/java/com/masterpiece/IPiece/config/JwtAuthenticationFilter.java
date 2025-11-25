@@ -84,14 +84,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var authorities = userDetails.getAuthorities();
 
             // Principal은 Long 타입 userId를 유지하고, 권한 정보만 추가합니다.
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        } catch (Exception ex) { // UsernameNotFoundException, JwtException 등 모든 예외 처리
-            sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
-            return;
-        }
-
+                         UsernamePasswordAuthenticationToken authentication =
+                                 new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication); // 이 라인 추가
+                     } catch (Exception ex) { // UsernameNotFoundException, JwtException 등 모든 예외 처리
+                         sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
+                         return;
+                     }
         filterChain.doFilter(request, response);
     }
 

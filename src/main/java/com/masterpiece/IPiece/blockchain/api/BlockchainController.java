@@ -87,22 +87,15 @@ public class BlockchainController {
     @Operation(summary = "KRWT 컨트랙트 소유자 확인", description = "KRWT 컨트랙트의 소유자가 현재 Admin 계정과 일치하는지 확인합니다.", security = @SecurityRequirement(name = "JWT"))
     @GetMapping("/admin/check-krwt-owner")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> checkKrwtOwner() {
-        try {
-            String owner = besuClient.getKrwtContractOwner();
-            String admin = besuClient.getAdminAddress();
+    public ResponseEntity<Map<String, Object>> checkKrwtOwner() { // try-catch 블록 제거
+        String owner = besuClient.getKrwtContractOwner();
+        String admin = besuClient.getAdminAddress();
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "owner", owner,
-                    "admin", admin,
-                    "match", owner.equalsIgnoreCase(admin)
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "error", e.getMessage()
-            ));
-        }
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "owner", owner,
+                "admin", admin,
+                "match", owner.equalsIgnoreCase(admin)
+        ));
     }
 }

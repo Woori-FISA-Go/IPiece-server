@@ -140,36 +140,37 @@ public class WalletService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "입금 받을 사용자를 찾을 수 없습니다."));
 
         // 4. 이전 잔고 기록
-        long previousBalance = targetAccount.getBalanceKrw();
+        long previousBalance = targetAccount.getBalanceKrw(); // 이 라인만 남기고, 아래 중복 선언 제거
 
-        // 5. VirtualAccount 잔고 증가
-        targetAccount.increaseBalanceKrw(request.getAmount());
-        virtualAccountRepository.save(targetAccount); // 변경사항 저장
-
+        // 블록체인 호출 먼저 수행
         String txHash = besuClient.mintKrwt(targetAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
-        // 6. KrwtOperation 기록
+
+        // 블록체인 성공 후 DB 업데이트
+        targetAccount.increaseBalanceKrw(request.getAmount());
+        virtualAccountRepository.save(targetAccount);
+
+        // 6. KrwtOperation 기록...
         KrwtOperation krwtOperation = KrwtOperation.builder()
                 .user(targetAccount.getUser())
                 .virtualAccount(targetAccount)
-                .operationType(OperationType.MINT) // Corrected enum access
-                .amount(BigDecimal.valueOf(request.getAmount())) // Convert Long to BigDecimal
-                .beforeBalance(BigDecimal.valueOf(previousBalance)) // Convert Long to BigDecimal
-                .afterBalance(BigDecimal.valueOf(targetAccount.getBalanceKrw())) // Convert Long to BigDecimal
+                .operationType(OperationType.MINT)
+                .amount(BigDecimal.valueOf(request.getAmount()))
+                .beforeBalance(BigDecimal.valueOf(previousBalance)) // 최초 선언된 previousBalance 사용
+                .afterBalance(BigDecimal.valueOf(targetAccount.getBalanceKrw()))
                 .txHash(txHash)
-                .status(TransactionStatus.SUCCESS) // Corrected enum access
+                .status(TransactionStatus.SUCCESS)
                 .memo(request.getMemo())
                 .completedAt(OffsetDateTime.now())
                 .build();
         krwtOperationRepository.save(krwtOperation);
 
-        // 7. 응답 반환
         return KrwtMintResponse.builder()
                 .transactionId(krwtOperation.getOperationId())
                 .userId(request.getUserId())
                 .previousBalance(previousBalance)
                 .mintAmount(request.getAmount())
                 .newBalance(targetAccount.getBalanceKrw())
-                .transactionHash(krwtOperation.getTxHash())
+                .transactionHash(txHash)
                 .completedAt(krwtOperation.getCompletedAt())
                 .build();
     }
@@ -191,36 +192,37 @@ public class WalletService {
         }
 
         // 4. 이전 잔고 기록
-        long previousBalance = userAccount.getBalanceKrw();
+        long previousBalance = userAccount.getBalanceKrw(); // 이 라인만 남기고, 아래 중복 선언 제거
 
-        // 5. VirtualAccount 잔고 감소
-        userAccount.decreaseBalanceKrw(request.getAmount());
-        virtualAccountRepository.save(userAccount); // 변경사항 저장
-
+        // 블록체인 호출 먼저 수행
         String txHash = besuClient.burnKrwt(userAccount.getWalletAddress(), BigInteger.valueOf(request.getAmount()));
-        // 6. KrwtOperation 기록
+
+        // 블록체인 성공 후 DB 업데이트
+        userAccount.decreaseBalanceKrw(request.getAmount());
+        virtualAccountRepository.save(userAccount);
+
+        // 6. KrwtOperation 기록...
         KrwtOperation krwtOperation = KrwtOperation.builder()
                 .user(userAccount.getUser())
                 .virtualAccount(userAccount)
-                .operationType(OperationType.BURN) // Corrected enum access
-                .amount(BigDecimal.valueOf(request.getAmount())) // Convert Long to BigDecimal
-                .beforeBalance(BigDecimal.valueOf(previousBalance)) // Convert Long to BigDecimal
-                .afterBalance(BigDecimal.valueOf(userAccount.getBalanceKrw())) // Convert Long to BigDecimal
+                .operationType(OperationType.BURN)
+                .amount(BigDecimal.valueOf(request.getAmount()))
+                .beforeBalance(BigDecimal.valueOf(previousBalance)) // 최초 선언된 previousBalance 사용
+                .afterBalance(BigDecimal.valueOf(userAccount.getBalanceKrw()))
                 .txHash(txHash)
-                .status(TransactionStatus.SUCCESS) // Corrected enum access
+                .status(TransactionStatus.SUCCESS)
                 .memo(request.getMemo())
                 .completedAt(OffsetDateTime.now())
                 .build();
         krwtOperationRepository.save(krwtOperation);
 
-        // 7. 응답 반환
         return KrwtBurnResponse.builder()
                 .transactionId(krwtOperation.getOperationId())
                 .userId(targetUserId)
                 .previousBalance(previousBalance)
                 .burnAmount(request.getAmount())
                 .newBalance(userAccount.getBalanceKrw())
-                .transactionHash(krwtOperation.getTxHash())
+                .transactionHash(txHash)
                 .completedAt(krwtOperation.getCompletedAt())
                 .build();
     }

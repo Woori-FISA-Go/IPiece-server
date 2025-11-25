@@ -348,8 +348,7 @@ public class BesuClient {
             attempts++;
         }
         log.warn("Transaction {} not mined after {} attempts.", transactionHash, maxAttempts);
-        // Optionally throw an exception if the transaction is not mined within the timeout
-        // throw new BlockchainException("Transaction not mined within timeout: " + transactionHash);
+    throw new BlockchainException("Transaction not mined within timeout: " + transactionHash); // 이 라인 추가
     }
 
     /**
@@ -458,34 +457,56 @@ public class BesuClient {
                 throw new BlockchainException("Error fetching transaction receipt: " + ethGetTransactionReceipt.getError().getMessage());
             }
 
-            if (ethGetTransactionReceipt.getTransactionReceipt().isEmpty()) {
-                throw new BlockchainException("Transaction receipt not found for hash: " + transactionHash);
+            var optReceipt = ethGetTransactionReceipt.getTransactionReceipt();
+
+            // ✅ PENDING 상태 처리
+            if (optReceipt.isEmpty()) {
+                Map<String, Object> pendingResult = new java.util.HashMap<>();
+                pendingResult.put("hash", transactionHash);
+                pendingResult.put("status", "PENDING");
+                pendingResult.put("blockNumber", null);
+                pendingResult.put("blockHash", null);
+                pendingResult.put("from", null);
+                pendingResult.put("to", null);
+                pendingResult.put("value", "0");
+                pendingResult.put("gasUsed", null);
+                pendingResult.put("gasPrice", null); // PENDING 상태일 때 gasPrice는 알 수 없음
+                pendingResult.put("timestamp", null);
+                pendingResult.put("logs", Collections.emptyList()); // PENDING 상태일 때 logs도 비어있음
+                return pendingResult;
             }
 
-            org.web3j.protocol.core.methods.response.TransactionReceipt receipt = ethGetTransactionReceipt.getTransactionReceipt().get();
+            org.web3j.protocol.core.methods.response.TransactionReceipt receipt = optReceipt.get();
             log.info("Transaction receipt status for hash {}: {}", transactionHash, receipt.getStatus());
 
-            // Get block timestamp
+            // ✅ 블록 타임스탬프 조회
             OffsetDateTime timestamp = null;
             if (receipt.getBlockHash() != null) {
-                org.web3j.protocol.core.methods.response.EthBlock ethBlock =
-                        web3j.ethGetBlockByHash(receipt.getBlockHash(), false).send();
-                if (ethBlock.hasError()) {
-                    log.warn("Error fetching block for hash {}: {}", receipt.getBlockHash(), ethBlock.getError().getMessage());
-                } else if (ethBlock.getBlock() != null) {
-                    timestamp = OffsetDateTime.ofInstant(
-                            java.time.Instant.ofEpochSecond(ethBlock.getBlock().getTimestamp().longValue()),
-                            java.time.ZoneOffset.UTC
-                    );
+                try {
+                    org.web3j.protocol.core.methods.response.EthBlock ethBlock =
+                            web3j.ethGetBlockByHash(receipt.getBlockHash(), false).send();
+                    if (ethBlock.hasError()) {
+                        log.warn("Error fetching block for hash {}: {}",
+                                receipt.getBlockHash(), ethBlock.getError().getMessage());
+                    } else if (ethBlock.getBlock() != null && ethBlock.getBlock().getTimestamp() != null) {
+                        timestamp = OffsetDateTime.ofInstant(
+                                java.time.Instant.ofEpochSecond(
+                                        ethBlock.getBlock().getTimestamp().longValue()),
+                                java.time.ZoneOffset.UTC
+                        );
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to fetch block timestamp for {}: {}",
+                            receipt.getBlockHash(), e.getMessage());
                 }
             }
 
-            // ✅ Map.of() 대신 HashMap 사용 (null 허용)
+            // ✅ Logs 처리 (HashMap 사용)
             List<Map<String, Object>> logs = receipt.getLogs().stream()
                     .map(log -> {
-                        Map<String, Object> logMap = new java.util.HashMap<>(); // HashMap 명시
+                        Map<String, Object> logMap = new java.util.HashMap<>();
                         logMap.put("address", log.getAddress());
-                        logMap.put("topics", log.getTopics() != null ? log.getTopics() : java.util.List.of()); // List.of() 명시
+                        logMap.put("topics", log.getTopics() != null ? log.getTopics() : java.util.List.of());
                         logMap.put("data", log.getData() != null ? log.getData() : "");
                         logMap.put("blockNumber", log.getBlockNumber() != null ?
                                 log.getBlockNumber().toString() : null);
@@ -497,19 +518,31 @@ public class BesuClient {
                     })
                     .toList();
 
-            // ✅ 최상위도 HashMap 사용
-            Map<String, Object> result = new java.util.HashMap<>(); // HashMap 명시
+            // ✅ Status 매핑 (0x1=success, 0x0=failed)
+            String rawStatus = receipt.getStatus();
+            String mappedStatus;
+            if ("0x1".equalsIgnoreCase(rawStatus)) {
+                mappedStatus = "success";
+            } else if ("0x0".equalsIgnoreCase(rawStatus)) {
+                mappedStatus = "failed";
+            } else {
+                mappedStatus = rawStatus != null ? rawStatus : "unknown";
+            }
+
+            // ✅ 최종 결과 (HashMap 사용)
+            Map<String, Object> result = new java.util.HashMap<>();
             result.put("hash", transactionHash);
-            result.put("status", receipt.getStatus().equals("0x1") ? "success" : "failed"); // 0x1 for success, 0x0 for failure
+            result.put("status", mappedStatus);
             result.put("blockHash", receipt.getBlockHash());
             result.put("blockNumber", receipt.getBlockNumber() != null ?
-                    receipt.getBlockNumber().longValue() : null); // longValue() 추가
+                    receipt.getBlockNumber().longValue() : null);
             result.put("from", receipt.getFrom());
-            result.put("to", receipt.getTo() != null ? receipt.getTo() : ""); // 'to' can be null for contract creation
-            result.put("value", BigInteger.ZERO.toString()); // TransactionReceipt does not contain value directly, set to 0 for now
+            result.put("to", receipt.getTo() != null ? receipt.getTo() : "");
+            result.put("value", BigInteger.ZERO.toString());
             result.put("gasUsed", receipt.getGasUsed() != null ?
                     receipt.getGasUsed().toString() : "0");
-            result.put("timestamp", timestamp != null ? timestamp.toString() : OffsetDateTime.MIN.toString()); // Fallback to MIN
+            result.put("gasPrice", null); // TransactionReceipt에는 gasPrice 없음
+            result.put("timestamp", timestamp != null ? timestamp.toString() : null);
             result.put("logs", logs);
 
             return result;
