@@ -35,33 +35,6 @@ public class AdminProductService {
     private final HoldingsRepository holdingsRepository;
     private final VirtualAccountRepository virtualAccountRepository;
 
-    private void debugProduct(Product product) {
-        System.out.println("===== PRODUCT FIELD LENGTH CHECK =====");
-
-        debug("productName", product.getProductName());
-        debug("projectName", product.getProjectName());
-        debug("owner", product.getOwner());
-        debug("presentImg", product.getPresentImg());
-        debug("thumbnailImg", product.getThumbnailImg());
-        debug("tokenName", product.getTokenName());
-        debug("tokenSymbol", product.getTokenSymbol());
-        debug("tokenStandard", product.getTokenStandard());
-        debug("exchangeListing", product.getExchangeListing());
-        debug("tokenContractAddress", product.getTokenContractAddress());
-        debug("dividendContractAddress", product.getDividendContractAddress());
-        debug("description", product.getDescription());
-
-        System.out.println("======================================");
-    }
-
-    private void debug(String field, String value) {
-        if (value == null) {
-            System.out.println(field + " = null");
-        } else {
-            System.out.println(field + " = (" + value.length() + ") " + value);
-        }
-    }
-
 
     @Transactional
     public void createProductWithOffering(AdminCreateProductRequest request) {
@@ -98,7 +71,6 @@ public class AdminProductService {
                 .lastPrice(request.getOffering().getOfferingPrice())
                 .build();
 
-        debugProduct(product);
 
         productRepository.save(product);
 
