@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -18,7 +17,7 @@ import java.util.List;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private static final String ADMIN_USER_ID = "admin"; // Added constant
+    private static final String ADMIN_USER_ID = "admin";
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -39,8 +38,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         authorities.add(new SimpleGrantedAuthority("ROLE_USER")); // 모든 사용자는 기본적으로 USER 권한을 가집니다.
 
         // user_made_id가 "admin"이면 ADMIN 권한을 추가로 부여합니다.
-        // NPE 방지를 위해 ourUser.getUserMadeId()가 null이 아닌지 먼저 확인
-        if (ourUser.getUserMadeId() != null && ADMIN_USER_ID.equalsIgnoreCase(ourUser.getUserMadeId())) {
+        if (ADMIN_USER_ID.equalsIgnoreCase(ourUser.getUserMadeId())) {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
         }
 

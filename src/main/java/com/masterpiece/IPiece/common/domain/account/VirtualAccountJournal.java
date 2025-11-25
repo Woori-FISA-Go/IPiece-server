@@ -6,6 +6,8 @@ import lombok.*;
 
 import lombok.experimental.SuperBuilder;
 
+import java.time.OffsetDateTime;
+
 @Entity
 @Table(name = "virtual_account_journal")
 @Getter
@@ -31,6 +33,10 @@ public class VirtualAccountJournal extends BaseEntity {
 
     @Column(name = "balance_after", nullable = false)
     private Long balanceAfter; // 이 이벤트 이후 계좌 잔액
+
+    @Column(name = "number_of_token", nullable = false)
+    @Builder.Default
+    private Long numberOfToken = 0L;
 
     @Column(name = "description", length = 255)
     private String description;

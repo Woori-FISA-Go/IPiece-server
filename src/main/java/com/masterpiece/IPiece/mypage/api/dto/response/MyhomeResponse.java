@@ -19,6 +19,9 @@ public class MyhomeResponse {
     @JsonProperty("user_id")
     private Long userId;
 
+    @JsonProperty("user_made_id")
+    private String userMadeId;
+
     @JsonProperty("total_krw")
     private Long totalKrw;
 
@@ -48,4 +51,16 @@ public class MyhomeResponse {
 
     @JsonProperty("asset_list")
     private List<AssetDto> assetList;
+
+    @JsonProperty("offering_list")
+    private List<OfferingAssetDto> offeringList;
+
+    @JsonProperty("offering_total_count")
+    private Integer offeringTotalCount;
+
+    @JsonProperty("offering_has_next")
+    private boolean offeringHasNext;
+
+    @JsonProperty("offering_next_page")
+    private Integer offeringNextPage;
 }

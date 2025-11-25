@@ -1,38 +1,51 @@
 package com.masterpiece.IPiece.market.application;
 
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
+import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountJournalRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
-import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.market.domain.OrderBook;
 import com.masterpiece.IPiece.market.domain.OrderType;
 import com.masterpiece.IPiece.market.domain.TradeExecution;
-import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.market.infra.jpa.OrderBookRepository;
 import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
+import jakarta.persistence.OptimisticLockException;
+import java.time.OffsetDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import jakarta.persistence.OptimisticLockException;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class OrderMatchingService {
 
+    private final ProductRepository productRepository;
     private final OrderBookRepository orderBookRepository;
     private final TradeExecutionRepository tradeExecutionRepository;
     private final VirtualAccountRepository virtualAccountRepository;
+    private final VirtualAccountJournalRepository virtualAccountJournalRepository;
     private final HoldingsRepository holdingsRepository;
     private final PlatformTransactionManager transactionManager;
+    private final OrderBookPushService orderBookPushService;
+    private final HoldingAssetPushService holdingAssetPushService;
+    private final PendingOrderPushService pendingOrderPushService;
+    private final TradeTickPushService tradeTickPushService;
+    private final ProductPricePushService productPricePushService;
 
     /**
      * /v1/market/{product_id}/buy, /sell 에서
@@ -44,6 +57,9 @@ public class OrderMatchingService {
         } else {
             matchSellOrder(incomingOrder);
         }
+
+        Long productId = incomingOrder.getProduct().getProductId();
+        runAfterCommit("order-book-push", () -> orderBookPushService.pushOrderBook(productId));
     }
 
     /**
@@ -166,6 +182,10 @@ public class OrderMatchingService {
                            long qty,
                            long price) {
 
+        Long productId = buyOrder.getProduct().getProductId();
+        Long buyerUserId = buyOrder.getVirtualAccount().getUser().getUserId();
+        Long sellerUserId = sellOrder.getVirtualAccount().getUser().getUserId();
+
         TradeExecution trade = TradeExecution.builder()
                 .product(buyOrder.getProduct())
                 .buyOrder(buyOrder)
@@ -178,9 +198,23 @@ public class OrderMatchingService {
                 .build();
 
         tradeExecutionRepository.save(trade);
-
+        updateProductPrice(buyOrder.getProduct(), price);
         // 체결을 기준으로 virtual_account / holdings 업데이트
         updateAccountsAndHoldings(buyOrder, sellOrder, qty, price);
+
+        runAfterCommit("product-price-push",
+                () -> productPricePushService.pushPrice(productId, price));
+        runAfterCommit("trade-tick-push",
+                () -> tradeTickPushService.pushTick(productId, price, qty, trade.getMatchTime()));
+
+        runAfterCommit("holding-push-buyer",
+                () -> holdingAssetPushService.pushAsset(buyerUserId, productId));
+        runAfterCommit("holding-push-seller",
+                () -> holdingAssetPushService.pushAsset(sellerUserId, productId));
+        runAfterCommit("pending-push-buyer",
+                () -> pendingOrderPushService.pushPendingOrders(buyerUserId, productId));
+        runAfterCommit("pending-push-seller",
+                () -> pendingOrderPushService.pushPendingOrders(sellerUserId, productId));
     }
 
     // ==========================
@@ -224,7 +258,16 @@ public class OrderMatchingService {
         virtualAccountRepository.save(buyer);
         virtualAccountRepository.save(seller);
 
+        String productName = buyOrder.getProduct().getProductName();
+        saveTradeJournal(buyer, -totalTradeAmount, qty, "TRADE_BUY", productName + " 토큰 구매");
+        saveTradeJournal(seller, totalTradeAmount, -qty, "TRADE_SELL", productName + " 토큰 판매");
+
         printTradeLog(buyOrder, sellOrder, qty, tradePrice, refund);
+    }
+
+    private void updateProductPrice(Product product, long tradePrice) {
+        product.updateCurrentPrice(tradePrice);
+        productRepository.save(product);
     }
 
     // ==========================
@@ -271,11 +314,67 @@ public class OrderMatchingService {
         holdingsRepository.save(holding);
     }
 
+    private void saveTradeJournal(VirtualAccount account,
+                                  long amountKrw,
+                                  long numberOfToken,
+                                  String txType,
+                                  String description) {
+        VirtualAccountJournal journal = VirtualAccountJournal.builder()
+                .virtualAccount(account)
+                .txType(txType)
+                .amountKrw(amountKrw)
+                .balanceAfter(account.getBalanceKrw())
+                .numberOfToken(numberOfToken)
+                .description(description)
+                .build();
+
+        virtualAccountJournalRepository.save(journal);
+    }
+
+    private void runAfterCommit(String name, Runnable task) {
+        Runnable safeTask = () -> {
+            try {
+                task.run();
+            } catch (RuntimeException e) {
+                log.warn("Async post-commit task failed. name={}", name, e);
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void suspend() {}
+
+                @Override
+                public void resume() {}
+
+                @Override
+                public void flush() {}
+
+                @Override
+                public void beforeCommit(boolean readOnly) {}
+
+                @Override
+                public void beforeCompletion() {}
+
+                @Override
+                public void afterCommit() {
+                    safeTask.run();
+                }
+
+                @Override
+                public void afterCompletion(int status) {}
+            });
+        } else {
+            safeTask.run();
+        }
+    }
+
     private void printTradeLog(OrderBook buyOrder,
                                OrderBook sellOrder,
                                long qty,
                                long tradePrice,
-                               long refund) {
+                                long refund) {
 
         String productName = buyOrder.getProduct().getProductName();
         Long productId = buyOrder.getProduct().getProductId();

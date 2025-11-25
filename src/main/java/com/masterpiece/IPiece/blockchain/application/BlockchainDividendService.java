@@ -33,18 +33,17 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.tx.gas.DefaultGasProvider;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 @ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
-public class DividendService {
+public class BlockchainDividendService {
 
     private final Web3j web3j;
     private final Credentials adminCredentials;
@@ -87,15 +86,22 @@ public class DividendService {
         // 3. 트랜잭션 발생 후 `BlockchainTransaction` 엔티티 생성 및 저장
         BlockchainTransaction tx = BlockchainTransaction.builder()
                 .txHash(transactionReceipt.getTransactionHash())
-                .txType(TransactionType.DIVIDEND)
                 .fromAddress(transactionReceipt.getFrom())
                 .toAddress(transactionReceipt.getTo())
-                .amount(request.getTotalAmount())
+                .tokenAddress(product.getDividendContractAddress()) // 배당 컨트랙트 주소
+                .amount(BigDecimal.valueOf(request.getTotalAmount()))
+                .transactionType(TransactionType.DIVIDEND)
+                .transactionStatus(transactionReceipt.isStatusOK() ? TransactionStatus.SUCCESS : TransactionStatus.FAILED)
                 .blockNumber(transactionReceipt.getBlockNumber().longValue())
-                .status(transactionReceipt.isStatusOK() ? TransactionStatus.SUCCESS : TransactionStatus.FAILED)
+                .blockHash(transactionReceipt.getBlockHash())
+                .gasUsed(transactionReceipt.getGasUsed().longValue())
                 .user(adminUser)
                 .build();
         blockchainTransactionRepository.save(tx);
+
+
+
+
 
         // 4. `Dividend` 엔티티 생성 및 저장
         Dividends dividend = Dividends.builder()

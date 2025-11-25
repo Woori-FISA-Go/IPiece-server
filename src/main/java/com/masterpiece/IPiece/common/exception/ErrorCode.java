@@ -14,6 +14,7 @@ public enum ErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),   //위조,형식 오류
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),   //토큰만료
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+    FORBIDDEN_ACCESS(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."), // 추가
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     CONFLICT(HttpStatus.CONFLICT, "요청이 충돌했습니다."),
     UNPROCESSABLE_ENTITY(HttpStatus.UNPROCESSABLE_ENTITY, "도메인 규칙 위반입니다."),
@@ -21,6 +22,7 @@ public enum ErrorCode {
 
     /* 인증/로그인 */
     INVALID_LOGIN_ID(HttpStatus.BAD_REQUEST, "존재하지 않는 아이디입니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."), // 추가
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다."),
     SMS_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "인증번호 발송 실패"),
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "인증번호가 일치하지 않습니다."),
@@ -39,6 +41,8 @@ public enum ErrorCode {
     PRODUCT_STATUS_NOT_OFFERING(HttpStatus.CONFLICT, "공모(OFFERING) 상태가 아니어서 2차거래를 시작할 수 없습니다."),
     INVALID_SECONDARY_TRADING_CONFIRM(HttpStatus.BAD_REQUEST, "2차거래 시작 승인 요청의 confirm 값이 true가 아닙니다."),
 
+    /* 투자 */
+    INVESTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "투자 정보를 찾을 수 없습니다."), // 추가
 
     /* 공통 - 5xx */
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),

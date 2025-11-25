@@ -3,12 +3,17 @@ package com.masterpiece.IPiece.admin.offeringandtrade.application;
 import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminCreateProductRequest;
 import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.request.AdminEnableSecondaryTradingRequest;
 import com.masterpiece.IPiece.admin.offeringandtrade.api.dto.response.AdminEnableSecondaryTradingResponse;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductStatus;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
+import com.masterpiece.IPiece.mypage.domain.Holdings;
+import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
+import com.masterpiece.IPiece.offering.infra.OfferingSubscriptionsRepository;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -25,6 +31,9 @@ public class AdminProductService {
 
     private final ProductRepository productRepository;
     private final ProductOfferingInfoRepository productOfferingInfoRepository;
+    private final OfferingSubscriptionsRepository subscriptionsRepository;
+    private final HoldingsRepository holdingsRepository;
+    private final VirtualAccountRepository virtualAccountRepository;
 
     @Transactional
     public void createProductWithOffering(AdminCreateProductRequest request) {
@@ -87,25 +96,60 @@ public class AdminProductService {
             Long productId,
             AdminEnableSecondaryTradingRequest request
     ) {
-        // 1. confirm 검증
         if (Boolean.FALSE.equals(request.getConfirm())) {
-            // confirm이 false면 잘못된 승인 요청
             throw new BusinessException(ErrorCode.INVALID_SECONDARY_TRADING_CONFIRM);
         }
 
-        // 2. 상품 조회
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         ProductStatus previousStatus = product.getStatus();
 
-        // 3. 상태 전환 (비즈니스 로직은 Product 안에 캡슐화)
-        product.enableSecondaryTrading(); // 여기서 이미 상태 검증 및 예외 처리
+        product.enableSecondaryTrading(); // 상태 OFFERING → TRADE
 
-        // 4. 승인/적용 시각
+        // 1) 공모 신청 내역 불러오기
+        List<Object[]> results =
+                subscriptionsRepository.sumQuantityByProduct(productId);
+
+        // 2) product_offering_info 조회 (avg price 계산용)
+        ProductOfferingInfo offeringInfo = productOfferingInfoRepository.findByProductId(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.OFFERING_INFO_NOT_FOUND));
+
+        Long offeringPrice = offeringInfo.getOfferingPrice();
+
+        // 3) account_id별로 holdings로 이전
+        for (Object[] row : results) {
+            Long accountId = (Long) row[0];
+            Long quantity   = (Long) row[1];
+
+            VirtualAccount account = virtualAccountRepository.findById(accountId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.VIRTUAL_ACCOUNT_NOT_FOUND));
+
+            Holdings holding = holdingsRepository
+                    .findByVirtualAccountAndProduct(account, product)
+                    .orElse(Holdings.builder()
+                            .virtualAccount(account)
+                            .product(product)
+                            .avgBuyPrice(0L)
+                            .quantity(0L)
+                            .build());
+
+            long existingQuantity = holding.getQuantity();
+            long totalQuantity = existingQuantity + quantity;
+            long newAvgPrice = ((holding.getAvgBuyPrice() * existingQuantity) + (offeringPrice * quantity)) / totalQuantity;
+
+            holding.setAvgBuyPrice(newAvgPrice);
+            holding.setQuantity(totalQuantity);
+
+            holdingsRepository.save(holding);
+        }
+
+        // 4) offering_subscriptions 전체 삭제
+        subscriptionsRepository.deleteAllByProductId(productId);
+
+
         OffsetDateTime enabledAt = OffsetDateTime.now();
 
-        // 5. 응답 DTO 생성
         return AdminEnableSecondaryTradingResponse.builder()
                 .success(true)
                 .productId(product.getProductId())
@@ -114,4 +158,5 @@ public class AdminProductService {
                 .enabledAt(enabledAt)
                 .build();
     }
+
 }

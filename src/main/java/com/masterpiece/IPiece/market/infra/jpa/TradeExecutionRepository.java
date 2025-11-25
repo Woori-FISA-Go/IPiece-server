@@ -116,4 +116,15 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
     Long findVolume(@Param("productId") Long productId,
                     @Param("from") OffsetDateTime from,
                     @Param("to") OffsetDateTime to);
+
+    @Query("""
+        SELECT te.tradePrice
+          FROM TradeExecution te
+         WHERE te.product.productId = :productId
+           AND te.matchTime < :before
+         ORDER BY te.matchTime DESC
+         LIMIT 1
+    """)
+    Long findLatestPriceBefore(@Param("productId") Long productId,
+                               @Param("before") OffsetDateTime before);
 }

@@ -1,6 +1,5 @@
 package com.masterpiece.IPiece.market.application;
 
-import java.time.Instant;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
@@ -14,6 +13,7 @@ import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
 import com.masterpiece.IPiece.market.api.dto.response.*;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
+import com.masterpiece.IPiece.market.application.OrderBookPushService;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
 import com.masterpiece.IPiece.market.application.port.PrevCloseQueryPort;
 import com.masterpiece.IPiece.market.application.port.ProductQueryPort;
@@ -26,6 +26,7 @@ import com.masterpiece.IPiece.market.infra.jpa.TradeExecutionRepository;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,7 +37,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class MarketService {
 
     private final ProductQueryPort productQueryPort;
@@ -71,6 +72,11 @@ public class MarketService {
     private final ProductMapper productMapper;
 
     private final OrderMatchingService orderMatchingService;
+    private final OrderBookQueryService orderBookQueryService;
+    private final OrderBookPushService orderBookPushService;
+    private final PendingOrderPushService pendingOrderPushService;
+    private final HoldingAssetQueryService holdingAssetQueryService;
+
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
         Page<com.masterpiece.IPiece.common.domain.product.Product> page =
@@ -182,9 +188,9 @@ public class MarketService {
         OffsetDateTime now = OffsetDateTime.now(timezone);
 
         long windowDays = switch (interval) {
-            case "1d" -> 1L;
-            case "1w" -> 7L;
-            case "1m" -> 30L;
+            case "1d" -> 30L;
+            case "1w" -> 60L;
+            case "1m" -> 90L;
             default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         };
 
@@ -217,11 +223,16 @@ public class MarketService {
                 tradeExecutionRepository.findInWindow(productId, start, end);
 
         List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
-                .map(p -> ChartResponse.Point.builder()
-                        .ts(p.ts().toString())
+                .map(p -> {
+                    OffsetDateTime displayTs = "1d".equals(interval)
+                            ? (p.lastMatch() != null ? p.lastMatch() : p.ts())
+                            : p.ts();
+                    return ChartResponse.Point.builder()
+                            .ts(formatTimestamp(displayTs, interval))
                         .price(p.price())
                         .volume(p.volume())
-                        .build())
+                            .build();
+                })
                 .toList();
 
         ZonedDateTime prevLastDayStartZoned = lastDayStartZoned.minusDays(windowDays);
@@ -262,7 +273,7 @@ public class MarketService {
         }
     }
 
-    private record AggregatedPoint(OffsetDateTime ts, Long price, Long volume) {}
+    private record AggregatedPoint(OffsetDateTime ts, OffsetDateTime lastMatch, Long price, Long volume) {}
 
     private List<AggregatedPoint> aggregateByInterval(List<TradeExecution> executions, String interval, ZoneId zoneId) {
         Map<OffsetDateTime, AggregatedPoint> buckets = new LinkedHashMap<>();
@@ -287,15 +298,22 @@ public class MarketService {
 
                     AggregatedPoint current = buckets.get(bucketStart);
                     if (current == null) {
-                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, exec.getTradePrice(), exec.getTradeQuantity()));
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, match, exec.getTradePrice(), exec.getTradeQuantity()));
                     } else {
                         long newVolume = current.volume() + exec.getTradeQuantity();
                         long newPrice = exec.getTradePrice(); // 마지막 체결가
-                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, newPrice, newVolume));
+                        buckets.put(bucketStart, new AggregatedPoint(bucketStart, match, newPrice, newVolume));
                     }
                 });
 
         return List.copyOf(buckets.values());
+    }
+
+    private String formatTimestamp(OffsetDateTime ts, String interval) {
+        if ("1d".equals(interval)) {
+            return ts.toString();
+        }
+        return ts.toString();
     }
 
     @Transactional(readOnly = false)
@@ -349,7 +367,7 @@ public class MarketService {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        registerAfterCommitMatching(savedOrder.getOrderId());
+        registerAfterCommitMatching(savedOrder, userId, productId);
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -418,7 +436,7 @@ public class MarketService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        registerAfterCommitMatching(savedOrder.getOrderId());
+        registerAfterCommitMatching(savedOrder, userId, productId);
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -474,100 +492,30 @@ public class MarketService {
 
     @Transactional(readOnly = true)
     public HoldingAssetResponse getHoldingAsset(Long userId, Long productId) {
-
-        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Virtual account not found"));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-
-        var holding = holdingsRepository.findByVirtualAccountAndProduct(account, product)
-                .orElseThrow(() -> new IllegalArgumentException("No holdings for this product"));
-
-        long quantity = holding.getQuantity();
-        long avgBuyPrice = holding.getAvgBuyPrice();
-
-        long currentPrice = product.getCurrentPrice();
-        long totalAmount = quantity * currentPrice;
-
-        // 수익 금액 = (현재가 - 매수평균가) * 수량
-        long profitAmount = (currentPrice - avgBuyPrice) * quantity;
-
-        // 수익률 = (수익금액 / (매수평균가 * 수량)) * 100
-        double profitRate = (avgBuyPrice > 0)
-                ? Math.abs((profitAmount * 100.0) / (avgBuyPrice * quantity))
-                : 0.0;
-
-        profitRate = Math.round(profitRate * 10) / 10.0;
-
-        return HoldingAssetResponse.builder()
-                .product_name(product.getProductName())
-                .quantity(quantity)
-                .avg_buy_price(avgBuyPrice)
-                .total_amount(totalAmount)
-                .total_profit_amount(profitAmount)
-                .total_profit_rate(profitRate)
-                .build();
+        return holdingAssetQueryService.getHoldingAsset(userId, productId);
     }
 
     public OrderBookResponse getOrderBook(Long productId) {
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("product not found"));
-
-        long currentPrice = product.getCurrentPrice();
-        long prevClose = prevCloseQueryPort.findPrevCloseSingle(productId, ZoneId.of("Asia/Seoul")).orElse(0L);
-
-        double priceChange = (prevClose > 0)
-                ? ((double)(currentPrice - prevClose) / prevClose) * 100
-                : 0.0;
-
-        var now = OffsetDateTime.now();
-        var oneWeekAgo = now.minusDays(7);
-
-        Long highest = tradeExecutionRepository.findHighestPrice(productId, oneWeekAgo, now).orElse(null);
-        Long lowest = tradeExecutionRepository.findLowestPrice(productId, oneWeekAgo, now).orElse(null);
-
-        Long thisWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(7), now);
-        Long lastWeekVol = tradeExecutionRepository.findVolume(productId, now.minusDays(14), now.minusDays(7));
-
-        long limitUp = Math.round(prevClose * 1.30);
-        long limitDown = Math.round(prevClose * 0.70);
-
-        var sells = orderBookRepository.findSellOrderLevels(productId);
-        var buys  = orderBookRepository.findBuyOrderLevels(productId);
-
-        var sellItems = sells.stream()
-                .map(s -> new OrderBookResponse.OrderBookItem(s.getPrice(), s.getQty(),
-                        calcChangeRate(s.getPrice(), prevClose)))
-                .toList();
-
-        var buyItems = buys.stream()
-                .map(b -> new OrderBookResponse.OrderBookItem(b.getPrice(), b.getQty(),
-                        calcChangeRate(b.getPrice(), prevClose)))
-                .toList();
-
-        OrderBookResponse.Summary summary =
-                new OrderBookResponse.Summary(
-                        highest,
-                        lowest,
-                        currentPrice,
-                        priceChange,
-                        limitUp,
-                        limitDown,
-                        thisWeekVol != null ? thisWeekVol : 0L,
-                        lastWeekVol != null ? lastWeekVol : 0L
-                );
-
-        return new OrderBookResponse(summary, sellItems, buyItems);
+        return orderBookQueryService.getOrderBook(productId);
     }
 
-    private double calcChangeRate(long price, long prevClose) {
-        if (prevClose == 0) return 0.0;
-        return ((double)(price - prevClose) / prevClose) * 100;
-    }
+    private void registerAfterCommitMatching(OrderBook order, Long userId, Long productId) {
+        Runnable pushAndMatch = () -> {
+            try {
+                orderBookPushService.pushOrderBook(productId);
+            } catch (RuntimeException e) {
+                log.warn("Order book push failed after commit. productId={}", productId, e);
+            }
 
-    private void registerAfterCommitMatching(Long orderId) {
+            try {
+                pendingOrderPushService.pushPendingOrders(userId, productId);
+            } catch (RuntimeException e) {
+                log.warn("Pending orders push failed after commit. userId={}, productId={}", userId, productId, e);
+            }
+
+            orderMatchingService.matchWithRetry(order.getOrderId());
+        };
+
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -587,14 +535,14 @@ public class MarketService {
 
                 @Override
                 public void afterCommit() {
-                    orderMatchingService.matchWithRetry(orderId);
+                    pushAndMatch.run();
                 }
 
                 @Override
                 public void afterCompletion(int status) {}
             });
         } else {
-            orderMatchingService.matchWithRetry(orderId);
+            pushAndMatch.run();
         }
     }
 }

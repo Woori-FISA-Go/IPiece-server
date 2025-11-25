@@ -14,6 +14,7 @@ import com.masterpiece.IPiece.mypage.api.dto.AssetDto;
 import com.masterpiece.IPiece.mypage.api.dto.FavoriteItemDto;
 import com.masterpiece.IPiece.mypage.api.dto.PortfolioRatioDto;
 import com.masterpiece.IPiece.mypage.api.dto.response.MyhomeResponse;
+import com.masterpiece.IPiece.mypage.api.dto.response.OfferingAssetDto;
 import com.masterpiece.IPiece.mypage.domain.Holdings;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
@@ -21,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -132,14 +132,20 @@ public class MypageMapper {
         // 상품별 비중 계산
         return holdings.stream()
                 .collect(Collectors.groupingBy(
-                        h -> h.getProduct().getProductName(),
+                        Holdings::getProduct, // Product 전체로 그룹핑
                         Collectors.summingLong(h -> h.getProduct().getCurrentPrice() * h.getQuantity())
                 ))
                 .entrySet().stream()
-                .map(entry -> PortfolioRatioDto.builder()
-                        .productName(entry.getKey())
-                        .ratio((double) entry.getValue() / totalValue * 100)
-                        .build())
+                .map(entry -> {
+                    Product p = entry.getKey();
+                    Long value = entry.getValue();
+
+                    return PortfolioRatioDto.builder()
+                            .productName(p.getProductName())
+                            .thumbnailImg(p.getThumbnailImg())
+                            .ratio((double) value / totalValue * 100)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
@@ -155,6 +161,7 @@ public class MypageMapper {
                 .description(journal.getDescription())
                 .amountKrw(journal.getAmountKrw())
                 .balanceAfter(journal.getBalanceAfter())
+                .numberOfToken(journal.getNumberOfToken())
                 .createdAt(journal.getCreatedAt()) // BaseEntity의 createAt
                 .build();
     }
@@ -164,11 +171,15 @@ public class MypageMapper {
      */
     public MyhomeResponse toMyhomeResponse(
             Long userId,
+            String userMadeId,
             VirtualAccount account,
             List<Holdings> holdings,
             List<AssetDto> allAssets,
-            List<AssetDto> pagedAssets
-    ) {
+            List<AssetDto> pagedAssets,
+            List<OfferingAssetDto> pagedOfferingAssets,
+            Integer offeringTotalCount,
+            boolean offeringsHasNext,
+            Integer offeringNextPage) {
         // 1. 총 매수금액 (평균매수가 × 보유수량의 합)
         long totalBuyAmount = allAssets.stream()
                 .mapToLong(AssetDto::getTotalBuyPrice)
@@ -206,6 +217,7 @@ public class MypageMapper {
 
         return MyhomeResponse.builder()
                 .userId(userId)
+                .userMadeId(userMadeId)                // 유저 ID
                 .totalKrw(totalKrw)                    // 보유 KRW
                 .totalAssets(totalAssets)              // 총 보유자산
                 .totalBuyAmount(totalBuyAmount)        // 총 매수
@@ -216,6 +228,10 @@ public class MypageMapper {
                 .holdingCount(holdingCount)            // 보유 IP 개수
                 .portfolioRatio(portfolioRatio)        // 포트폴리오 비중
                 .assetList(pagedAssets)                  // 자산 목록
+                .offeringList(pagedOfferingAssets)      // 보유 공모 목록
+                .offeringTotalCount(offeringTotalCount)
+                .offeringHasNext(offeringsHasNext)
+                .offeringNextPage(offeringNextPage)
                 .build();
     }
 
@@ -387,4 +403,30 @@ public class MypageMapper {
         long priceDiff = currentPrice - lastPrice;
         return Math.round((double) priceDiff / lastPrice * 10000) / 100.0;  // 소수점 2자리
     }
+
+    public AccountHistoryItemDto toOfferingHistoryItem(VirtualAccountJournal journal) {
+
+        String type = switch (journal.getTxType()) {
+            case "OFFERING_BUY" -> "공모 구매";
+            case "DEPOSIT" -> "입금";
+            case "WITHDRAW" -> "출금";
+            default -> "기타 내역";
+        };
+
+        String createdAt = journal.getCreatedAt()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+        Long tokenAmount = journal.getNumberOfToken() != null
+                ? journal.getNumberOfToken()
+                : null; // 입출금이면 null
+
+        return AccountHistoryItemDto.builder()
+                .createdAt(createdAt)
+                .type(type)
+                .description(journal.getDescription())
+                .tokenAmount(tokenAmount)
+                .price(journal.getAmountKrw())
+                .build();
+    }
+
 }

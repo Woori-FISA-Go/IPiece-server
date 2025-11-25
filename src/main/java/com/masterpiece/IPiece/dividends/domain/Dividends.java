@@ -59,4 +59,31 @@ public class Dividends extends BaseEntity {
 
     @OneToMany(mappedBy = "dividends", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DividendPayouts> dividendPayouts;
+
+    /**
+     * 배당 배정 완료 시 호출
+     * - 분배 금액 / 잔여 금액 / 수령자 수를 기록하고
+     *   상태를 PENDING 으로 전환한다.
+     */
+    public void markAllocated(Long distributedAmount, Long remainderAmount, int recipientCount) {
+        this.distributedAmount = distributedAmount;
+        this.remainderAmount = remainderAmount;
+        this.recipientCount = recipientCount;
+        this.status = DividendStatus.PENDING;
+    }
+
+    /**
+     * 배당 집행이 모두 성공적으로 끝났을 때 호출
+     */
+    public void markCompleted() {
+        this.status = DividendStatus.COMPLETED;
+    }
+
+    /**
+     * 배당 집행 중 일부/전체 실패가 있을 때 호출
+     */
+    public void markFailed() {
+        this.status = DividendStatus.FAILED;
+    }
 }
+
