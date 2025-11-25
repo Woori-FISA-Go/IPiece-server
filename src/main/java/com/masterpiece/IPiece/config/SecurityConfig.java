@@ -79,7 +79,8 @@ public class SecurityConfig {
                                 "/v1/offerings/*/detail",
                                 "/error",
                                 "/images/**",
-                                "/ws/**"
+                                "/ws/**",
+                                "/healthz"
                         ).permitAll()
                         .requestMatchers("/v1/blockchain/admin/**").hasRole("ADMIN") // 이 줄 추가
                         .anyRequest().authenticated()
