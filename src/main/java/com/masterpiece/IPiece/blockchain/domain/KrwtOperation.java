@@ -24,6 +24,14 @@ public class KrwtOperation extends BaseEntity {
     @Column(name = "operation_id")
     private Long operationId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "virtual_account_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private VirtualAccount virtualAccount;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_type", nullable = false, length = 10)
     private OperationType operationType;
@@ -54,39 +62,9 @@ public class KrwtOperation extends BaseEntity {
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
-    // 연관관계
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    private VirtualAccount virtualAccount;
-
-    //== 비즈니스 로직 ==//
-    public void complete(String txHash) {
+    public void updateStatus(TransactionStatus status, String txHash, OffsetDateTime completedAt) {
+        this.status = status;
         this.txHash = txHash;
-        this.status = TransactionStatus.SUCCESS;
-        this.completedAt = OffsetDateTime.now();
-    }
-
-    public void fail(String errorMessage) {
-        this.status = TransactionStatus.FAILED;
-        this.memo = errorMessage;
-    }
-
-    public void validateBalance() {
-        if (operationType == OperationType.MINT) {
-            if (afterBalance.compareTo(beforeBalance.add(amount)) != 0) {
-                throw new IllegalStateException("입금 후 잔액이 일치하지 않습니다");
-            }
-        } else if (operationType == OperationType.BURN || operationType == OperationType.TRANSFER) { // Assume TRANSFER is an outgoing operation for now
-            if (afterBalance.compareTo(beforeBalance.subtract(amount)) != 0) {
-                throw new IllegalStateException("잔액이 일치하지 않습니다");
-            }
-        } else if (operationType == OperationType.OTHER) {
-            // For OTHER types, specific validation might be needed based on context.
-            // For now, no specific balance validation assumed.
-        }
+        this.completedAt = completedAt;
     }
 }

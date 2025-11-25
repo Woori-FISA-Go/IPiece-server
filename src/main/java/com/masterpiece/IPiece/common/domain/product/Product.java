@@ -50,7 +50,7 @@ public class Product extends BaseEntity {
     @Column(name = "last_price")
     private Long lastPrice;
 
-    @Column(name = "thumbnail_img", length = 255)
+    @Column(name = "thumbnail_img", columnDefinition = "text")
     private String thumbnailImg;
 
     @Column(name = "description", columnDefinition = "TEXT")
@@ -75,7 +75,7 @@ public class Product extends BaseEntity {
     @Column(name = "exchange_listing", length = 255)
     private String exchangeListing;
 
-    @Column(name = "present_img", length = 255)
+    @Column(name = "present_img", columnDefinition = "text")
     private String presentImg;
 
     @Column(name = "deployed_at")

@@ -3,12 +3,9 @@ name: Backend CI/CD Pipeline
 on:
   push:
     branches:
-      - main
-      - develop
-      - 'release/**'
-  pull_request:
-    branches:
-      - main
+      - 'test/#137'      
+      - 'release/#test' 
+  # pull_request: ... (테스트 중엔 꺼둠)
 
 env:
   AWS_REGION: ap-northeast-2
@@ -37,10 +34,10 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # ▼▼▼ [수정됨] 테스트 단계 삭제/주석 처리 (DB 없어서 에러나는 것 방지) ▼▼▼
+      # 테스트 단계는 모의 환경변수(test)만 사용 (현재 스킵 중일 경우 주석 유지)
       # - name: Run Tests
       #   run: ./gradlew test --no-daemon
-      #   env: ... (생략) ...
+      #   env: ...
 
   build-and-push:
     name: Build, Push, and Deploy
@@ -107,7 +104,7 @@ jobs:
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push .
 
-      # ▼▼▼ [핵심 1] GitHub Secrets 값을 K8s Secret으로 자동 동기화 ▼▼▼
+      # ▼▼▼ GitHub Secrets 값을 K8s Secret으로 자동 동기화 ▼▼▼
       - name: Update Kubernetes Secret
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
@@ -152,7 +149,7 @@ jobs:
             
           echo "✅ Kubernetes Secret updated successfully."
 
-      # ▼▼▼ [핵심 2] Manifest Repo 업데이트 (ArgoCD 트리거) ▼▼▼
+      # ▼▼▼ [핵심] Manifest Repo 업데이트 (특정 브랜치 매핑 로직 수정) ▼▼▼
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
 
@@ -164,11 +161,20 @@ jobs:
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          # 1. 오버레이 경로 결정
+          # 1. 오버레이 경로 결정 (테스트 브랜치 매핑 추가)
           if [[ "$BRANCH_NAME" == "main" ]]; then
             OVERLAY="prod"
           elif [[ "$BRANCH_NAME" == "develop" ]]; then
             OVERLAY="dev"
+          # ✅ [수정됨] test/#137 브랜치는 Dev 환경으로 배포
+          elif [[ "$BRANCH_NAME" == "test/#137" ]]; then
+            OVERLAY="dev"
+            echo "🧪 Testing Branch detected: Deploying to DEV environment."
+          # ✅ [수정됨] release/#test 브랜치는 Prod 환경으로 배포
+          elif [[ "$BRANCH_NAME" == "release/#test" ]]; then
+            OVERLAY="prod"
+            echo "🚀 Release Test Branch detected: Deploying to PROD environment."
+          # 기존 릴리즈 패턴
           elif [[ "$BRANCH_NAME" == release/* ]]; then
             OVERLAY="prod"
           else
@@ -199,7 +205,7 @@ jobs:
             echo "⭕ No changes to commit."
           else
             git add .
-            git commit -m "chore(backend): update image tag to ${SHA_TAG} for ${OVERLAY}"
+            git commit -m "chore(backend): update image tag to ${SHA_TAG} for ${OVERLAY} (from ${BRANCH_NAME})"
             git push origin develop
             echo "✅ Manifest updated and pushed."
           fi

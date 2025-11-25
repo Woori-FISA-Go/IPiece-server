@@ -70,8 +70,8 @@ public class BlockchainService {
     @Transactional
     public CreateTokenResponse createToken(CreateTokenRequest request, Long adminUserId) {
         // For now, we'll use dummy values for contract deployment
-        String dummyContractAddress = "0x" + UUID.randomUUID().toString().replace("-", "");
-        String dummyTransactionHash = "0x" + UUID.randomUUID().toString().replace("-", "");
+        String dummyContractAddress = besuClient.randomAddress();
+        String dummyTransactionHash = besuClient.randomHash();
 
         BlockchainToken token = BlockchainToken.builder()
                 .name(request.getName())

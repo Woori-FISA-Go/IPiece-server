@@ -10,6 +10,7 @@ import com.masterpiece.IPiece.blockchain.api.dto.response.TokenTransferResponse;
 import com.masterpiece.IPiece.blockchain.api.dto.response.TransactionInfoResponse;
 import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import com.masterpiece.IPiece.common.web.annotation.CurrentUser;
+import com.masterpiece.IPiece.integration.besu.BesuClient; // BesuClient import 추가
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.Map; // Map import 추가
 
 @RestController
 @RequestMapping("/v1/blockchain")
@@ -28,9 +30,9 @@ import java.net.URI;
 public class BlockchainController {
 
     private final BlockchainService blockchainService;
+    private final BesuClient besuClient; // BesuClient 주입
 
     @GetMapping("/wallet/krwt")
-    @PreAuthorize("hasRole('USER')")
     @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<KrwtBalanceResponse> getKrwtBalance(@CurrentUser Long userId) {
         KrwtBalanceResponse response = blockchainService.getKrwtBalance(userId);
@@ -79,5 +81,21 @@ public class BlockchainController {
     public ResponseEntity<TransactionInfoResponse> getTransactionByHash(@PathVariable String hash) {
         TransactionInfoResponse response = blockchainService.getTransactionByHash(hash);
         return ResponseEntity.ok(response);
+    }
+
+    // KRWT 컨트랙트 소유자 확인 엔드포인트 추가
+    @Operation(summary = "KRWT 컨트랙트 소유자 확인", description = "KRWT 컨트랙트의 소유자가 현재 Admin 계정과 일치하는지 확인합니다.", security = @SecurityRequirement(name = "JWT"))
+    @GetMapping("/admin/check-krwt-owner")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> checkKrwtOwner() { // try-catch 블록 제거
+        String owner = besuClient.getKrwtContractOwner();
+        String admin = besuClient.getAdminAddress();
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "owner", owner,
+                "admin", admin,
+                "match", owner.equalsIgnoreCase(admin)
+        ));
     }
 }

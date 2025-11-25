@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j; // 이 import 추가
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +27,7 @@ import java.util.Map;
  * - Authorization 헤더에서 토큰 추출 및 검증
  * - ErrorCode 기반 JSON problem 응답 반환
  */
+@Slf4j // 이 어노테이션 추가
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -82,15 +84,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var authorities = userDetails.getAuthorities();
 
             // Principal은 Long 타입 userId를 유지하고, 권한 정보만 추가합니다.
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (Exception ex) { // UsernameNotFoundException, JwtException 등 모든 예외 처리
-            sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
-            return;
-        }
-
+                         UsernamePasswordAuthenticationToken authentication =
+                                 new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication); // 이 라인 추가
+                     } catch (Exception ex) { // UsernameNotFoundException, JwtException 등 모든 예외 처리
+                         sendErrorResponse(response, request, ErrorCode.INVALID_TOKEN);
+                         return;
+                     }
         filterChain.doFilter(request, response);
     }
 
