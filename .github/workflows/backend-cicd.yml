@@ -3,11 +3,8 @@ name: Backend CI/CD Pipeline
 on:
   push:
     branches:
-      - 'test/#137'      # 테스트용 브랜치
       - 'release/**'     # 릴리즈 브랜치
-      - 'main'           # 메인 브랜치
       - 'develop'        # 개발 브랜치
-      # (필요한 브랜치가 있다면 여기에 추가하면 됩니다)
 
 env:
   AWS_REGION: ap-northeast-2
@@ -36,11 +33,6 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # 테스트 단계는 모의 환경변수(test)만 사용 (필요시 주석 해제)
-      # - name: Run Tests
-      #   run: ./gradlew test --no-daemon
-      #   env: ...
-
   build-and-push:
     name: Build, Push, and Deploy
     needs: security-scan
@@ -66,7 +58,6 @@ jobs:
       - name: Build with Gradle
         run: |
           chmod +x gradlew
-          # -x test: 테스트 건너뛰고 빌드만 수행 (빠른 배포용)
           ./gradlew clean build -x test --no-daemon
 
       - name: Configure AWS credentials
@@ -86,11 +77,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 🔥 여기 수정: 실행마다 유니크한 태그 생성 (short SHA + run_number)
       - name: Generate image tags
         id: image-tag
         run: |
-          SHA_SHORT=$(echo $GITHUB_SHA | cut -c1-7)
-          echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
+          SHA_SHORT=$(echo "$GITHUB_SHA" | cut -c1-7)
+          RUN_TAG="${SHA_SHORT}-${GITHUB_RUN_NUMBER}"
+          echo "Using image tag: $RUN_TAG"
+          echo "sha=$RUN_TAG" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         id: build-image
@@ -98,6 +92,8 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           SHA_TAG: ${{ steps.image-tag.outputs.sha }}
         run: |
+          echo "🚀 Building & pushing image: $ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG"
+
           docker buildx build \
             --platform linux/amd64 \
             --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
@@ -106,7 +102,7 @@ jobs:
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push .
 
-      # ▼▼▼ [핵심 1] K8s Secret 자동 동기화 ▼▼▼
+      # ▼▼▼ [동일: K8s Secret 동기화] ▼▼▼
       - name: Update Kubernetes Secret
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
@@ -126,10 +122,8 @@ jobs:
         run: |
           echo "🔐 Syncing GitHub Secrets to EKS..."
           
-          # EKS 클러스터 연결
           aws eks update-kubeconfig --region ap-northeast-2 --name ipiece-cluster1
 
-          # 기존 시크릿 삭제 후 재생성
           kubectl delete secret ipiece-backend-env -n default --ignore-not-found
           
           kubectl create secret generic ipiece-backend-env -n default \
@@ -150,7 +144,6 @@ jobs:
             
           echo "✅ Kubernetes Secret updated successfully."
 
-      # ▼▼▼ [핵심 2] 무조건 PROD 환경으로 배포 (Dev/Prod 통합) ▼▼▼
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
 
@@ -162,12 +155,9 @@ jobs:
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          # ✅ 복잡한 분기 로직 제거 -> 무조건 prod 오버레이 사용
           OVERLAY="prod"
+          echo "🚀 Unified Pipeline: Deploying branch '${BRANCH_NAME}' to PROD environment with image tag '${SHA_TAG}'."
 
-          echo "🚀 Unified Pipeline: Deploying branch '${BRANCH_NAME}' to PROD environment."
-
-          # 2. Git 설정 및 클론
           TRIMMED_TOKEN=$(echo "$GIT_TOKEN" | tr -d '\n' | tr -d '\r')
           git config --global user.email "ci@ipiece.local"
           git config --global user.name "ipiece-ci"
@@ -176,13 +166,17 @@ jobs:
 
           git clone -b develop https://github.com/Woori-FISA-Go/ipiece-manifests.git
           
-          # 3. Prod 오버레이 폴더로 이동
           cd ipiece-manifests/apps/backend/overlays/$OVERLAY
 
-          # 4. Kustomize로 이미지 태그 변경
+          echo "Before image:"
+          grep -i "$ECR_REPOSITORY" kustomization.yaml || true
+
+          # 이미지 태그 갱신
           kustomize edit set image $ECR_REGISTRY/$ECR_REPOSITORY=$ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG
 
-          # 5. 변경사항 커밋 및 푸시
+          echo "After image:"
+          grep -i "$ECR_REPOSITORY" kustomization.yaml || true
+
           cd ../../../..
           if git diff --quiet; then
             echo "⭕ No changes to commit."
