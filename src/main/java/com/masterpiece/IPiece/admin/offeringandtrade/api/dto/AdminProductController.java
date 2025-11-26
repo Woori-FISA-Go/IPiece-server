@@ -14,10 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -75,7 +72,7 @@ public class AdminProductController {
     public ResponseEntity<AdminEnableSecondaryTradingResponse> enableSecondaryTrading(
             Authentication authentication,
             @PathVariable("productId") Long productId,
-            @Valid @RequestPart("data") AdminEnableSecondaryTradingRequest request
+            @Valid @RequestBody AdminEnableSecondaryTradingRequest request
     ) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
