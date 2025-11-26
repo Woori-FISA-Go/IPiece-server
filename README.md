@@ -712,20 +712,6 @@ character varying(255) too long
 - 트랜잭션 범위 최소화.
 
 
-<br>
-
-
-## 1️⃣1️⃣ Idempotency-Key 누락으로 중복 주문 발생
-
-**문제**  
-- 키 없이 요청 시 동일 주문 중복 발생 가능성.
-
-**해결**  
-- 서버 단에서 key 없으면 요청 reject  
-- 프론트는 UUID 기반 idempotency-key 필수 생성  
-- DB에 idempotency-history 테이블 추가하여 중복 방지.
-
-
 
 
 ---
