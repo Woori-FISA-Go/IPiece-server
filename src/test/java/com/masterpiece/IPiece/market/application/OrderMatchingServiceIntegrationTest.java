@@ -4,6 +4,7 @@ import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import com.masterpiece.IPiece.blockchain.domain.BlockchainTransaction;
 import com.masterpiece.IPiece.blockchain.domain.TransactionType;
 import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTransactionRepository;
+import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
@@ -35,8 +36,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
@@ -309,5 +310,149 @@ class OrderMatchingServiceIntegrationTest {
         // 잔액은 주문 시점에 pending으로 빠져나감
         long expectedBuyerBalance = 100_000L - (buyPrice * buyQuantity);
         assertThat(finalBuyerAccount.getBalanceKrw()).isEqualTo(expectedBuyerBalance);
+    }
+
+    @Test
+    @DisplayName("하나의 매수 주문이 여러 매도 주문과 순차적으로 체결된다")
+    void shouldMatchMultipleSellOrdersWithOneBuyOrder() throws Exception {
+        // Given - 두 개의 매도 주문
+        OrderRequest sellRequest1 = new OrderRequest(1000L, 5L, OffsetDateTime.now().toString());
+        marketService.sell(product.getProductId(), seller.getUserId(), UUID.randomUUID().toString(), sellRequest1);
+
+        Thread.sleep(100); // 시간차 보장
+
+        // 다른 판매자 또는 같은 판매자로 설정 가능. 여기서는 설명을 위해 같은 판매자 사용.
+        OrderRequest sellRequest2 = new OrderRequest(1000L, 5L, OffsetDateTime.now().toString());
+        marketService.sell(product.getProductId(), seller.getUserId(), UUID.randomUUID().toString(), sellRequest2);
+
+        // When - 하나의 매수 주문 10개
+        OrderRequest buyRequest = new OrderRequest(1000L, 10L, OffsetDateTime.now().toString());
+        marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
+
+        Thread.sleep(1000);
+
+        // Then
+        // 1. 2번의 거래 체결
+        List<TradeExecution> trades = tradeExecutionRepository.findAll();
+        assertThat(trades).hasSize(2);
+        assertThat(trades).extracting(TradeExecution::getTradeQuantity)
+            .containsExactlyInAnyOrder(5L, 5L);
+
+        // 2. 모든 주문 체결 완료
+        List<OrderBook> remainingOrders = orderBookRepository.findAll()
+            .stream()
+            .filter(OrderBook::getPendingStatus)
+            .toList();
+        assertThat(remainingOrders).isEmpty();
+
+        // 3. 자산 확인
+        VirtualAccount finalSellerAccount = virtualAccountRepository.findById(sellerAccount.getAccountId()).get();
+        assertThat(finalSellerAccount.getBalanceKrw()).isEqualTo(10_000L);
+
+        Holdings sellerHoldings = holdingsRepository.findByVirtualAccountAndProduct(sellerAccount, product).get();
+        assertThat(sellerHoldings.getQuantity() + sellerHoldings.getPendingQuantity()).isEqualTo(90L);
+    }
+
+    @Test
+    @DisplayName("동일한 idempotencyKey로 중복 주문을 시도하면 두 번째 주문은 무시된다")
+    void shouldPreventDuplicateOrdersWithSameIdempotencyKey() {
+        // Given
+        String idempotencyKey = UUID.randomUUID().toString();
+        OrderRequest buyRequest = new OrderRequest(1000L, 10L, OffsetDateTime.now().toString());
+
+        // When & Then
+        // 첫 번째 주문은 성공
+        marketService.buy(product.getProductId(), buyer.getUserId(), idempotencyKey, buyRequest);
+        orderBookRepository.flush(); // 영속성 컨텍스트를 DB에 반영
+
+        // 두 번째 주문은 BusinessException (DUPLICATE_ORDER) 발생
+        assertThatThrownBy(() ->
+            marketService.buy(product.getProductId(), buyer.getUserId(), idempotencyKey, buyRequest)
+        ).isInstanceOf(Exception.class);
+
+        // Then - 주문 1개만 생성됨
+        List<OrderBook> orders = orderBookRepository.findAll();
+        assertThat(orders).hasSize(1);
+
+        // 자산도 한 번만 차감
+        VirtualAccount finalBuyerAccount = virtualAccountRepository.findById(buyerAccount.getAccountId()).get();
+        long expectedBalance = 100_000L - (1000L * 10L); // 한 번만 차감
+        assertThat(finalBuyerAccount.getBalanceKrw()).isEqualTo(expectedBalance);
+    }
+
+    @Test
+    @DisplayName("구매자의 잔액이 부족하면 매수 주문이 실패한다")
+    void shouldFailWhenBuyerHasInsufficientBalance() {
+        // Given - 잔액 100,000원
+
+        // When & Then - 200,000원 주문 시도
+        OrderRequest buyRequest = new OrderRequest(20_000L, 10L, OffsetDateTime.now().toString());
+
+        assertThatThrownBy(() ->
+            marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest)
+        )
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("잔액");
+    }
+
+    @Test
+    @DisplayName("판매자의 보유량이 부족하면 매도 주문이 실패한다")
+    void shouldFailWhenSellerHasInsufficientHoldings() {
+        // When & Then - 보유량 100개인데 200개 팔려고 시도
+        OrderRequest sellRequest = new OrderRequest(1000L, 200L, OffsetDateTime.now().toString());
+
+        assertThatThrownBy(() ->
+            marketService.sell(product.getProductId(), seller.getUserId(), UUID.randomUUID().toString(), sellRequest)
+        )
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("보유");
+    }
+
+    @Test
+    @DisplayName("동일 가격의 주문들은 먼저 들어온 순서대로 체결된다 (FIFO)")
+    void shouldMatchOrdersInFIFOOrder() throws Exception {
+        // Given - 3개의 매도 주문 (각 3개씩)
+        String seller1Id = UUID.randomUUID().toString();
+        OrderRequest sellRequest1 = new OrderRequest(1000L, 3L, OffsetDateTime.now().toString());
+        marketService.sell(product.getProductId(), seller.getUserId(), seller1Id, sellRequest1);
+
+        Thread.sleep(100);
+
+        String seller2Id = UUID.randomUUID().toString();
+        OrderRequest sellRequest2 = new OrderRequest(1000L, 3L, OffsetDateTime.now().toString());
+        marketService.sell(product.getProductId(), seller.getUserId(), seller2Id, sellRequest2);
+
+        Thread.sleep(100);
+
+        String seller3Id = UUID.randomUUID().toString();
+        OrderRequest sellRequest3 = new OrderRequest(1000L, 3L, OffsetDateTime.now().toString());
+        marketService.sell(product.getProductId(), seller.getUserId(), seller3Id, sellRequest3);
+
+        // When - 5개 매수
+        OrderRequest buyRequest = new OrderRequest(1000L, 5L, OffsetDateTime.now().toString());
+        marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
+
+        Thread.sleep(1000);
+
+        // Then - 첫 번째 주문 3개 + 두 번째 주문 2개 체결
+        List<OrderBook> orders = orderBookRepository.findAll();
+
+        // 첫 번째 주문: 완전 체결 (remainQuantity = 0)
+        OrderBook firstOrder = orders.stream()
+            .filter(o -> o.getIdempotencyKey().equals(seller1Id))
+            .findFirst().get();
+        assertThat(firstOrder.getRemainQuantity()).isEqualTo(0L);
+
+        // 두 번째 주문: 부분 체결 (remainQuantity = 1)
+        OrderBook secondOrder = orders.stream()
+            .filter(o -> o.getIdempotencyKey().equals(seller2Id))
+            .findFirst().get();
+        assertThat(secondOrder.getRemainQuantity()).isEqualTo(1L);
+
+        // 세 번째 주문: 체결 안 됨 (remainQuantity = 3)
+        OrderBook thirdOrder = orders.stream()
+            .filter(o -> o.getIdempotencyKey().equals(seller3Id))
+            .findFirst().get();
+        assertThat(thirdOrder.getRemainQuantity()).isEqualTo(3L);
     }
 }
