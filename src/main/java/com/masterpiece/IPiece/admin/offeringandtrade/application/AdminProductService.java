@@ -91,6 +91,7 @@ public class AdminProductService {
                 .issueDate(issueDate)
                 .tokenName(request.getTokenName())
                 .tokenSymbol(request.getTokenSymbol())
+                .tokenContractAddress(request.getTokenContractAddress())
                 .totalTokenQuantity(request.getTokenQuantity())
                 .dividendRatio(request.getDividendRatio())
                 .exchangeListing("IPiece")
