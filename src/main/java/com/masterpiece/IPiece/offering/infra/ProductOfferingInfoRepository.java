@@ -16,44 +16,42 @@ public interface ProductOfferingInfoRepository extends JpaRepository<ProductOffe
     List<ProductOfferingInfo> findByProductIdIn(List<Long> productIds);
 
     @Query("""
-    SELECT o
-    FROM ProductOfferingInfo o
-    JOIN o.product p
-    WHERE p.status = 'OFFERING'
-    """)
+SELECT o
+FROM ProductOfferingInfo o
+JOIN o.product p
+""")
     List<ProductOfferingInfo> findAllOfferingProducts();
 
 
     @Query("""
-    SELECT COUNT(o)
-    FROM ProductOfferingInfo o
-    JOIN o.product p
-    WHERE p.status = 'OFFERING'
-      AND o.offeringStartDate > :now
-      AND o.progressRate != 100
-    """)
+SELECT COUNT(o)
+FROM ProductOfferingInfo o
+JOIN o.product p
+WHERE o.offeringStartDate > :now
+  AND o.progressRate != 100
+""")
     Long countUpcoming(@Param("now") OffsetDateTime now);
 
+
     @Query("""
-    SELECT COUNT(o)
-    FROM ProductOfferingInfo o
-    JOIN o.product p
-    WHERE p.status = 'OFFERING'
-      AND o.offeringStartDate <= :now
-      AND o.offeringEndDate >= :now
-      AND o.progressRate != 100
-    """)
+SELECT COUNT(o)
+FROM ProductOfferingInfo o
+JOIN o.product p
+WHERE o.offeringStartDate <= :now
+  AND o.offeringEndDate >= :now
+  AND o.progressRate != 100
+""")
     Long countOngoing(@Param("now") OffsetDateTime now);
 
 
-
     @Query("""
-    SELECT COUNT(o)
-    FROM ProductOfferingInfo o
-    JOIN o.product p
-    WHERE p.status = 'OFFERING'
-      AND (o.offeringEndDate < :now OR o.progressRate = 100)
-    """)
+SELECT COUNT(DISTINCT o.product.productId)
+FROM ProductOfferingInfo o
+JOIN o.product p
+WHERE (o.offeringEndDate < :now OR o.progressRate = 100)
+   OR p.status = 'TRADE'
+
+""")
     Long countClosedOrSoldOut(@Param("now") OffsetDateTime now);
 
 

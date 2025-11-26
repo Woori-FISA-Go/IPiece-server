@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.mypage.api.dto.response;
 
+import com.masterpiece.IPiece.common.domain.product.ProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,8 +19,8 @@ public class OfferingAssetDto {
     private String thumbnailImg;    // 참여자산 썸네일
 
     private Long quantity;  // 참여수량
-    private Long offeringPrice;  // 공모가
     private Long buyPrice;  // 총 구매가
+    private Long offeringPrice;  // 공모가
 
     private Integer progressRate;   // 진행률
     private OffsetDateTime offeringStartDate;   // 공모 시작일

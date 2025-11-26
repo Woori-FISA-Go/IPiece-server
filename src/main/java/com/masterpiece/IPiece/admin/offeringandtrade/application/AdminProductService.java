@@ -37,6 +37,7 @@ public class AdminProductService {
     private final VirtualAccountRepository virtualAccountRepository;
     private final StorageService storageService;
 
+
     @Transactional
     public void createProductWithOffering(
             AdminCreateProductRequest request,
@@ -97,6 +98,7 @@ public class AdminProductService {
                 .lastPrice(request.getOffering().getOfferingPrice())
                 .build();
 
+
         productRepository.save(product);
 
         ProductOfferingInfo offeringInfo = ProductOfferingInfo.builder()
@@ -108,6 +110,7 @@ public class AdminProductService {
                 .offeringEndDate(offeringEnd)
                 .progressRate(0)
                 .build();
+
 
         productOfferingInfoRepository.save(offeringInfo);
     }

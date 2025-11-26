@@ -3,12 +3,11 @@ name: Backend CI/CD Pipeline
 on:
   push:
     branches:
-      - main
-      - develop
-      - 'release/**'
-  pull_request:
-    branches:
-      - main
+      - 'test/#137'      # 테스트용 브랜치
+      - 'release/**'     # 릴리즈 브랜치
+      - 'main'           # 메인 브랜치
+      - 'develop'        # 개발 브랜치
+      # (필요한 브랜치가 있다면 여기에 추가하면 됩니다)
 
 env:
   AWS_REGION: ap-northeast-2
@@ -37,10 +36,10 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # ▼▼▼ [수정됨] 테스트 단계 삭제/주석 처리 (DB 없어서 에러나는 것 방지) ▼▼▼
+      # 테스트 단계는 모의 환경변수(test)만 사용 (필요시 주석 해제)
       # - name: Run Tests
       #   run: ./gradlew test --no-daemon
-      #   env: ... (생략) ...
+      #   env: ...
 
   build-and-push:
     name: Build, Push, and Deploy
@@ -67,7 +66,7 @@ jobs:
       - name: Build with Gradle
         run: |
           chmod +x gradlew
-          # -x test 옵션으로 빌드 시에도 테스트 제외
+          # -x test: 테스트 건너뛰고 빌드만 수행 (빠른 배포용)
           ./gradlew clean build -x test --no-daemon
 
       - name: Configure AWS credentials
@@ -107,7 +106,7 @@ jobs:
             --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push .
 
-      # ▼▼▼ [핵심 1] GitHub Secrets 값을 K8s Secret으로 자동 동기화 ▼▼▼
+      # ▼▼▼ [핵심 1] K8s Secret 자동 동기화 ▼▼▼
       - name: Update Kubernetes Secret
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
@@ -133,7 +132,6 @@ jobs:
           # 기존 시크릿 삭제 후 재생성
           kubectl delete secret ipiece-backend-env -n default --ignore-not-found
           
-          # 시크릿 생성
           kubectl create secret generic ipiece-backend-env -n default \
             --from-literal=DB_HOST="$DB_HOST" \
             --from-literal=DB_PORT="$DB_PORT" \
@@ -152,7 +150,7 @@ jobs:
             
           echo "✅ Kubernetes Secret updated successfully."
 
-      # ▼▼▼ [핵심 2] Manifest Repo 업데이트 (ArgoCD 트리거) ▼▼▼
+      # ▼▼▼ [핵심 2] 무조건 PROD 환경으로 배포 (Dev/Prod 통합) ▼▼▼
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
 
@@ -164,19 +162,10 @@ jobs:
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          # 1. 오버레이 경로 결정
-          if [[ "$BRANCH_NAME" == "main" ]]; then
-            OVERLAY="prod"
-          elif [[ "$BRANCH_NAME" == "develop" ]]; then
-            OVERLAY="dev"
-          elif [[ "$BRANCH_NAME" == release/* ]]; then
-            OVERLAY="prod"
-          else
-            echo "⚠️ Skipping manifest update for branch: $BRANCH_NAME"
-            exit 0
-          fi
+          # ✅ 복잡한 분기 로직 제거 -> 무조건 prod 오버레이 사용
+          OVERLAY="prod"
 
-          echo "🔨 Updating manifests for $OVERLAY..."
+          echo "🚀 Unified Pipeline: Deploying branch '${BRANCH_NAME}' to PROD environment."
 
           # 2. Git 설정 및 클론
           TRIMMED_TOKEN=$(echo "$GIT_TOKEN" | tr -d '\n' | tr -d '\r')
@@ -187,7 +176,7 @@ jobs:
 
           git clone -b develop https://github.com/Woori-FISA-Go/ipiece-manifests.git
           
-          # 3. 해당 오버레이 폴더로 이동
+          # 3. Prod 오버레이 폴더로 이동
           cd ipiece-manifests/apps/backend/overlays/$OVERLAY
 
           # 4. Kustomize로 이미지 태그 변경
@@ -199,7 +188,7 @@ jobs:
             echo "⭕ No changes to commit."
           else
             git add .
-            git commit -m "chore(backend): update image tag to ${SHA_TAG} for ${OVERLAY}"
+            git commit -m "chore(backend): update image tag to ${SHA_TAG} for ${OVERLAY} (from ${BRANCH_NAME})"
             git push origin develop
             echo "✅ Manifest updated and pushed."
           fi

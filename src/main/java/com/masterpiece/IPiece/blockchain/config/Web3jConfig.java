@@ -13,9 +13,9 @@ import org.web3j.protocol.http.HttpService;
 @Slf4j
 @Configuration
 @ConditionalOnProperty(
-    name = "blockchain.enabled",
-    havingValue = "true",
-    matchIfMissing = true  // 기본값: true
+        name = "blockchain.enabled",
+        havingValue = "true",
+        matchIfMissing = true  // 기본값: true
 )
 public class Web3jConfig {
 
