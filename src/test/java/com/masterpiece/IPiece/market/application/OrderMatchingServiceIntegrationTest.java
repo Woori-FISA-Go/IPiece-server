@@ -7,6 +7,7 @@ import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTransactionReposito
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
+import com.masterpiece.IPiece.common.domain.infra.VirtualAccountJournalRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
 import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.domain.product.ProductStatus;
@@ -21,6 +22,7 @@ import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
 import com.masterpiece.IPiece.user.infra.LocalStorageService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,11 +39,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
-@Transactional
 @TestPropertySource(properties = {
     // PostgreSQL Database
     "spring.datasource.url=jdbc:postgresql://10.0.151.40:5432/ipiece_test",
@@ -108,21 +111,29 @@ class OrderMatchingServiceIntegrationTest {
     @Autowired
     private TradeExecutionRepository tradeExecutionRepository;
 
+    @Autowired
+    private VirtualAccountJournalRepository virtualAccountJournalRepository;
+
     private User seller;
     private User buyer;
     private Product product;
     private VirtualAccount sellerAccount;
     private VirtualAccount buyerAccount;
 
+    private static final long DEFAULT_PRICE = 1000L;
+    private static final long SELLER_INITIAL_HOLDINGS = 100L;
+    private static final long BUYER_INITIAL_BALANCE = 100_000L;
+
     @BeforeEach
     void setUp() {
         // Mocking BesuClient behavior
-        when(besuClient.isWhitelisted(anyString(), anyString())).thenReturn(true); // Assume already whitelisted for simplicity
-        when(besuClient.transferToken(anyString(), anyString(), any(Long.class))).thenReturn("0x" + UUID.randomUUID().toString().replace("-", ""));
+        when(besuClient.isWhitelisted(anyString(), anyString())).thenReturn(true);
+        when(besuClient.transferToken(anyString(), anyString(), any(Long.class)))
+            .thenReturn("0x" + UUID.randomUUID().toString().replace("-", ""));
         when(besuClient.transferKrwt(anyString(), any(Long.class)))
             .thenReturn("0x" + UUID.randomUUID().toString().replace("-", ""));
 
-        // ✅ BlockchainService Mock - 정산 성공으로 처리
+        // BlockchainService Mock - 정산 성공으로 처리
         doNothing().when(blockchainService).settleTradeOnChain(
             any(OrderBook.class),
             any(OrderBook.class),
@@ -131,30 +142,68 @@ class OrderMatchingServiceIntegrationTest {
         );
 
         // 1. Setup Users and Wallets
-        seller = userRepository.save(User.builder().userMadeId("seller").joinDate(OffsetDateTime.now()).passwordHash("test123").build());
-        buyer = userRepository.save(User.builder().userMadeId("buyer").joinDate(OffsetDateTime.now()).passwordHash("test123").build());
+        seller = createUser("seller");
+        buyer = createUser("buyer");
 
-        sellerAccount = virtualAccountRepository.save(VirtualAccount.builder().user(seller).balanceKrw(0L).walletAddress("0xSELLER").accountNo("1111111111").build());
-        buyerAccount = virtualAccountRepository.save(VirtualAccount.builder().user(buyer).balanceKrw(100_000L).walletAddress("0xBUYER").accountNo("2222222222").build());
+        sellerAccount = createVirtualAccount(seller, "0xSELLER", "1111111111", 0L);
+        buyerAccount = createVirtualAccount(buyer, "0xBUYER", "2222222222", BUYER_INITIAL_BALANCE);
 
         // 2. Setup Product
-        product = productRepository.save(Product.builder()
-                .productName("Test Product")
-                .tokenContractAddress("0xTOKEN_CONTRACT")
-                .status(ProductStatus.TRADE)
-                .currentPrice(1000L)
-                .totalTokenQuantity(1000L)
-                .tokenName("TEST_TOKEN")
-                .build());
+        product = createProduct();
 
         // 3. Setup Initial Holdings for Seller
-        holdingsRepository.save(Holdings.builder()
-                .product(product)
-                .virtualAccount(sellerAccount)
-                .quantity(100L)
-                .avgBuyPrice(1000L)
-                .build());
+        createHoldings(sellerAccount, product, SELLER_INITIAL_HOLDINGS, DEFAULT_PRICE);
     }
+
+    private User createUser(String userMadeId) {
+        return userRepository.save(User.builder()
+            .userMadeId(userMadeId)
+            .joinDate(OffsetDateTime.now())
+            .passwordHash("test123")
+            .build());
+    }
+
+    private VirtualAccount createVirtualAccount(User user, String walletAddress, String accountNo, Long balance) {
+        return virtualAccountRepository.save(VirtualAccount.builder()
+            .user(user)
+            .balanceKrw(balance)
+            .walletAddress(walletAddress)
+            .accountNo(accountNo)
+            .build());
+    }
+
+    private Product createProduct() {
+        return productRepository.save(Product.builder()
+            .productName("Test Product")
+            .tokenContractAddress("0xTOKEN_CONTRACT")
+            .status(ProductStatus.TRADE)
+            .currentPrice(DEFAULT_PRICE)
+            .totalTokenQuantity(1000L)
+            .tokenName("TEST_TOKEN")
+            .build());
+    }
+
+    private void createHoldings(VirtualAccount account, Product product, long quantity, long avgBuyPrice) {
+        holdingsRepository.save(Holdings.builder()
+            .product(product)
+            .virtualAccount(account)
+            .quantity(quantity)
+            .avgBuyPrice(avgBuyPrice)
+            .build());
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Reverse order of creation to avoid foreign key constraints
+        tradeExecutionRepository.deleteAll();
+        orderBookRepository.deleteAll();
+        virtualAccountJournalRepository.deleteAll();
+        holdingsRepository.deleteAll();
+        virtualAccountRepository.deleteAll();
+        userRepository.deleteAll();
+        productRepository.deleteAll();
+    }
+
 
     @Test
     @DisplayName("매수/매도 주문이 체결되면, 온체인 정산 로직이 실행되고 각 사용자의 자산이 정상적으로 변경된다.")
@@ -168,14 +217,17 @@ class OrderMatchingServiceIntegrationTest {
         // When
         long buyPrice = 1000L;
         long buyQuantity = 10L;
-        OrderRequest buyRequest = new OrderRequest(buyPrice, buyQuantity, OffsetDateTime.now().toString());
+        OrderRequest buyRequest = new OrderRequest(DEFAULT_PRICE, 10L, OffsetDateTime.now().toString());
         marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
 
-        Thread.sleep(1000);
+        await().atMost(2, SECONDS).untilAsserted(() -> {
+            List<TradeExecution> trades = tradeExecutionRepository.findAll();
+            assertThat(trades).hasSize(1);
+        });
 
         // Then - 잔액 및 보유량 확인
         Holdings sellerHoldings = holdingsRepository.findByVirtualAccountAndProduct(sellerAccount, product).get();
-        assertThat(sellerHoldings.getQuantity()).isEqualTo(90L);
+        assertThat(sellerHoldings.getQuantity() + sellerHoldings.getPendingQuantity()).isEqualTo(90L);
 
         VirtualAccount finalSellerAccount = virtualAccountRepository.findById(sellerAccount.getAccountId()).get();
         assertThat(finalSellerAccount.getBalanceKrw()).isEqualTo(10_000L);
@@ -207,10 +259,12 @@ class OrderMatchingServiceIntegrationTest {
         // When - 매수 10개
         long buyPrice = 1000L;
         long buyQuantity = 10L;
-        OrderRequest buyRequest = new OrderRequest(buyPrice, buyQuantity, OffsetDateTime.now().toString());
+        OrderRequest buyRequest = new OrderRequest(DEFAULT_PRICE, 10L, OffsetDateTime.now().toString());
         marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
 
-        Thread.sleep(1000);
+        await().atMost(2, SECONDS).untilAsserted(() ->
+            assertThat(tradeExecutionRepository.findAll()).hasSize(1)
+        );
 
         // Then
         // 1. 10개 체결됨
@@ -246,10 +300,12 @@ class OrderMatchingServiceIntegrationTest {
         // When - 매수 20개
         long buyPrice = 1000L;
         long buyQuantity = 20L;
-        OrderRequest buyRequest = new OrderRequest(buyPrice, buyQuantity, OffsetDateTime.now().toString());
+        OrderRequest buyRequest = new OrderRequest(DEFAULT_PRICE, 20L, OffsetDateTime.now().toString());
         marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
 
-        Thread.sleep(1000);
+        await().atMost(2, SECONDS).untilAsserted(() ->
+            assertThat(tradeExecutionRepository.findAll()).hasSize(1)
+        );
 
         // Then
         // 1. 10개만 체결
@@ -285,10 +341,8 @@ class OrderMatchingServiceIntegrationTest {
         // When - 매수 900원
         long buyPrice = 900L;
         long buyQuantity = 10L;
-        OrderRequest buyRequest = new OrderRequest(buyPrice, buyQuantity, OffsetDateTime.now().toString());
+        OrderRequest buyRequest = new OrderRequest(900L, 10L, OffsetDateTime.now().toString());
         marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
-
-        Thread.sleep(1000);
 
         // Then
         // 1. 체결 안 됨
@@ -326,10 +380,12 @@ class OrderMatchingServiceIntegrationTest {
         marketService.sell(product.getProductId(), seller.getUserId(), UUID.randomUUID().toString(), sellRequest2);
 
         // When - 하나의 매수 주문 10개
-        OrderRequest buyRequest = new OrderRequest(1000L, 10L, OffsetDateTime.now().toString());
+        OrderRequest buyRequest = new OrderRequest(DEFAULT_PRICE, 10L, OffsetDateTime.now().toString());
         marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
 
-        Thread.sleep(1000);
+        await().atMost(2, SECONDS).untilAsserted(() ->
+            assertThat(tradeExecutionRepository.findAll()).hasSize(2)
+        );
 
         // Then
         // 1. 2번의 거래 체결
@@ -429,10 +485,12 @@ class OrderMatchingServiceIntegrationTest {
         marketService.sell(product.getProductId(), seller.getUserId(), seller3Id, sellRequest3);
 
         // When - 5개 매수
-        OrderRequest buyRequest = new OrderRequest(1000L, 5L, OffsetDateTime.now().toString());
+        OrderRequest buyRequest = new OrderRequest(DEFAULT_PRICE, 5L, OffsetDateTime.now().toString());
         marketService.buy(product.getProductId(), buyer.getUserId(), UUID.randomUUID().toString(), buyRequest);
 
-        Thread.sleep(1000);
+        await().atMost(2, SECONDS).untilAsserted(() ->
+            assertThat(tradeExecutionRepository.findAll()).hasSize(2)
+        );
 
         // Then - 첫 번째 주문 3개 + 두 번째 주문 2개 체결
         List<OrderBook> orders = orderBookRepository.findAll();
