@@ -86,11 +86,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 👇 실행(run)마다 태그가 달라지도록 SHA + GITHUB_RUN_NUMBER 조합 사용
       - name: Generate image tags
         id: image-tag
         run: |
           SHA_SHORT=$(echo $GITHUB_SHA | cut -c1-7)
-          echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
+          TAG="${SHA_SHORT}-${GITHUB_RUN_NUMBER}"
+          echo "sha=$TAG" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         id: build-image
@@ -150,7 +152,7 @@ jobs:
             
           echo "✅ Kubernetes Secret updated successfully."
 
-      # ▼▼▼ [핵심 2] 무조건 PROD 환경으로 배포 (Dev/Prod 통합) ▼▼▼
+      # ▼▼▼ [핵심 2] 무조건 PROD 환경으로 배포 (Dev/Prod 통합) + 트리거 파일 ▼▼▼
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
 
@@ -180,12 +182,22 @@ jobs:
           cd ipiece-manifests/apps/backend/overlays/$OVERLAY
 
           # 4. Kustomize로 이미지 태그 변경
-          kustomize edit set image $ECR_REGISTRY/$ECR_REPOSITORY=$ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG
+          kustomize edit set image $ECR_REGISTRY/$ECR_REPOSITORY=$ECR_REGISTRY/$ECR_REPOSITORY:$SHA_TAG || true
 
-          # 5. 변경사항 커밋 및 푸시
+          # 5. 루트로 올라가기
           cd ../../../..
+
+          # 🔥 핵심: 매 실행마다 항상 달라지는 트리거 파일 생성
+          #   → kustomize가 실제 변경을 못 하더라도, 이 파일 때문에 git diff는 무조건 생김
+          echo "trigger: $(date -u +%Y-%m-%dT%H:%M:%SZ), image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${SHA_TAG}" > .deploy-trigger
+
+          echo "Git status / diff 확인:"
+          git status
+          git diff || true
+
+          # 6. 변경사항 커밋 및 푸시
           if git diff --quiet; then
-            echo "⭕ No changes to commit."
+            echo "⚠️ 여전히 변경이 없다면 뭔가 이상한 상황임 (이론상 거의 안 나와야 함)"
           else
             git add .
             git commit -m "chore(backend): update image tag to ${SHA_TAG} for ${OVERLAY} (from ${BRANCH_NAME})"
