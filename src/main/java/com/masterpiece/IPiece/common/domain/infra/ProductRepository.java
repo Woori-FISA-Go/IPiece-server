@@ -16,7 +16,7 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select p from Product p where p.id = :productId")
+    @Query("select p from Product p where p.productId = :productId")
     Optional<Product> findByIdWithLock(@Param("productId") Long productId);
 
     Page<Product> findByStatus(ProductStatus status, Pageable pageable);
