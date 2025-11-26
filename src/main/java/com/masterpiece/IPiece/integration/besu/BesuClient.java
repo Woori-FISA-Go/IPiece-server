@@ -291,7 +291,7 @@ public class BesuClient {
                 throw new BlockchainException("Failed to get balance, empty response from contract.");
             }
             BigInteger balanceInWei = (BigInteger) result.get(0).getValue();
-            return Convert.fromWei(new BigDecimal(balanceInWei), Convert.Unit.ETHER);
+            return new BigDecimal(balanceInWei);
         } catch (Exception e) {
             throw new BlockchainException("Failed to fetch token balance for contract: " + contractAddress, e);
         }
