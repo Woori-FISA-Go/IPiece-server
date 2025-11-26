@@ -60,7 +60,7 @@ admin:
   private-key: ${ADMIN_PRIVATE_KEY}
 blockchain:
   admin:
-    user-id: 19
+    user-id: 4
 
 springdoc:
   override-with-generic-response: false

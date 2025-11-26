@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,6 +24,7 @@ public class TokenTransferRequest {
     @Min(value = 1, message = "전송 수량은 1 이상이어야 합니다.")
     private Integer amount;
 
-    @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", message = "올바른 UUID 형식이 아닙니다.")
-    private String investmentId; // 명세의 'investment_id', Nullable
+    @NotNull(message = "투자 ID는 필수입니다.")
+    @Positive(message = "투자 ID는 0보다 커야 합니다.")
+    private Long investmentId;
 }

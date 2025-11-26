@@ -147,6 +147,7 @@ public class WalletService {
         KrwtOperation pendingOp = KrwtOperation.builder()
                 .user(targetAccount.getUser())
                 .virtualAccount(targetAccount)
+                .accountId(targetAccount.getAccountId())
                 .operationType(OperationType.MINT)
                 .amount(BigDecimal.valueOf(request.getAmount()))
                 .beforeBalance(BigDecimal.valueOf(previousBalance))
@@ -212,6 +213,7 @@ public class WalletService {
         KrwtOperation pendingOp = KrwtOperation.builder()
                 .user(userAccount.getUser())
                 .virtualAccount(userAccount)
+                .accountId(userAccount.getAccountId())
                 .operationType(OperationType.BURN)
                 .amount(BigDecimal.valueOf(request.getAmount()))
                 .beforeBalance(BigDecimal.valueOf(previousBalance))
@@ -252,5 +254,15 @@ public class WalletService {
                 .transactionHash(txHash)
                 .completedAt(pendingOp.getCompletedAt())
                 .build();
+    }
+
+    @Transactional
+    public void syncKrwtBalance(Long userId) {
+        VirtualAccount account = virtualAccountRepository.findByUser_UserId(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "계정을 찾을 수 없습니다."));
+
+        BigDecimal blockchainBalance = besuClient.getKrwtBalance(account.getWalletAddress());
+        account.setBalanceKrw(blockchainBalance.longValue());
+        virtualAccountRepository.save(account);
     }
 }

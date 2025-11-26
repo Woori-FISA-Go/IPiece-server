@@ -62,6 +62,10 @@ public class BlockchainTransaction extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "investment_id") // Can be null if it's not a transfer related to an investment
+    private com.masterpiece.IPiece.investment.domain.Investment investment;
+
     /** 에러 기록용 헬퍼 – 기존 코드에서 txLog.recordError(...) 호출하던 부분 대응 */
     public void recordError(String message) {
         this.errorMessage = message;
