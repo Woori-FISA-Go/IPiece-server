@@ -86,6 +86,7 @@ public class InvestmentService {
                     com.masterpiece.IPiece.blockchain.api.dto.request.TokenTransferRequest.builder()
                             .toAddress(userWalletAddress)
                             .amount(request.getTokenAmount())
+                            .investmentId(savedInvestment.getId())
                             .build(),
                     adminUserId); // Use injected admin user ID
             String transferTxHash = transferResponse.getTransactionHash();

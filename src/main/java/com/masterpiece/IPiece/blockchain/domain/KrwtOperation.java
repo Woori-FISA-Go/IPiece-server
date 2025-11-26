@@ -32,6 +32,9 @@ public class KrwtOperation extends BaseEntity {
     @JoinColumn(name = "virtual_account_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private VirtualAccount virtualAccount;
 
+    @Column(name = "account_id", nullable = false)
+    private Long accountId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_type", nullable = false, length = 10)
     private OperationType operationType;

@@ -21,9 +21,13 @@ import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTokenRepository;
 import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTransactionRepository;
 import com.masterpiece.IPiece.blockchain.infra.jpa.WalletRepository;
 import com.masterpiece.IPiece.common.exception.BlockchainException;
+import com.masterpiece.IPiece.common.exception.BusinessException;
+import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.exception.TokenNotFoundException;
 import com.masterpiece.IPiece.common.exception.WalletNotFoundException;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
+import com.masterpiece.IPiece.investment.domain.Investment;
+import com.masterpiece.IPiece.investment.infra.jpa.InvestmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -50,6 +54,7 @@ public class BlockchainService {
     private final BlockchainTokenRepository blockchainTokenRepository;
     private final BlockchainTransactionRepository blockchainTransactionRepository; // Inject repository
     private final UserRepository userRepository;
+    private final InvestmentRepository investmentRepository;
 
 
     public KrwtBalanceResponse getKrwtBalance(Long userId) {
@@ -140,7 +145,12 @@ public class BlockchainService {
         User adminUser = userRepository.findById(adminUserId)
                 .orElseThrow(() -> new WalletNotFoundException("Admin user " + adminUserId + " not found"));
 
-        // 2. Call BesuClient to execute the smart contract function
+        // 3. Find the investment
+        Investment investment = investmentRepository.findById(request.getInvestmentId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "Investment with ID " + request.getInvestmentId() + " not found"));
+
+
+        // 4. Call BesuClient to execute the smart contract function
         try {
             // This is a mocked call for now. In a real scenario, this would interact with the blockchain.
             String transactionHash = besuClient.transferToken(token.getContractAddress(), request.getToAddress(), request.getAmount());
@@ -156,6 +166,7 @@ public class BlockchainService {
                     .transactionType(TransactionType.TRANSFER)
                     .transactionStatus(TransactionStatus.SUCCESS)
                     .user(adminUser)
+                    .investment(investment)
                     .build();
 
             blockchainTransactionRepository.save(transaction);
@@ -174,24 +185,62 @@ public class BlockchainService {
         }
     }
 
-    public TransactionInfoResponse getTransactionByHash(String txHash) {
+    @Transactional(readOnly = true)
+    public TransactionInfoResponse getTransactionByHash(String hash) {
         try {
-            Map<String, Object> receipt = besuClient.getTransactionReceipt(txHash);
+            Map<String, Object> receiptData = besuClient.getTransactionReceipt(hash);
 
-            // Map the receipt to TransactionInfoResponse
+            // ✅ 각 필드 안전하게 가져오기
+            String status = (String) receiptData.get("status");
+            Object blockNumberObj = receiptData.get("blockNumber");
+            Long blockNumber = blockNumberObj != null ?
+                ((Number) blockNumberObj).longValue() : null;
+
+            String from = (String) receiptData.get("from");
+            String to = (String) receiptData.get("to");
+            String value = (String) receiptData.get("value");
+            String gasUsed = (String) receiptData.get("gasUsed");
+            String gasPrice = (String) receiptData.get("gasPrice");
+
+            // ✅ timestamp null 체크
+            String timestampStr = (String) receiptData.get("timestamp");
+            OffsetDateTime timestamp = null;
+            if (timestampStr != null && !timestampStr.isEmpty()) {
+                try {
+                    timestamp = OffsetDateTime.parse(timestampStr);
+                } catch (Exception e) {
+                    log.warn("Failed to parse timestamp: {}", timestampStr, e);
+                }
+            }
+
+            // ✅ logs null 체크
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawLogs = (List<Map<String, Object>>) receiptData.get("logs");
+            if (rawLogs == null) {
+                rawLogs = java.util.Collections.emptyList();
+            }
+
+            List<TransactionInfoResponse.Log> logs = rawLogs.stream()
+                .map(logMap -> new TransactionInfoResponse.Log("Unknown Event", logMap))
+                .toList();
+
             return TransactionInfoResponse.builder()
-                    .hash((String) receipt.get("hash"))
-                    .status((String) receipt.get("status"))
-                    .blockNumber((Long) receipt.get("blockNumber"))
-                    .from((String) receipt.get("from"))
-                    .to((String) receipt.get("to"))
-                    .value((String) receipt.get("value"))
-                    .gasUsed((String) receipt.get("gasUsed"))
-                    .timestamp(OffsetDateTime.parse((String) receipt.get("timestamp")))
+                    .hash(hash)
+                    .status(status)
+                    .blockNumber(blockNumber)
+                    .from(from)
+                    .to(to)
+                    .value(value)
+                    .gasUsed(gasUsed)
+                    .gasPrice(gasPrice)
+                    .timestamp(timestamp)
+                    .logs(logs)
                     .build();
+
         } catch (Exception e) {
-            log.error("Failed to get transaction receipt for hash {}", txHash, e);
-            throw new BlockchainException("Failed to get transaction receipt for hash: " + txHash, e);
+            log.error("Failed to get transaction receipt for hash {}", hash, e);
+            throw new BlockchainException(
+                "Failed to get transaction receipt for hash: " + hash, e);
         }
     }
 
