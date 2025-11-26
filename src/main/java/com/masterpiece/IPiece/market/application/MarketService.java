@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.market.application;
 
+import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
 import com.masterpiece.IPiece.common.domain.infra.VirtualAccountRepository;
@@ -12,6 +13,8 @@ import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
 import com.masterpiece.IPiece.market.api.dto.response.*;
+import com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest; // Add this import
+import com.masterpiece.IPiece.blockchain.application.BlockchainService; // Add this import
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
 import com.masterpiece.IPiece.market.application.OrderBookPushService;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
@@ -76,6 +79,7 @@ public class MarketService {
     private final OrderBookPushService orderBookPushService;
     private final PendingOrderPushService pendingOrderPushService;
     private final HoldingAssetQueryService holdingAssetQueryService;
+    private final BlockchainService blockchainService;
 
 
     public ProductListResponse getProducts(Pageable pageable, Long userId) {
@@ -325,6 +329,19 @@ public class MarketService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
 
+        // --- Whitelist-on-Demand Logic ---
+        String contractAddress = product.getTokenContractAddress();
+        if (contractAddress != null && !contractAddress.isEmpty()) {
+            boolean isWhitelisted = blockchainService.isWhitelisted(contractAddress, account.getWalletAddress());
+            if (!isWhitelisted) {
+                log.info("User {} is not whitelisted for token {}. Adding to whitelist.", userId, contractAddress);
+                com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest whitelistRequest = new com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest();
+                whitelistRequest.setUserWalletAddress(account.getWalletAddress());
+                blockchainService.addToWhitelist(contractAddress, whitelistRequest);
+            }
+        }
+        // --- End Whitelist-on-Demand ---
+
         String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
                 ? UUID.randomUUID().toString()
                 : idempotencyKeyHeader;
@@ -363,6 +380,7 @@ public class MarketService {
         OrderBook savedOrder;
         try {
             savedOrder = orderBookRepository.save(order);
+            orderMatchingService.match(savedOrder); // <-- 직접 호출 추가
         } catch (DataIntegrityViolationException e) {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
@@ -392,6 +410,19 @@ public class MarketService {
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+        // --- Whitelist-on-Demand Logic ---
+        String contractAddress = product.getTokenContractAddress();
+        if (contractAddress != null && !contractAddress.isEmpty()) {
+            boolean isWhitelisted = blockchainService.isWhitelisted(contractAddress, account.getWalletAddress());
+            if (!isWhitelisted) {
+                log.info("User {} is not whitelisted for token {}. Adding to whitelist.", userId, contractAddress);
+                WhitelistRequest whitelistRequest = new WhitelistRequest();
+                whitelistRequest.setUserWalletAddress(account.getWalletAddress());
+                blockchainService.addToWhitelist(contractAddress, whitelistRequest);
+            }
+        }
+        // --- End Whitelist-on-Demand ---
 
         String idempotencyKey = (idempotencyKeyHeader == null || idempotencyKeyHeader.isBlank())
                 ? UUID.randomUUID().toString()
@@ -433,6 +464,7 @@ public class MarketService {
         OrderBook savedOrder;
         try {
             savedOrder = orderBookRepository.save(order);
+            orderMatchingService.match(savedOrder); // <-- 직접 호출 추가
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }

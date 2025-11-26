@@ -5,5 +5,6 @@ public enum TransactionType {
     MINT,
     BURN,
     DIVIDEND,
+    TRADE,
     OTHER
 }

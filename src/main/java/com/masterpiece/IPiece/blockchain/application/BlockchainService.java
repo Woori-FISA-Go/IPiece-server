@@ -28,6 +28,7 @@ import com.masterpiece.IPiece.common.exception.WalletNotFoundException;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
 import com.masterpiece.IPiece.investment.domain.Investment;
 import com.masterpiece.IPiece.investment.infra.jpa.InvestmentRepository;
+import com.masterpiece.IPiece.market.domain.OrderBook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -133,6 +134,10 @@ public class BlockchainService {
             log.error("Failed to add address to whitelist for contract {}", contractAddress, e);
             throw new BlockchainException("Failed to add to whitelist for contract: " + contractAddress, e);
         }
+    }
+
+    public boolean isWhitelisted(String contractAddress, String userWalletAddress) {
+        return besuClient.isWhitelisted(contractAddress, userWalletAddress);
     }
 
     @Transactional
@@ -286,6 +291,61 @@ public class BlockchainService {
         } catch (Exception e) {
             log.error("Failed to get contract information", e);
             throw new BlockchainException("Failed to get contract information", e);
+        }
+    }
+
+    @Transactional
+    public void settleTradeOnChain(OrderBook buyOrder, OrderBook sellOrder, long qty, long price) {
+        String tokenContractAddress = buyOrder.getProduct().getTokenContractAddress();
+        User buyer = buyOrder.getVirtualAccount().getUser();
+        User seller = sellOrder.getVirtualAccount().getUser();
+        String buyerWalletAddress = buyOrder.getVirtualAccount().getWalletAddress();
+        String sellerWalletAddress = sellOrder.getVirtualAccount().getWalletAddress();
+        long totalKrwtAmount = qty * price;
+
+        try {
+            // This is a simplified model where the admin/system wallet facilitates all transfers.
+            // A more decentralized model would use approve/transferFrom.
+
+            // 1. Transfer Product Token (Admin -> Buyer)
+            // It's assumed the seller's tokens are held in an escrow or by the admin wallet for trading.
+            String tokenTxHash = besuClient.transferToken(tokenContractAddress, buyerWalletAddress, qty);
+            log.info("Settlement: Transferred {} tokens to buyer {} [Tx: {}]", qty, buyer.getUserId(), tokenTxHash);
+
+            // Log token transfer
+            BlockchainTransaction tokenTransaction = BlockchainTransaction.builder()
+                    .txHash(tokenTxHash)
+                    .fromAddress(besuClient.getAdminAddress()) // From Admin/Escrow
+                    .toAddress(buyerWalletAddress)
+                    .tokenAddress(tokenContractAddress)
+                    .amount(BigDecimal.valueOf(qty))
+                    .transactionType(TransactionType.TRADE)
+                    .transactionStatus(TransactionStatus.SUCCESS)
+                    .user(buyer) // Associated with the buyer
+                    .build();
+            blockchainTransactionRepository.save(tokenTransaction);
+
+            // 2. Transfer KRWT (Buyer -> Seller)
+            String krwtTxHash = besuClient.transferKrwt(sellerWalletAddress, totalKrwtAmount);
+            log.info("Settlement: Transferred {} KRWT from buyer {} to seller {} [Tx: {}]", totalKrwtAmount, buyer.getUserId(), seller.getUserId(), krwtTxHash);
+
+            // Log KRWT transfer
+            BlockchainTransaction krwtTransaction = BlockchainTransaction.builder()
+                    .txHash(krwtTxHash)
+                    .fromAddress(buyerWalletAddress)
+                    .toAddress(sellerWalletAddress)
+                    .tokenAddress(besuClient.getKrwtContractAddress()) // KRWT contract
+                    .amount(BigDecimal.valueOf(totalKrwtAmount))
+                    .transactionType(TransactionType.TRADE)
+                    .transactionStatus(TransactionStatus.SUCCESS)
+                    .user(buyer) // Associated with the buyer who initiated the trade
+                    .build();
+            blockchainTransactionRepository.save(krwtTransaction);
+
+        } catch (Exception e) {
+            log.error("On-chain settlement failed for buyOrder {} and sellOrder {}: {}", buyOrder.getOrderId(), sellOrder.getOrderId(), e.getMessage(), e);
+            // Re-throw to ensure the entire off-chain transaction is rolled back
+            throw new BlockchainException("On-chain settlement failed", e);
         }
     }
 }
