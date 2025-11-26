@@ -15,13 +15,14 @@ import com.masterpiece.IPiece.mypage.infra.HoldingsRepository;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.OfferingSubscriptionsRepository;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
+import com.masterpiece.IPiece.user.infra.StorageService;
+import java.time.OffsetDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.time.OffsetDateTime;
-import java.util.List;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -34,9 +35,15 @@ public class AdminProductService {
     private final OfferingSubscriptionsRepository subscriptionsRepository;
     private final HoldingsRepository holdingsRepository;
     private final VirtualAccountRepository virtualAccountRepository;
+    private final StorageService storageService;
 
     @Transactional
-    public void createProductWithOffering(AdminCreateProductRequest request) {
+    public void createProductWithOffering(
+            AdminCreateProductRequest request,
+            MultipartFile presentImg,
+            MultipartFile thumbnailImg,
+            MultipartFile detailImg
+    ) {
         // 1. 상품명 중복 체크 (대소문자 무시)
         if (productRepository.existsByProductNameIgnoreCase(request.getProductName())) {
             throw new ResponseStatusException(
@@ -45,12 +52,32 @@ public class AdminProductService {
             );
         }
 
-        // 2. 날짜 파싱 (OffsetDateTime)
+        // 2. 날짜 파싱
         OffsetDateTime issueDate = parseOffsetDateTime(request.getIssueDate());
         OffsetDateTime offeringStart = parseOffsetDateTime(request.getOffering().getOfferingStartDate());
         OffsetDateTime offeringEnd = parseOffsetDateTime(request.getOffering().getOfferingEndDate());
 
-        // 3. Product 엔티티 생성
+        // 3. 이미지 S3 업로드
+        String productKeyBase = request.getProductName().replaceAll("\\s+", "_");
+
+        String presentImgUrl = null;
+        String thumbnailImgUrl = null;
+        String detailImgUrl = null;
+
+        if (presentImg != null && !presentImg.isEmpty()) {
+            presentImgUrl = storageService.saveProductImage(
+                    presentImg, "present", productKeyBase);
+        }
+        if (thumbnailImg != null && !thumbnailImg.isEmpty()) {
+            thumbnailImgUrl = storageService.saveProductImage(
+                    thumbnailImg, "thumbnail", productKeyBase);
+        }
+        if (detailImg != null && !detailImg.isEmpty()) {
+            detailImgUrl = storageService.saveProductImage(
+                    detailImg, "detail", productKeyBase);
+        }
+
+        // 4. Product 엔티티 생성
         Product product = Product.builder()
                 .productName(request.getProductName())
                 .projectName(request.getProjectName())
@@ -61,26 +88,25 @@ public class AdminProductService {
                 .tokenSymbol(request.getTokenSymbol())
                 .totalTokenQuantity(request.getTokenQuantity())
                 .dividendRatio(request.getDividendRatio())
-                .exchangeListing("IPiece")      // 고정
-                .tokenStandard("ERC-1400")      // 고정
-                .presentImg(request.getPresentImg())
-                .thumbnailImg(request.getThumbnailImg())
-                .status(ProductStatus.OFFERING) // 신규는 공모 상태
+                .exchangeListing("IPiece")
+                .tokenStandard("ERC-1400")
+                .presentImg(presentImgUrl)
+                .thumbnailImg(thumbnailImgUrl)
+                .status(ProductStatus.OFFERING)
                 .currentPrice(request.getOffering().getOfferingPrice())
                 .lastPrice(request.getOffering().getOfferingPrice())
                 .build();
 
         productRepository.save(product);
 
-        // 4. 공모 정보 엔티티 생성 (product_id 공유)
         ProductOfferingInfo offeringInfo = ProductOfferingInfo.builder()
                 .product(product)
-                .detailImg(request.getOffering().getDetailImg())
+                .detailImg(detailImgUrl)
                 .offeringAmount(request.getOffering().getOfferingAmount())
                 .offeringPrice(request.getOffering().getOfferingPrice())
                 .offeringStartDate(offeringStart)
                 .offeringEndDate(offeringEnd)
-                .progressRate(0) // 최초 0%
+                .progressRate(0)
                 .build();
 
         productOfferingInfoRepository.save(offeringInfo);
@@ -146,7 +172,6 @@ public class AdminProductService {
 
         // 4) offering_subscriptions 전체 삭제
         subscriptionsRepository.deleteAllByProductId(productId);
-
 
         OffsetDateTime enabledAt = OffsetDateTime.now();
 

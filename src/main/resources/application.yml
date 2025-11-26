@@ -72,3 +72,12 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
     enabled: true
+
+cloud:
+  aws:
+    s3:
+      bucket: ipiece-image
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
