@@ -1,68 +1,109 @@
 package com.masterpiece.IPiece.user.infra;
 
-// 개발용 Service ( 클라우드 배포시 S3로 변경 )
-
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
+import java.io.InputStream;
+import java.time.LocalDate;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.time.LocalDate;
-import java.util.UUID;
-
 @Service
-public class LocalStorageService implements StorageService{
+@RequiredArgsConstructor
+public class LocalStorageService implements StorageService {
 
-    //저장 경로
-    private final Path basePath = Paths.get("src/main/resources/idcards");
+    private final AmazonS3 amazonS3;
 
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
 
     @Override
     public String saveIdCard(MultipartFile file, String userId) {
         try {
-            //NPE 방지
             String originalName = file.getOriginalFilename();
             if (originalName == null || originalName.isBlank()) {
                 throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
             }
-            //확장자 추출
-            String ext = "";
-            int dotIdx = originalName.lastIndexOf('.');
-            if (dotIdx >= 0) {
-                ext = originalName.substring(dotIdx + 1);
-            }
-            
-            // 연도/월/userId 구조로 폴더 생성
-            String folder = String.format("%s/%s/%s",
-                    LocalDate.now().getYear(),
-                    LocalDate.now().getMonthValue(),
-                    userId
+
+            String ext = extractExt(originalName);
+            LocalDate now = LocalDate.now();
+
+            // 🔹 신분증: id-card/{year}/{month}/{userId}/idcard_{uuid}.ext
+            String fileName = buildFileName("idcard_", ext);
+            String key = String.format(
+                    "id-card/%d/%02d/%s/%s",
+                    now.getYear(),
+                    now.getMonthValue(),
+                    userId,
+                    fileName
             );
 
-            // 저장 경로 생성
-            Path userDir = basePath.resolve(folder);
-            Files.createDirectories(userDir);
-
-            // 저장 파일명 생성
-            String fileName = ext.isEmpty()
-                    ? "idcard_" + UUID.randomUUID()
-                    : "idcard_" + UUID.randomUUID() + "." + ext;
-
-            // 최종 파일 경로
-            Path filePath = userDir.resolve(fileName);
-
-            //파일 저장(이미 존재하면 덮어쓰는 구조)
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // 로컬 저장 경로 리턴 (DB 저장용)
-            return filePath.toString();
+            uploadToS3(file, key);
+            return amazonS3.getUrl(bucket, key).toString();
 
         } catch (Exception e) {
+            e.printStackTrace();
             throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
         }
+    }
+
+    @Override
+    public String saveProductImage(MultipartFile file, String category, String productKey) {
+        try {
+            String originalName = file.getOriginalFilename();
+            if (originalName == null || originalName.isBlank()) {
+                throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
+            }
+
+            String ext = extractExt(originalName);
+            LocalDate now = LocalDate.now();
+
+            // 🔹 상품 이미지: products/{category}/{year}/{month}/{productKey}/{uuid}.ext
+            String fileName = buildFileName("img_", ext);
+            String key = String.format(
+                    "products/%s/%d/%02d/%s/%s",
+                    category,
+                    now.getYear(),
+                    now.getMonthValue(),
+                    productKey,
+                    fileName
+            );
+
+            uploadToS3(file, key);
+            return amazonS3.getUrl(bucket, key).toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
+        }
+    }
+
+    private void uploadToS3(MultipartFile file, String key) throws Exception {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(file.getSize());
+        metadata.setContentType(file.getContentType());
+
+        try (InputStream in = file.getInputStream()) {
+            amazonS3.putObject(bucket, key, in, metadata);
+        }
+    }
+
+    private String extractExt(String originalName) {
+        int dotIdx = originalName.lastIndexOf('.');
+        if (dotIdx >= 0) {
+            return originalName.substring(dotIdx + 1);
+        }
+        return "";
+    }
+
+    private String buildFileName(String prefix, String ext) {
+        if (ext == null || ext.isBlank()) {
+            return prefix + UUID.randomUUID();
+        }
+        return prefix + UUID.randomUUID() + "." + ext;
     }
 }

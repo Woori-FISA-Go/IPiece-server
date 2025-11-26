@@ -31,7 +31,7 @@ public class AdminCreateProductOfferingRequest {
     @NotBlank
     private String offeringEndDate;
 
-    @JsonProperty("detail_img")
+/*    @JsonProperty("detail_img")
     @NotBlank
-    private String detailImg;
+    private String detailImg;*/
 }
