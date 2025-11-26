@@ -76,4 +76,8 @@ public class VirtualAccount extends BaseEntity {
         }
         this.pendingPrice -= amount;
     }
+
+    public void setBalanceKrw(long newBalance) {
+        this.balanceKrw = newBalance;
+    }
 }

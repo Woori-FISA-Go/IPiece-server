@@ -47,7 +47,7 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         // 신분증 이미지 저장하고 파일 경로 받기
-        String idCardPath = storageService.saveIdCard(idCardFile, request.getId());
+        String idCardUrl = storageService.saveIdCard(idCardFile, request.getId());
 
 
         /** 5) UserPrivate 생성 (민감정보 DB) */
@@ -57,7 +57,7 @@ public class UserService {
                 .birthDate(LocalDate.parse(request.getBirth())) // "19980214" 형식이면 포맷 별도처리 필요
                 .phoneNumber(request.getPhone())
                 .address(request.getAddress())
-                .idCardImg(idCardPath)                 // 로컬경로나 S3 key
+                .idCardImg(idCardUrl)                 // 로컬경로나 S3 key
                 .build();
 
         userPrivateRepository.save(privateInfo);

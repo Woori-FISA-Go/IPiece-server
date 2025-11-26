@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -72,5 +73,13 @@ public class WalletController {
     ) {
         KrwtBurnResponse response = walletService.burnKrwt(adminUserId, request.getUserId(), request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/sync-krwt/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "KRWT 잔액 동기화", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<Void> syncKrwtBalance(@PathVariable Long userId) {
+        walletService.syncKrwtBalance(userId);
+        return ResponseEntity.ok().build();
     }
 }

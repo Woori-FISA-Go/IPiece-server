@@ -30,7 +30,7 @@ public class ProductOfferingInfo extends BaseEntity {
     @Column(name = "progress_rate")
     private Integer progressRate;
 
-    @Column(name = "detail_img", nullable = false, columnDefinition = "text")
+    @Column(name = "detail_img", columnDefinition = "TEXT", nullable = false)
     private String detailImg;
 
     @Column(name = "offering_start_date", columnDefinition = "timestamp", nullable = false)

@@ -62,7 +62,7 @@ public class SmsAuthService {
     public void sendVerificationCode(String phone) {
         String code = String.format("%06d", secureRandom.nextInt(1000000));
         store.put(phone, new VerificationData(code, LocalDateTime.now()));
-
+        System.out.println(code);
 
             Message message = new Message();
             message.setFrom(senderNumber);

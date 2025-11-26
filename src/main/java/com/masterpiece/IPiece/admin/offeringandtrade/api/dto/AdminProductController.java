@@ -11,14 +11,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,14 +24,19 @@ public class AdminProductController {
     private final AdminProductService adminProductService;
     private final UserRepository userRepository;
 
-    @PostMapping("/v1/admin/products")
+    @PostMapping(
+            value = "/v1/admin/products",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<AdminSimpleSuccessResponse> createProduct(
             Authentication authentication,
-            @Valid @RequestBody AdminCreateProductRequest request
+            @Valid @RequestPart("data") AdminCreateProductRequest request,
+            @RequestPart(value = "presentImg", required = false) MultipartFile presentImg,
+            @RequestPart(value = "thumbnailImg", required = false) MultipartFile thumbnailImg,
+            @RequestPart(value = "detailImg", required = false) MultipartFile detailImg
     ) {
         // 1. 인증 체크
         if (authentication == null || authentication.getName() == null) {
-            // JWT 필터에서 이미 401을 줄 수도 있지만, 여기서도 한 번 더 방어
             return ResponseEntity.status(401).build();
         }
 
@@ -43,7 +45,6 @@ public class AdminProductController {
         try {
             userId = Long.valueOf(authentication.getName());
         } catch (NumberFormatException e) {
-            // subject 가 숫자가 아니면 잘못된 토큰 구조라고 보고 401
             return ResponseEntity.status(401).build();
         }
 
@@ -51,12 +52,11 @@ public class AdminProductController {
                 .orElse(null);
 
         if (user == null || !"admin".equals(user.getUserMadeId())) {
-            // 유저가 없거나, user_made_id 가 "admin" 이 아니면 관리자 아님 → 403
             return ResponseEntity.status(403).build();
         }
 
-        // 3. 서비스 호출
-        adminProductService.createProductWithOffering(request);
+        // 3. 서비스 호출 (이미지 포함)
+        adminProductService.createProductWithOffering(request, presentImg, thumbnailImg, detailImg);
 
         // 4. 성공 응답
         return ResponseEntity.ok(new AdminSimpleSuccessResponse(true));
@@ -74,12 +74,10 @@ public class AdminProductController {
             @PathVariable("productId") Long productId,
             @Valid @RequestBody AdminEnableSecondaryTradingRequest request
     ) {
-        // 1. 인증 체크 (createProduct와 동일)
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
         }
 
-        // 2. 토큰 subject를 userId로 가정하고 DB에서 유저 조회
         Long userId;
         try {
             userId = Long.valueOf(authentication.getName());
@@ -90,11 +88,9 @@ public class AdminProductController {
         User user = userRepository.findById(userId).orElse(null);
 
         if (user == null || !"admin".equals(user.getUserMadeId())) {
-            // 유저가 없거나, user_made_id가 "admin"이 아니면 관리자 아님 → 403
             return ResponseEntity.status(403).build();
         }
 
-        // 3. 비즈니스 처리
         AdminEnableSecondaryTradingResponse response =
                 adminProductService.enableSecondaryTrading(productId, request);
 

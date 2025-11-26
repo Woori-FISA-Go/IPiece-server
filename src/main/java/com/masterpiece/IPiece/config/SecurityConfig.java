@@ -56,6 +56,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/healthz",             // 내부(K8s) 헬스체크용
+                                "/api/healthz",         // ✅ [추가됨] 외부(ALB) 헬스체크용 (이게 없어서 401 뜸)
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",

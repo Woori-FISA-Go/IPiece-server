@@ -52,13 +52,13 @@ public class AdminCreateProductRequest {
     @NotNull
     private Double dividendRatio;
 
-    @JsonProperty("present_img")
+/*    @JsonProperty("present_img")
     @NotBlank
     private String presentImg;
 
     @JsonProperty("thumbnail_img")
     @NotBlank
-    private String thumbnailImg;
+    private String thumbnailImg;*/
 
     @JsonProperty("offering")
     @Valid
