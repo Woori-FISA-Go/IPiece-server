@@ -23,10 +23,10 @@ public class InvestmentRequest {
     @NotNull
     @Min(1)
     @JsonProperty("amount")
-    private Integer amount;
+    private Long amount;
 
     @NotNull
     @Min(1)
     @JsonProperty("token_amount")
-    private Integer tokenAmount;
+    private Long tokenAmount;
 }

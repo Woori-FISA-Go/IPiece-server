@@ -22,7 +22,7 @@ public class TokenTransferRequest {
 
     @NotNull(message = "전송 수량은 필수입니다.")
     @Min(value = 1, message = "전송 수량은 1 이상이어야 합니다.")
-    private Integer amount;
+    private Long amount;
 
     @NotNull(message = "투자 ID는 필수입니다.")
     @Positive(message = "투자 ID는 0보다 커야 합니다.")

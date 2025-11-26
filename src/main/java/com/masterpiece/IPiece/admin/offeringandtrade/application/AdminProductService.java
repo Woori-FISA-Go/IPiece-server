@@ -133,64 +133,56 @@ public class AdminProductService {
             throw new BusinessException(ErrorCode.INVALID_SECONDARY_TRADING_CONFIRM);
         }
 
-        Product product = productRepository.findById(productId)
+        // Use lock to prevent race condition
+        Product product = productRepository.findByIdWithLock(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         // Ensure product is in OFFERING status before enabling secondary trading
         if (product.getStatus() != ProductStatus.OFFERING) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Product is not in OFFERING status."); // Changed ErrorCode
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Product is not in OFFERING status.");
         }
 
         ProductStatus previousStatus = product.getStatus();
 
-        // 1) 공모 신청 내역 불러오기 (이전과 동일)
+        // 1) 공모 신청 내역 불러오기
         List<Object[]> results = subscriptionsRepository.sumQuantityByProduct(productId);
 
-        // 2) product_offering_info 조회 (avg price 계산용) (이전과 동일)
+        // 2) product_offering_info 조회
         ProductOfferingInfo offeringInfo = productOfferingInfoRepository.findByProductId(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.OFFERING_INFO_NOT_FOUND));
 
         Long offeringPrice = offeringInfo.getOfferingPrice();
 
-        // --- NEW: Blockchain Distribution (Phase 2) ---
+        // 3) Blockchain Distribution for each subscriber
         for (Object[] row : results) {
             Long accountId = (Long) row[0];
-            Long quantity = (Long) row[1]; // This is tokenAmount
+            Long quantity = (Long) row[1];
 
             VirtualAccount account = virtualAccountRepository.findById(accountId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.VIRTUAL_ACCOUNT_NOT_FOUND));
 
-            Long userId = account.getUser().getUserId(); // Get userId
-            Long amount = quantity * offeringPrice; // Calculate total KRWT spent
+            Long userId = account.getUser().getUserId();
+            Long amount = quantity * offeringPrice;
 
-            // Call InvestmentService to perform blockchain transactions (whitelist, transfer)
             try {
-                // The InvestmentRequest DTO requires projectId, amount, tokenAmount
                 com.masterpiece.IPiece.investment.api.dto.request.InvestmentRequest investmentRequest =
                         com.masterpiece.IPiece.investment.api.dto.request.InvestmentRequest.builder()
                                 .projectId(productId)
-                                .amount(amount.intValue()) // Cast Long to Integer
-                                .tokenAmount(quantity.intValue()) // InvestmentRequest uses Integer for tokenAmount
+                                .amount(amount)
+                                .tokenAmount(quantity)
                                 .build();
 
-                // Execute the blockchain investment for each subscriber
                 investmentService.executeInvestment(userId, investmentRequest);
-
-                // TODO: Here, you might want to mark the subscription as processed in OfferingSubscriptions
-                // or ensure it's removed only after successful distribution.
-                // For now, `deleteAllByProductId` at the end cleans it up.
-
             } catch (Exception e) {
-                // Log the error but don't stop the whole batch for one user
-                // Decide on error handling strategy: skip, retry, mark failed, etc.
                 log.error("Failed to distribute tokens for userId {} (accountId {}) and productId {}: {}",
                         userId, accountId, productId, e.getMessage(), e);
+                // Re-throw to abort the entire transaction and maintain consistency
+                throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED,
+                    "Token distribution failed for user " + userId, e);
             }
         }
-        // --- END NEW ---
 
-        // 3) account_id별로 holdings로 이전 (기존 로직)
-        // This part effectively records the final holding in the DB after the on-chain transfer
+        // 4) Update holdings for each subscriber
         for (Object[] row : results) {
             Long accountId = (Long) row[0];
             Long quantity = (Long) row[1];
@@ -217,13 +209,12 @@ public class AdminProductService {
             holdingsRepository.save(holding);
         }
 
-
-        // 4) offering_subscriptions 전체 삭제
+        // 5) Delete all processed subscriptions
         subscriptionsRepository.deleteAllByProductId(productId);
 
-        // Update product status after all distributions are attempted and holdings are updated
-        product.enableSecondaryTrading(); // 상태 OFFERING → TRADE
-        productRepository.save(product); // Save the status change
+        // 6) Update product status after all distributions are successful
+        product.enableSecondaryTrading();
+        productRepository.save(product);
 
         OffsetDateTime enabledAt = OffsetDateTime.now();
 

@@ -326,7 +326,7 @@ public class BesuClient {
      * @param amount The amount of tokens to transfer.
      * @return A dummy transaction hash.
      */
-    public String transferToken(String contractAddress, String toAddress, Integer amount) {
+    public String transferToken(String contractAddress, String toAddress, Long amount) {
         // Validate contract address format
         if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
             throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
