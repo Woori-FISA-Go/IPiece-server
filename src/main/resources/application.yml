@@ -3,6 +3,10 @@ spring:
     name: IPiece
   profiles:
     active: local
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 
   datasource:
@@ -75,6 +79,9 @@ springdoc:
 
 cloud:
   aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
     s3:
       bucket: ipiece-image
     region:
