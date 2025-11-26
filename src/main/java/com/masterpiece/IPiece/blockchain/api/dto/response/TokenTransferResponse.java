@@ -14,7 +14,7 @@ import java.time.OffsetDateTime;
 public class TokenTransferResponse {
     private String fromAddress; // 명세의 'from'
     private String toAddress;   // 명세의 'to'
-    private Integer amount;
+    private Long amount;
     private String transactionHash;
     private OffsetDateTime transferredAt; // 명세의 'transferred_at'
 }

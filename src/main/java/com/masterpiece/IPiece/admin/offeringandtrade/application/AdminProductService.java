@@ -18,7 +18,9 @@ import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
 import com.masterpiece.IPiece.user.infra.StorageService;
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.masterpiece.IPiece.investment.application.InvestmentService; // Inject InvestmentService
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j; // Add @Slf4j
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
+@Slf4j // Add this annotation
 @Service
 @RequiredArgsConstructor
 public class AdminProductService {
@@ -35,6 +38,7 @@ public class AdminProductService {
     private final OfferingSubscriptionsRepository subscriptionsRepository;
     private final HoldingsRepository holdingsRepository;
     private final VirtualAccountRepository virtualAccountRepository;
+    private final InvestmentService investmentService;
     private final StorageService storageService;
 
 
@@ -129,27 +133,59 @@ public class AdminProductService {
             throw new BusinessException(ErrorCode.INVALID_SECONDARY_TRADING_CONFIRM);
         }
 
-        Product product = productRepository.findById(productId)
+        // Use lock to prevent race condition
+        Product product = productRepository.findByIdWithLock(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        // Ensure product is in OFFERING status before enabling secondary trading
+        if (product.getStatus() != ProductStatus.OFFERING) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Product is not in OFFERING status.");
+        }
 
         ProductStatus previousStatus = product.getStatus();
 
-        product.enableSecondaryTrading(); // 상태 OFFERING → TRADE
-
         // 1) 공모 신청 내역 불러오기
-        List<Object[]> results =
-                subscriptionsRepository.sumQuantityByProduct(productId);
+        List<Object[]> results = subscriptionsRepository.sumQuantityByProduct(productId);
 
-        // 2) product_offering_info 조회 (avg price 계산용)
+        // 2) product_offering_info 조회
         ProductOfferingInfo offeringInfo = productOfferingInfoRepository.findByProductId(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.OFFERING_INFO_NOT_FOUND));
 
         Long offeringPrice = offeringInfo.getOfferingPrice();
 
-        // 3) account_id별로 holdings로 이전
+        // 3) Blockchain Distribution for each subscriber
         for (Object[] row : results) {
             Long accountId = (Long) row[0];
-            Long quantity   = (Long) row[1];
+            Long quantity = (Long) row[1];
+
+            VirtualAccount account = virtualAccountRepository.findById(accountId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.VIRTUAL_ACCOUNT_NOT_FOUND));
+
+            Long userId = account.getUser().getUserId();
+            Long amount = quantity * offeringPrice;
+
+            try {
+                com.masterpiece.IPiece.investment.api.dto.request.InvestmentRequest investmentRequest =
+                        com.masterpiece.IPiece.investment.api.dto.request.InvestmentRequest.builder()
+                                .projectId(productId)
+                                .amount(amount)
+                                .tokenAmount(quantity)
+                                .build();
+
+                investmentService.executeInvestment(userId, investmentRequest);
+            } catch (Exception e) {
+                log.error("Failed to distribute tokens for userId {} (accountId {}) and productId {}: {}",
+                        userId, accountId, productId, e.getMessage(), e);
+                // Re-throw to abort the entire transaction and maintain consistency
+                throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED,
+                    "Token distribution failed for user " + userId, e);
+            }
+        }
+
+        // 4) Update holdings for each subscriber
+        for (Object[] row : results) {
+            Long accountId = (Long) row[0];
+            Long quantity = (Long) row[1];
 
             VirtualAccount account = virtualAccountRepository.findById(accountId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.VIRTUAL_ACCOUNT_NOT_FOUND));
@@ -173,8 +209,12 @@ public class AdminProductService {
             holdingsRepository.save(holding);
         }
 
-        // 4) offering_subscriptions 전체 삭제
+        // 5) Delete all processed subscriptions
         subscriptionsRepository.deleteAllByProductId(productId);
+
+        // 6) Update product status after all distributions are successful
+        product.enableSecondaryTrading();
+        productRepository.save(product);
 
         OffsetDateTime enabledAt = OffsetDateTime.now();
 

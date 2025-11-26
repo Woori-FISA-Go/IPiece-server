@@ -291,7 +291,7 @@ public class BesuClient {
                 throw new BlockchainException("Failed to get balance, empty response from contract.");
             }
             BigInteger balanceInWei = (BigInteger) result.get(0).getValue();
-            return Convert.fromWei(new BigDecimal(balanceInWei), Convert.Unit.ETHER);
+            return new BigDecimal(balanceInWei);
         } catch (Exception e) {
             throw new BlockchainException("Failed to fetch token balance for contract: " + contractAddress, e);
         }
@@ -326,7 +326,7 @@ public class BesuClient {
      * @param amount The amount of tokens to transfer.
      * @return A dummy transaction hash.
      */
-    public String transferToken(String contractAddress, String toAddress, Integer amount) {
+    public String transferToken(String contractAddress, String toAddress, Long amount) {
         // Validate contract address format
         if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
             throw new IllegalArgumentException("Invalid contract address: " + contractAddress);

@@ -84,7 +84,7 @@ class BlockchainControllerTest {
         String contractAddress = "0x1234567890123456789012345678901234567890";
         TokenTransferRequest request = TokenTransferRequest.builder()
                 .toAddress("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")
-                .amount(100)
+                .amount(100L)
                 .investmentId(1L)
                 .build();
         TokenTransferResponse mockResponse = TokenTransferResponse.builder()
@@ -120,7 +120,7 @@ class BlockchainControllerTest {
         String contractAddress = "0x1234567890123456789012345678901234567890";
         TokenTransferRequest request = TokenTransferRequest.builder()
                 .toAddress("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")
-                .amount(100)
+                .amount(100L)
                 .investmentId(1L)
                 .build();
 
@@ -139,7 +139,7 @@ class BlockchainControllerTest {
         String contractAddress = "0x1234567890123456789012345678901234567890";
         TokenTransferRequest request = TokenTransferRequest.builder()
                 .toAddress("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")
-                .amount(100)
+                .amount(100L)
                 .investmentId(1L)
                 .build();
 

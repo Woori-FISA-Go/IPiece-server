@@ -3,6 +3,8 @@ package com.masterpiece.IPiece.investment.api.dto.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor; // Add this import
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,6 +12,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor // Add this annotation
+@Builder
 public class InvestmentRequest {
 
     @NotNull
@@ -19,10 +23,10 @@ public class InvestmentRequest {
     @NotNull
     @Min(1)
     @JsonProperty("amount")
-    private Integer amount;
+    private Long amount;
 
     @NotNull
     @Min(1)
     @JsonProperty("token_amount")
-    private Integer tokenAmount;
+    private Long tokenAmount;
 }
