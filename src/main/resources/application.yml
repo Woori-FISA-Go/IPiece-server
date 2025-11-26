@@ -35,7 +35,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,metrics
 
 jwt:
   secret: ${JWT_SECRET}
@@ -72,3 +72,23 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
     enabled: true
+
+  otlp:
+    metrics:
+      export:
+        url: http://ipiece-otel-collector.monitoring:4318/v1/metrics
+        step: 5s
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      namespace: ${K8S_NAMESPACE:unknown}
+
+  simple:
+    metrics:
+      export:
+        enabled: false
+  prometheus:
+    metrics:
+      export:
+        enabled: false
