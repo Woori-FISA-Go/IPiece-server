@@ -555,6 +555,177 @@ docker-compose up -d
 
 
 
+IPiece 백엔드를 개발하며 마주한 주요 이슈와 해결 과정을 정리했습니다.  
+서비스 운영 기준에서 실제로 중요했던 문제들만 선별했습니다.
+
+<br>
+
+## 1️⃣ JWT 토큰 UserDetails / userId 혼용 문제
+**문제**  
+- 어떤 유저는 JWT subject가 문자열(`userMadeId`), 어떤 유저는 숫자(`userId`)여서 파싱 오류 발생.
+
+**해결**  
+- JWT subject = **Long userId 고정**  
+- userMadeId는 claim으로 이동  
+- UserDetails가 필요한 로직과 userId만 필요한 로직 분리.
+
+
+<br>
+
+
+## 2️⃣ JWT subject 문자열로 인해 500 오류  
+```
+For input string: "charminglee"
+```
+
+**원인**  
+- `Long.valueOf()` 변환 과정에서 문자열 subject가 들어옴.
+
+**해결**  
+- 로그인 시 JWT 생성 구조 정비  
+- subject는 항상 숫자형 userId  
+- 문자열 ID는 claim 필드로 이동.
+
+
+
+<br>
+
+
+## 3️⃣ Multipart + JSON 파싱 오류  
+```
+Failed to parse multipart servlet request
+```
+
+**원인**  
+- JSON + 파일 업로드가 섞인 multipart 요청에서 Swagger/프론트 Content-Type 불일치.
+
+**해결**  
+- Controller에 `consumes = multipart/form-data` 명시  
+- 프론트 요청도 multipart로 통일  
+- Swagger 스펙 재작성.
+
+
+<br>
+
+
+## 4️⃣ AWS S3 Access Key 오류  
+```
+InvalidAccessKeyId
+```
+
+**원인**  
+- 로컬/서버 환경의 키가 불일치하거나 IAM 권한 부족.
+
+**해결**  
+- `.env`와 서버 환경변수 일치  
+- IAM 권한 재정비 (S3 최소 권한)  
+- Gradle 빌드 시 환경 변수 누락 검증.
+
+
+<br>
+
+
+## 5️⃣ PostgreSQL VARCHAR 길이 초과 오류  
+```
+character varying(255) too long
+```
+
+**원인**  
+- 이미지 URL 같은 문자열이 255자 넘음.
+
+**해결**  
+- VARCHAR → TEXT로 스키마 변경  
+- JPA 필드 length 제거  
+- DB에는 S3 URL만 저장하도록 정책 변경.
+
+
+<br>
+
+
+## 6️⃣ Base64 이미지 저장 시 DB 부하 발생
+
+**문제**  
+- Base64를 TEXT에 저장하니 DB 용량, 성능 이슈 발생.
+
+**해결**  
+- 이미지 직접 저장 금지  
+- S3 업로드 후 URL만 DB에 저장.
+
+
+<br>
+
+
+## 7️⃣ 무한스크롤 Cursor 계산 버그
+
+**문제**  
+- 기존 방식(nextCursor = id - 1)에서 데이터 누락 발생.
+
+**해결**  
+- nextCursor = **마지막 item의 id 그대로 사용**  
+- hasNext는 limit+1 방식으로 계산.
+
+
+<br>
+
+
+## 8️⃣ OFFERING → TRADE 전환 시 공모 리스트에서 사라짐
+
+**문제**  
+- 공모 종료 후 TRADE가 되면 화면에서 제외됨.
+
+**해결**  
+- 공모 페이지에서는 TRADE도 “종료됨”으로 계속 노출되도록 조건 수정.
+
+
+<br>
+
+
+ 
+
+
+
+
+## 9️⃣ JPA Repository 네이밍 오류
+
+**문제**  
+`findByUserId()` 동작 안 함.
+
+**원인**  
+- JPA 네이밍은 항상 “연관관계 이름 기준”.
+
+**해결**  
+- `findByUser_UserId()` 사용  
+- 복잡한 조건은 Querydsl/Projection 활용.
+
+
+<br>
+
+
+## 🔟 주문(거래) 처리 중 동시성 문제
+
+**문제**  
+- 매칭/체결/잔고 업데이트 로직 간 race condition 발생 가능.
+
+**해결**  
+- 낙관적 락 도입  
+- 체결 처리 비동기 메시지 분리  
+- 트랜잭션 범위 최소화.
+
+
+<br>
+
+
+## 1️⃣1️⃣ Idempotency-Key 누락으로 중복 주문 발생
+
+**문제**  
+- 키 없이 요청 시 동일 주문 중복 발생 가능성.
+
+**해결**  
+- 서버 단에서 key 없으면 요청 reject  
+- 프론트는 UUID 기반 idempotency-key 필수 생성  
+- DB에 idempotency-history 테이블 추가하여 중복 방지.
+
+
 
 
 ---
