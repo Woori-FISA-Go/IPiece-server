@@ -1,5 +1,6 @@
 package com.masterpiece.IPiece.market.application;
 
+import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
 import com.masterpiece.IPiece.common.domain.account.VirtualAccountJournal;
 import com.masterpiece.IPiece.common.domain.infra.ProductRepository;
@@ -46,6 +47,7 @@ public class OrderMatchingService {
     private final PendingOrderPushService pendingOrderPushService;
     private final TradeTickPushService tradeTickPushService;
     private final ProductPricePushService productPricePushService;
+    private final BlockchainService blockchainService;
 
     /**
      * /v1/market/{product_id}/buy, /sell 에서
@@ -181,6 +183,10 @@ public class OrderMatchingService {
                            OrderBook sellOrder,
                            long qty,
                            long price) {
+
+        // --- On-Chain Settlement ---
+        blockchainService.settleTradeOnChain(buyOrder, sellOrder, qty, price);
+        // --- End On-Chain Settlement ---
 
         Long productId = buyOrder.getProduct().getProductId();
         Long buyerUserId = buyOrder.getVirtualAccount().getUser().getUserId();

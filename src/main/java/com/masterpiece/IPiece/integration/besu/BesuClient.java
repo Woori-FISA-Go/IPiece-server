@@ -9,6 +9,7 @@ import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
+import org.web3j.abi.datatypes.Bool;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
@@ -316,6 +317,20 @@ public class BesuClient {
         // In a real implementation, this would encode and send a transaction
         // to the 'addToWhitelist' function of the smart contract at 'contractAddress'.
         return randomHash();
+    }
+
+    public boolean isWhitelisted(String contractAddress, String userWalletAddress) {
+        if (!StringUtils.hasText(contractAddress) || !contractAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid contract address: " + contractAddress);
+        }
+        if (!StringUtils.hasText(userWalletAddress) || !userWalletAddress.matches("^0x[0-9a-fA-F]{40}$")) {
+            throw new IllegalArgumentException("Invalid user wallet address: " + userWalletAddress);
+        }
+
+        log.info("[MOCK] Checking whitelist status for address {} on contract {}", userWalletAddress, contractAddress);
+        // In a real implementation, this would call the 'isWhitelisted' view function on the smart contract.
+        // For now, we return false to ensure the addToWhitelist flow is always triggered for testing.
+        return false;
     }
 
     /**

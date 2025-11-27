@@ -3,6 +3,8 @@ package com.masterpiece.IPiece.config;
 import com.masterpiece.IPiece.common.util.JwtTokenProvider;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
 import com.masterpiece.IPiece.user.application.TokenBlacklistService;
+import com.masterpiece.IPiece.config.AwsS3Config;
+import com.masterpiece.IPiece.user.infra.LocalStorageService;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -37,6 +39,17 @@ public class TestConfig {
     @Bean @Primary
     public Credentials credentials() {
         return mock(Credentials.class);
+    }
+
+    // AWS S3 관련
+    @Bean @Primary
+    public AwsS3Config awsS3Config() {
+        return mock(AwsS3Config.class);
+    }
+
+    @Bean @Primary
+    public LocalStorageService localStorageService() {
+        return mock(LocalStorageService.class);
     }
 
     // JWT 관련
