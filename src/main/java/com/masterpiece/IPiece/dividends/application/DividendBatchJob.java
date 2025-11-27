@@ -18,7 +18,7 @@ public class DividendBatchJob {
     private final DividendService dividendService;
 
     /** 매일 08:00 배정 */
-    @Scheduled(cron = "0 42 10 * * *")
+    @Scheduled(cron = "0 40 15 * * *")
     public void allocate() {
         log.info("[DividendBatchJob] allocate start");
         int count = dividendService.allocateDueDividends();
@@ -26,7 +26,7 @@ public class DividendBatchJob {
     }
 
     /** 매일 08:10 집행 */
-    @Scheduled(cron = "0 44 10 * * *")
+    @Scheduled(cron = "0 43 15 * * *")
     public void execute() {
         log.info("[DividendBatchJob] execute start");
         int count = dividendService.executeDueDividends();

@@ -28,6 +28,7 @@ public class AdminProductController {
             value = "/v1/admin/products",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminSimpleSuccessResponse> createProduct(
             Authentication authentication,
             @Valid @RequestPart("data") AdminCreateProductRequest request,

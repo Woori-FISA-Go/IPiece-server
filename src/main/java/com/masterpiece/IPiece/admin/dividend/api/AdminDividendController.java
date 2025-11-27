@@ -7,6 +7,8 @@ import com.masterpiece.IPiece.admin.dividend.api.dto.response.AdminDividendRespo
 import com.masterpiece.IPiece.admin.dividend.application.AdminDividendService;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +45,7 @@ public class AdminDividendController {
      * POST /v1/admin/dividends
      */
     @PostMapping("/v1/admin/dividends")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminDividendResponse> upsertDividend(
             Authentication authentication,
             @Valid @RequestBody AdminUpsertDividendRequest request
@@ -61,6 +64,7 @@ public class AdminDividendController {
      * GET /v1/admin/dividends?productId=&status=
      */
     @GetMapping("/v1/admin/dividends")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminDividendListResponse> listDividends(
             Authentication authentication,
             @RequestParam(value = "productId", required = false) Long productId,
@@ -79,6 +83,7 @@ public class AdminDividendController {
      * GET /v1/admin/dividends/{dividendId}/payouts?status=
      */
     @GetMapping("/v1/admin/dividends/{dividendId}/payouts")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminDividendPayoutsResponse> getDividendPayouts(
             Authentication authentication,
             @PathVariable Long dividendId,
@@ -103,6 +108,7 @@ public class AdminDividendController {
      * - 내부적으로는 위의 getDividendPayouts(dividendId, status) 를 그대로 사용한다.
      */
     @GetMapping("/v1/admin/dividends/payouts")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminDividendPayoutsResponse> getDividendPayoutsByQuery(
             Authentication authentication,
             @RequestParam("dividendId") Long dividendId,

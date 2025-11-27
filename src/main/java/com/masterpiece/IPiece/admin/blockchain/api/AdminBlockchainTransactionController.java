@@ -4,6 +4,8 @@ import com.masterpiece.IPiece.admin.blockchain.api.dto.response.AdminBlockchainT
 import com.masterpiece.IPiece.admin.blockchain.application.AdminBlockchainTransactionService;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +43,7 @@ public class AdminBlockchainTransactionController {
      * GET /v1/admin/blockchain/transactions
      */
     @GetMapping("/v1/admin/blockchain/transactions")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminBlockchainTransactionListResponse> getTransactions(
             Authentication authentication,
             @RequestParam(value = "userId", required = false) Long userId,

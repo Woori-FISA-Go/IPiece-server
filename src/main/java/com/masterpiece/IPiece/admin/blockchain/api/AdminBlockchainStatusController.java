@@ -4,6 +4,8 @@ import com.masterpiece.IPiece.admin.blockchain.api.dto.response.AdminBlockchainS
 import com.masterpiece.IPiece.admin.blockchain.application.AdminBlockchainStatusService;
 import com.masterpiece.IPiece.user.domain.User;
 import com.masterpiece.IPiece.user.infra.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -38,6 +40,7 @@ public class AdminBlockchainStatusController {
      * GET /v1/admin/blockchain/status
      */
     @GetMapping("/v1/admin/blockchain/status")
+    @Operation(security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<AdminBlockchainStatusResponse> getStatus(Authentication authentication) {
         if (!isAdmin(authentication)) {
             return ResponseEntity.status(403).build();
