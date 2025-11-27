@@ -43,6 +43,10 @@ public class AdminCreateProductRequest {
     @NotBlank
     private String tokenSymbol;
 
+    @JsonProperty("token_contract_address")
+    @NotBlank
+    private String tokenContractAddress;
+
     @JsonProperty("token_quantity")
     @NotNull
     @Min(1)
