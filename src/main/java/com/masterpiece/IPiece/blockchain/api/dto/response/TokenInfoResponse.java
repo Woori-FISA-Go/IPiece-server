@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.OffsetDateTime;
 
@@ -22,6 +23,7 @@ public class TokenInfoResponse {
     private String contractAddress;
     private TokenStatus status;
     private String transactionHash;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private OffsetDateTime createdAt;
 
     public static TokenInfoResponse from(BlockchainToken token) {

@@ -1,6 +1,6 @@
 package com.masterpiece.IPiece.mypage.api.dto;
 
-import java.time.OffsetDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.OffsetDateTime;
 
 import lombok.Builder;
@@ -16,5 +16,6 @@ public class AccountJournalItemDto {
     private Long amountKrw;       // + / - 포함
     private Long balanceAfter;    // 이 이벤트 이후 잔액
     private Long numberOfToken;   // 거래 시 토큰 증감량 (+ / -)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private OffsetDateTime createdAt;
 }

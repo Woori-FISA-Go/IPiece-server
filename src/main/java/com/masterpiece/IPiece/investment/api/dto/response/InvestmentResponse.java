@@ -3,6 +3,7 @@ package com.masterpiece.IPiece.investment.api.dto.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.OffsetDateTime;
 
@@ -32,6 +33,7 @@ public class InvestmentResponse {
     private Transactions transactions;
 
     @JsonProperty("completed_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private OffsetDateTime completedAt;
 
     @Getter

@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.admin.dividend.api.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.Builder;
@@ -42,6 +43,7 @@ public class AdminDividendPayoutsResponse {
         private String payoutStatus; // PAID / FAILED
 
         @JsonProperty("payout_date")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private OffsetDateTime payoutDate;
     }
 }

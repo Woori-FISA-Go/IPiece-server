@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.admin.offeringandtrade.api.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.OffsetDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class AdminEnableSecondaryTradingResponse {
     private String newStatus;         // 변경 후 상태 (예: "TRADE")
 
     @JsonProperty("enabled_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private OffsetDateTime enabledAt; // 승인/적용 일시 (ISO-8601)
 
 }

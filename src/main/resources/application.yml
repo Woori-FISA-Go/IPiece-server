@@ -26,7 +26,12 @@ spring:
       hibernate:
         format_sql: true
         highlight_sql: true  # (Spring Boot 3.1+) SQL 색상 강조
+        jdbc:
+          time_zone: Asia/Seoul
     show-sql: true        # SQL 쿼리 출력
+
+  jackson:
+    time-zone: Asia/Seoul
 
 
 server:

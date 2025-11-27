@@ -6,6 +6,7 @@ import com.masterpiece.IPiece.investment.domain.InvestmentStatus;
 import com.masterpiece.IPiece.investment.domain.InvestmentStepStatus;
 import lombok.Builder;
 import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ public class InvestmentStatusResponse {
         @JsonProperty("transaction_hash")
         private String transactionHash;
         @JsonProperty("completed_at")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private OffsetDateTime completedAt;
     }
 

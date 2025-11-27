@@ -1,6 +1,7 @@
 package com.masterpiece.IPiece.admin.blockchain.api.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -69,6 +70,7 @@ public class AdminBlockchainTransactionListResponse {
         private Long gasUsed;
 
         @JsonProperty("created_at")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private OffsetDateTime createdAt;
     }
 }
