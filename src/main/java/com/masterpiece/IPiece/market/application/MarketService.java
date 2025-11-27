@@ -13,8 +13,7 @@ import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.dividends.infra.DividendPayoutsRepository;
 import com.masterpiece.IPiece.market.api.dto.request.OrderRequest;
 import com.masterpiece.IPiece.market.api.dto.response.*;
-import com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest; // Add this import
-import com.masterpiece.IPiece.blockchain.application.BlockchainService; // Add this import
+import com.masterpiece.IPiece.blockchain.api.dto.request.WhitelistRequest;
 import com.masterpiece.IPiece.market.application.mapper.ProductMapper;
 import com.masterpiece.IPiece.market.application.OrderBookPushService;
 import com.masterpiece.IPiece.market.application.port.FavoriteQueryPort;
@@ -385,7 +384,7 @@ public class MarketService {
             // 동시성으로 unique constraint가 먼저 걸린 경우
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        registerAfterCommitMatching(savedOrder, userId, productId);
+        // registerAfterCommitMatching(savedOrder, userId, productId); // CodeRabbit Feedback: Removed duplicate matching call
 
         return OrderResponse.builder()
                 .status_code(200)
@@ -468,7 +467,7 @@ public class MarketService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.DUPLICATE_ORDER);
         }
-        registerAfterCommitMatching(savedOrder, userId, productId);
+        // registerAfterCommitMatching(savedOrder, userId, productId); // CodeRabbit Feedback: Removed duplicate matching call
 
         return OrderResponse.builder()
                 .status_code(200)

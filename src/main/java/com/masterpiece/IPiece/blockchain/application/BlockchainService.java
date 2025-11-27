@@ -297,6 +297,13 @@ public class BlockchainService {
     @Transactional
     public void settleTradeOnChain(OrderBook buyOrder, OrderBook sellOrder, long qty, long price) {
         String tokenContractAddress = buyOrder.getProduct().getTokenContractAddress();
+
+        // CodeRabbit Feedback #5: tokenContractAddress null 체크 추가
+        if (tokenContractAddress == null || tokenContractAddress.isEmpty()) {
+            log.warn("SettleTradeOnChain: Skipping settlement due to null or empty tokenContractAddress for product {}.", buyOrder.getProduct().getProductId());
+            return;
+        }
+
         User buyer = buyOrder.getVirtualAccount().getUser();
         User seller = sellOrder.getVirtualAccount().getUser();
         String buyerWalletAddress = buyOrder.getVirtualAccount().getWalletAddress();
@@ -332,7 +339,7 @@ public class BlockchainService {
             // Log KRWT transfer
             BlockchainTransaction krwtTransaction = BlockchainTransaction.builder()
                     .txHash(krwtTxHash)
-                    .fromAddress(buyerWalletAddress)
+                    .fromAddress(besuClient.getAdminAddress()) // CodeRabbit Feedback #6: Changed from buyerWalletAddress to Admin
                     .toAddress(sellerWalletAddress)
                     .tokenAddress(besuClient.getKrwtContractAddress()) // KRWT contract
                     .amount(BigDecimal.valueOf(totalKrwtAmount))
