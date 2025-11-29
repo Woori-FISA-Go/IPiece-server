@@ -56,7 +56,7 @@ krwt:
     address: ${KRWT_CONTRACT_ADDRESS}
 
 cors:
-  allowed-origins: "http://localhost:3000"
+  allowed-origins: "http://localhost:3000, http://ipiece.store, https://ipiece.store"
 
   solapi:
     api-key: ${SOLAPI_API_KEY}
