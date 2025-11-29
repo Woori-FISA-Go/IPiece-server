@@ -5,7 +5,7 @@ on:
     branches:
       - 'release/**'     # 릴리즈 브랜치
       - 'develop'        # 개발 브랜치
-
+      - 'feat/#164'
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: ipiece-server
