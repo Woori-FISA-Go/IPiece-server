@@ -221,11 +221,11 @@ public class DividendService {
                             .fromAddress(adminAddress)
                             .toAddress(walletAddress)
                             .amount(BigDecimal.valueOf(amount))
-                            .tokenAddress(null) // KRWT 컨트랙트 주소 넣고 싶으면 주입
+                            .tokenAddress(besuClient.getKrwtContractAddress()) // KRWT 컨트랙트 주소 넣고 싶으면 주입
                             .blockNumber(null) // 필요하면 receipt 조회 추가
                             .blockHash(null)
                             .gasUsed(null)
-                            .transactionStatus(TransactionStatus.SUCCESS)
+                            .transactionStatus(TransactionStatus.PENDING)
                             .user(account.getUser())
                             .build();
                     blockchainTransactionRepository.save(txLog);
@@ -272,7 +272,7 @@ public class DividendService {
                                 .fromAddress(adminAddress)
                                 .toAddress(walletAddress)
                                 .amount(BigDecimal.valueOf(amount))
-                                .tokenAddress(null)
+                                .tokenAddress(besuClient.getKrwtContractAddress())
                                 .blockNumber(null)
                                 .blockHash(null)
                                 .gasUsed(null)
@@ -303,6 +303,6 @@ public class DividendService {
     private String buildDividendDescription(Dividends dividends) {
         Product product = dividends.getProduct();
         String productName = (product != null ? product.getProductName() : "Unknown");
-        return productName + " 배당금 지급";
+        return productName + " dividend payout";
     }
 }

@@ -54,9 +54,12 @@ jwt:
 krwt:
   contract:
     address: ${KRWT_CONTRACT_ADDRESS}
+tokenfactory:
+  contract:
+    address: ${TOKENFACTORY_CONTRACT_ADDRESS}
 
 cors:
-  allowed-origins: "http://localhost:3000"
+  allowed-origins: "http://localhost:3000, http://ipiece.store, https://ipiece.store"
 
   solapi:
     api-key: ${SOLAPI_API_KEY}
@@ -65,8 +68,13 @@ cors:
 
 besu:
   rpc-url: ${BESU_RPC_URL}
+  chain-id: ${BLOCKCHAIN_CHAIN_ID}
+  tx:
+    gas-price: 0
+    gas-limit: 1000000
 admin:
   private-key: ${ADMIN_PRIVATE_KEY}
+  address: ${BLOCKCHAIN_ADMIN_ADDRESS}
 blockchain:
   admin:
     user-id: 4

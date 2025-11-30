@@ -1,12 +1,14 @@
 package com.masterpiece.IPiece.blockchain.infra.jpa;
 
 import com.masterpiece.IPiece.blockchain.domain.BlockchainTransaction;
+import com.masterpiece.IPiece.blockchain.domain.TransactionStatus;
 import com.masterpiece.IPiece.blockchain.domain.TransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -14,4 +16,5 @@ public interface BlockchainTransactionRepository extends JpaRepository<Blockchai
     Optional<BlockchainTransaction> findByTxHash(String txHash);
     Page<BlockchainTransaction> findByUser_UserId(Long userId, Pageable pageable);
     Page<BlockchainTransaction> findByTransactionType(TransactionType transactionType, Pageable pageable);
+    List<BlockchainTransaction> findTop100ByTransactionStatusOrderByCreatedAtAsc(TransactionStatus transactionStatus);
 }
