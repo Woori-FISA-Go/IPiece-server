@@ -102,15 +102,15 @@ public class WalletService {
             OperationType operationType = OperationType.valueOf(request.getType().toUpperCase());
             operationsPage = krwtOperationRepository.findByUserUserIdAndOperationType(userId, operationType, pageable);
         } else {
-            operationsPage = krwtOperationRepository.findByUserUserId(userId, pageable);
+            // 거래내역에서는 MINT/BURN(입출금)을 DB 레벨에서 제외
+            operationsPage = krwtOperationRepository.findByUserUserIdAndOperationTypeNotIn(
+                    userId,
+                    List.of(OperationType.MINT, OperationType.BURN),
+                    pageable
+            );
         }
 
-        // 거래내역에서는 MINT/BURN(입출금)을 제외
-        List<KrwtOperation> filtered = operationsPage.getContent().stream()
-                .filter(op -> op.getOperationType() != OperationType.MINT && op.getOperationType() != OperationType.BURN)
-                .collect(Collectors.toList());
-
-        List<TransactionListResponse.TransactionItem> transactionItems = filtered.stream()
+        List<TransactionListResponse.TransactionItem> transactionItems = operationsPage.getContent().stream()
                 .map(op -> TransactionListResponse.TransactionItem.builder()
                         .journalId(op.getOperationId())
                         .type(op.getOperationType().name())
@@ -122,12 +122,9 @@ public class WalletService {
                         .build())
                 .collect(Collectors.toList());
 
-        long totalElements = filtered.size();
-        int totalPages = (int) Math.ceil(totalElements / (double) request.getSize());
-
         return TransactionListResponse.builder()
-                .totalElements(totalElements)
-                .totalPages(totalPages)
+                .totalElements(operationsPage.getTotalElements())
+                .totalPages(operationsPage.getTotalPages())
                 .currentPage(request.getPage())
                 .pageSize(request.getSize())
                 .transactions(transactionItems)

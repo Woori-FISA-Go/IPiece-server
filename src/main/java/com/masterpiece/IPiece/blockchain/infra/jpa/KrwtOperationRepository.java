@@ -15,4 +15,5 @@ public interface KrwtOperationRepository extends JpaRepository<KrwtOperation, Lo
     Page<KrwtOperation> findByOperationType(OperationType operationType, Pageable pageable);
     Page<KrwtOperation> findByVirtualAccountAccountId(Long accountId, Pageable pageable);
     Page<KrwtOperation> findByUserUserIdAndOperationType(Long userId, OperationType operationType, Pageable pageable);
+    Page<KrwtOperation> findByUserUserIdAndOperationTypeNotIn(Long userId, List<OperationType> operationTypes, Pageable pageable);
 }
