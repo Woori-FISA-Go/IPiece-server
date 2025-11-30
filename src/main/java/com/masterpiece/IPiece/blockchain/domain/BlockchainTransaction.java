@@ -71,4 +71,20 @@ public class BlockchainTransaction extends BaseEntity {
         this.errorMessage = message;
         this.transactionStatus = TransactionStatus.FAILED;
     }
+
+    public void markSuccess(Long blockNumber, String blockHash, Long gasUsed) {
+        this.transactionStatus = TransactionStatus.SUCCESS;
+        this.blockNumber = blockNumber;
+        this.blockHash = blockHash;
+        this.gasUsed = gasUsed;
+        this.errorMessage = null;
+    }
+
+    public void markFailed(String message, Long blockNumber, String blockHash, Long gasUsed) {
+        this.transactionStatus = TransactionStatus.FAILED;
+        this.errorMessage = message;
+        this.blockNumber = blockNumber;
+        this.blockHash = blockHash;
+        this.gasUsed = gasUsed;
+    }
 }

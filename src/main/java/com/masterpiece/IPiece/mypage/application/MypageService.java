@@ -165,8 +165,17 @@ public class MypageService {
 
 
         List<AccountHistoryItemDto> journalHistory =
-                virtualAccountJournalRepository.findByVirtualAccountAndCreatedAtBetween(account,fromDateTime, toDateTime)
+                virtualAccountJournalRepository.findByVirtualAccountAndCreatedAtBetween(account, fromDateTime, toDateTime)
                         .stream()
+                        // 거래내역 페이지에서는 입출금(DEPOSIT/WITHDRAW)은 제외하고 공모/배당/2차거래 등만 노출
+                        .filter(j -> {
+                            String type = j.getTxType();
+                            return !"DEPOSIT".equalsIgnoreCase(type)
+                                    && !"WITHDRAW".equalsIgnoreCase(type)
+                                    && !"TRADE_BUY".equalsIgnoreCase(type)
+                                    && !"TRADE_SELL".equalsIgnoreCase(type)
+                                    && !"DIVIDEND".equalsIgnoreCase(type);
+                        })
                         .map(mypageMapper::toOfferingHistoryItem)
                         .collect(Collectors.toList());
 

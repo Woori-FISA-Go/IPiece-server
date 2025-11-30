@@ -25,6 +25,7 @@ import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
 import com.masterpiece.IPiece.common.exception.TokenNotFoundException;
 import com.masterpiece.IPiece.common.exception.WalletNotFoundException;
+import com.masterpiece.IPiece.integration.besu.BesuClient.CreateTokenResult;
 import com.masterpiece.IPiece.integration.besu.BesuClient;
 import com.masterpiece.IPiece.investment.domain.Investment;
 import com.masterpiece.IPiece.investment.infra.jpa.InvestmentRepository;
@@ -37,6 +38,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -75,9 +77,45 @@ public class BlockchainService {
 
     @Transactional
     public CreateTokenResponse createToken(CreateTokenRequest request, Long adminUserId) {
-        // For now, we'll use dummy values for contract deployment
-        String dummyContractAddress = besuClient.randomAddress();
-        String dummyTransactionHash = besuClient.randomHash();
+        if (request.getTotalSupply() == null || request.getTotalSupply() <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "totalSupply must be > 0");
+        }
+
+        // TokenFactory 없으면 즉시 실패 처리 (프론트 계약은 그대로 유지)
+        CreateTokenResult result;
+        try {
+            result = besuClient.createTokenViaFactory(
+                    request.getName(),
+                    request.getSymbol(),
+                    BigInteger.valueOf(request.getTotalSupply())
+            );
+        } catch (BlockchainException e) {
+            log.error("Failed to create token via TokenFactory: {}", e.getMessage(), e);
+
+            String msg = e.getMessage() != null ? e.getMessage() : "unknown blockchain error";
+
+            if (msg.contains("TokenFactory address is not configured")) {
+                throw new BusinessException(
+                        ErrorCode.CONTRACT_ADDRESS_NOT_FOUND,
+                        "토큰 팩토리 컨트랙트 주소가 설정되지 않았습니다. 배포/설정 값을 확인해주세요.",
+                        e
+                );
+            }
+
+            if (msg.contains("Transaction not mined within timeout")) {
+                throw new BusinessException(
+                        ErrorCode.TIMEOUT,
+                        "블록체인 트랜잭션이 설정된 시간 내에 처리되지 않았습니다. 노드 상태를 확인한 뒤 다시 시도해주세요.",
+                        e
+                );
+            }
+
+            throw new BusinessException(
+                    ErrorCode.BLOCKCHAIN_ERROR,
+                    "블록체인 토큰 생성 중 오류가 발생했습니다: " + msg,
+                    e
+            );
+        }
 
         BlockchainToken token = BlockchainToken.builder()
                 .name(request.getName())
@@ -85,10 +123,14 @@ public class BlockchainService {
                 .totalSupply(request.getTotalSupply())
                 .faceValue(request.getFaceValue())
                 .ownerUserId(adminUserId)
-                .contractAddress(dummyContractAddress)
-                .transactionHash(dummyTransactionHash)
-                .status(TokenStatus.DEPLOYED) // Set directly to DEPLOYED as per review
+                .contractAddress(result.getTokenAddress())
+                .transactionHash(result.getTxHash())
+                .status(TokenStatus.DEPLOYED)
                 .build();
+
+        if (token.getContractAddress() == null || token.getContractAddress().isBlank()) {
+            throw new BusinessException(ErrorCode.BLOCKCHAIN_ERROR, "생성된 토큰 주소를 확인할 수 없습니다. tx=" + result.getTxHash());
+        }
 
         BlockchainToken savedToken = blockchainTokenRepository.save(token);
 
@@ -157,11 +199,9 @@ public class BlockchainService {
 
         // 4. Call BesuClient to execute the smart contract function
         try {
-            // This is a mocked call for now. In a real scenario, this would interact with the blockchain.
             String transactionHash = besuClient.transferToken(token.getContractAddress(), request.getToAddress(), request.getAmount());
             log.info("Successfully transferred {} tokens from admin to {} for contract {}", request.getAmount(), request.getToAddress(), contractAddress);
 
-            // Save transfer record to BlockchainTransaction entity
             BlockchainTransaction transaction = BlockchainTransaction.builder()
                     .txHash(transactionHash)
                     .fromAddress(besuClient.getAdminAddress())
@@ -169,16 +209,15 @@ public class BlockchainService {
                     .tokenAddress(contractAddress)
                     .amount(BigDecimal.valueOf(request.getAmount()))
                     .transactionType(TransactionType.TRANSFER)
-                    .transactionStatus(TransactionStatus.SUCCESS)
+                    .transactionStatus(TransactionStatus.PENDING)
                     .user(adminUser)
                     .investment(investment)
                     .build();
 
             blockchainTransactionRepository.save(transaction);
 
-
             return TokenTransferResponse.builder()
-                    .fromAddress(besuClient.getAdminAddress()) // Admin's wallet address
+                    .fromAddress(besuClient.getAdminAddress())
                     .toAddress(request.getToAddress())
                     .amount(request.getAmount())
                     .transactionHash(transactionHash)
@@ -311,41 +350,39 @@ public class BlockchainService {
         long totalKrwtAmount = qty * price;
 
         try {
-            // This is a simplified model where the admin/system wallet facilitates all transfers.
-            // A more decentralized model would use approve/transferFrom.
-
-            // 1. Transfer Product Token (Admin -> Buyer)
-            // It's assumed the seller's tokens are held in an escrow or by the admin wallet for trading.
-            String tokenTxHash = besuClient.transferToken(tokenContractAddress, buyerWalletAddress, qty);
-            log.info("Settlement: Transferred {} tokens to buyer {} [Tx: {}]", qty, buyer.getUserId(), tokenTxHash);
+            // 1. Transfer Product Token (seller -> buyer) via transferFrom (seller allowance 필요)
+            String tokenTxHash = besuClient.transferTokenFrom(tokenContractAddress, sellerWalletAddress, buyerWalletAddress, qty);
+            log.info("Settlement: Transferred {} tokens from seller {} to buyer {} [Tx: {}]", qty, seller.getUserId(), buyer.getUserId(), tokenTxHash);
 
             // Log token transfer
             BlockchainTransaction tokenTransaction = BlockchainTransaction.builder()
                     .txHash(tokenTxHash)
-                    .fromAddress(besuClient.getAdminAddress()) // From Admin/Escrow
+                    .fromAddress(sellerWalletAddress)
                     .toAddress(buyerWalletAddress)
                     .tokenAddress(tokenContractAddress)
                     .amount(BigDecimal.valueOf(qty))
-                    .transactionType(TransactionType.TRADE)
-                    .transactionStatus(TransactionStatus.SUCCESS)
-                    .user(buyer) // Associated with the buyer
+                    // DB 제약에 맞춰 TRADE 대신 TRANSFER로 기록
+                    .transactionType(TransactionType.TRANSFER)
+                    .transactionStatus(TransactionStatus.PENDING)
+                    .user(seller)
                     .build();
             blockchainTransactionRepository.save(tokenTransaction);
 
             // 2. Transfer KRWT (Buyer -> Seller)
-            String krwtTxHash = besuClient.transferKrwt(sellerWalletAddress, totalKrwtAmount);
+            String krwtTxHash = besuClient.transferKrwtFrom(buyerWalletAddress, sellerWalletAddress, totalKrwtAmount);
             log.info("Settlement: Transferred {} KRWT from buyer {} to seller {} [Tx: {}]", totalKrwtAmount, buyer.getUserId(), seller.getUserId(), krwtTxHash);
 
             // Log KRWT transfer
             BlockchainTransaction krwtTransaction = BlockchainTransaction.builder()
                     .txHash(krwtTxHash)
-                    .fromAddress(besuClient.getAdminAddress()) // CodeRabbit Feedback #6: Changed from buyerWalletAddress to Admin
+                    .fromAddress(buyerWalletAddress)
                     .toAddress(sellerWalletAddress)
                     .tokenAddress(besuClient.getKrwtContractAddress()) // KRWT contract
                     .amount(BigDecimal.valueOf(totalKrwtAmount))
-                    .transactionType(TransactionType.TRADE)
-                    .transactionStatus(TransactionStatus.SUCCESS)
-                    .user(buyer) // Associated with the buyer who initiated the trade
+                    // DB 제약에 맞춰 TRADE 대신 TRANSFER로 기록
+                    .transactionType(TransactionType.TRANSFER)
+                    .transactionStatus(TransactionStatus.PENDING)
+                    .user(buyer) // KRWT 전송 주체
                     .build();
             blockchainTransactionRepository.save(krwtTransaction);
 

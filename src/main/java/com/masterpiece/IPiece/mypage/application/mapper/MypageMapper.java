@@ -193,10 +193,11 @@ public class MypageMapper {
         // 3. 보유 KRW (현금)
         long balanceKrw = account.getBalanceKrw();
         long pendingPrice = account.getPendingPrice() != null ? account.getPendingPrice() : 0L;
-        long totalKrw = balanceKrw + pendingPrice;
+        // 보유 KRW(표시용)는 주문가능 금액과 동일하게 balance만 사용
+        long totalKrw = balanceKrw;
 
-        // 4. 총 보유자산 = 보유 KRW + 총 평가
-        long totalAssets = totalKrw + totalEvaluation;
+        // 4. 총 보유자산 = 보유 KRW + 총 평가 (pending 제외)
+        long totalAssets = balanceKrw + totalEvaluation;
 
         // 5. 총평가손익 = 총 평가 - 총 매수
         long totalProfit = totalEvaluation - totalBuyAmount;
@@ -410,6 +411,9 @@ public class MypageMapper {
             case "OFFERING_BUY" -> "공모 구매";
             case "DEPOSIT" -> "입금";
             case "WITHDRAW" -> "출금";
+            case "TRADE_BUY" -> "거래 매수";
+            case "TRADE_SELL" -> "거래 매도";
+            case "DIVIDEND" -> "배당";
             default -> "기타 내역";
         };
 
