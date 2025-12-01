@@ -44,7 +44,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "prometheus,metrics"
+        include: prometheus, metrics, health, info
   observations:
     enable:
       http: true
@@ -52,6 +52,11 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+    enable:
+      http: true
+      jvm: true
+      process: true
+      system: true
 
 
 jwt:
