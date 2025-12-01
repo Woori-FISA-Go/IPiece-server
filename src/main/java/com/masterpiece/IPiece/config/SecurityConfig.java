@@ -1,6 +1,8 @@
 package com.masterpiece.IPiece.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
+import com.masterpiece.IPiece.config.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +17,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import com.masterpiece.IPiece.config.JwtAuthenticationFilter;
 
 import java.util.Map;
 
@@ -26,108 +27,127 @@ import java.util.Map;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
+    /**
+     * 🔥 CORS Config
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.addAllowedOriginPattern(allowedOrigins);  // 프론트 URL 허용
-        config.addAllowedHeader("Authorization");
-        config.addAllowedHeader("Content-Type");
-        config.addAllowedHeader("Idempotency-Key");
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("DELETE");
+        config.addAllowedOriginPattern(allowedOrigins);
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
-
+    /**
+     * 🔥 Spring Boot 3.x
+     * HTTP Metrics는 WebMvcObservationFilter가 자동 등록되므로
+     * WebMvcMetricsFilter 같은 Bean 생성이 필요 없음.
+     * 중요한 것은 JWT 필터가 "뒤"에 있어야 metrics 관찰이 가능.
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // 🔥 반드시 필요
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
+                        // Prometheus + Actuator
                         .requestMatchers(
                                 "/actuator/**",
                                 "/actuator/prometheus",
-                                "/healthz",             // 내부(K8s) 헬스체크용
-                                "/api/healthz",         // ✅ [추가됨] 외부(ALB) 헬스체크용 (이게 없어서 401 뜸)
+                                "/actuator/health",
+                                "/healthz",
+                                "/api/healthz"
+                        ).permitAll()
+
+                        // Swagger
+                        .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/actuator/health",
+                                "/swagger-resources/**"
+                        ).permitAll()
+
+                        // 비회원 허용 API
+                        .requestMatchers(
                                 "/v1/auth/**",
                                 "/v1/otp/**",
-                                "/v1/signup/info",
-                                "/v1/auth/otp/**",
-                                "/v1/auth/token/login",
-                                "/v1/auth/token/refresh",
-                                "/v1/blockchain/tokens/{address}",
                                 "/v1/signup/**",
-                                "/v1/market/products",
-                                "/v1/market/*/details",
-                                "/v1/market/*/chart",
-                                "/v1/market/*/orders",
-                                "/v1/market/*/detail",
+                                "/v1/auth/token/**",
+                                "/v1/market/**",
                                 "/v1/main/home",
                                 "/v1/offerings",
                                 "/v1/offerings/*/detail",
-                                "/error",
                                 "/images/**",
                                 "/ws/**",
-                                "/healthz"
+                                "/error"
                         ).permitAll()
-                        .requestMatchers("/v1/blockchain/admin/**").hasRole("ADMIN") // 이 줄 추가
+
+                        // ADMIN 권한
+                        .requestMatchers("/v1/blockchain/admin/**").hasRole("ADMIN")
+
+                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
+
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             ErrorCode code = ErrorCode.AUTH_REQUIRED;
                             response.setStatus(code.getStatus().value());
                             response.setContentType("application/problem+json; charset=UTF-8");
-
-                            new com.fasterxml.jackson.databind.ObjectMapper()
-                                    .writeValue(response.getWriter(), Map.of(
-                                            "type", code.name(),
-                                            "title", code.getMessage(),
-                                            "status", code.getStatus().value(),
-                                            "detail", code.getMessage(),
-                                            "instance", request.getRequestURI()
-                                    ));
+                            new ObjectMapper().writeValue(response.getWriter(), Map.of(
+                                    "type", code.name(),
+                                    "title", code.getMessage(),
+                                    "status", code.getStatus().value(),
+                                    "detail", code.getMessage(),
+                                    "instance", request.getRequestURI()
+                            ));
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             ErrorCode code = ErrorCode.PERMISSION_DENIED;
                             response.setStatus(code.getStatus().value());
                             response.setContentType("application/problem+json; charset=UTF-8");
-
-                            new com.fasterxml.jackson.databind.ObjectMapper()
-                                    .writeValue(response.getWriter(), Map.of(
-                                            "type", code.name(),
-                                            "title", code.getMessage(),
-                                            "status", code.getStatus().value(),
-                                            "detail", code.getMessage(),
-                                            "instance", request.getRequestURI()
-                                    ));
+                            new ObjectMapper().writeValue(response.getWriter(), Map.of(
+                                    "type", code.name(),
+                                    "title", code.getMessage(),
+                                    "status", code.getStatus().value(),
+                                    "detail", code.getMessage(),
+                                    "instance", request.getRequestURI()
+                            ));
                         })
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+                /**
+                 * 🔥 핵심: JWT 필터는 UsernamePasswordAuthenticationFilter "뒤"에 둬야 함
+                 * 그래야 ObservationFilter(WebMvcObservationFilter) → Security → JWT 순으로 넘어가며
+                 * HTTP 요청 메트릭이 생성됨.
+                 */
+                .addFilterAfter(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
-    // 직접 AuthenticationManager를 쓰지 않지만, Spring Security가 내부적으로 필요하기 때문에 등록
+    /**
+     * AuthenticationManager Bean
+     */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config
+    ) throws Exception {
         return config.getAuthenticationManager();
     }
 }
