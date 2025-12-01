@@ -21,6 +21,13 @@ public class LocalStorageService implements StorageService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+    //CDN 지원을 위한 설정 추가
+    @Value("${cloud.aws.cdn.url:}")
+    private String cdnUrl;
+
+    @Value("${cloud.aws.region.static}")
+    private String region;
+
     @Override
     public String saveIdCard(MultipartFile file, String userId) {
         try {
@@ -43,7 +50,7 @@ public class LocalStorageService implements StorageService {
             );
 
             uploadToS3(file, key);
-            return amazonS3.getUrl(bucket, key).toString();
+            return getFileUrl(key);  // CDN 또는 S3 URL 반환
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -74,7 +81,7 @@ public class LocalStorageService implements StorageService {
             );
 
             uploadToS3(file, key);
-            return amazonS3.getUrl(bucket, key).toString();
+            return getFileUrl(key);  // CDN 또는 S3 URL 반환
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -90,6 +97,17 @@ public class LocalStorageService implements StorageService {
         try (InputStream in = file.getInputStream()) {
             amazonS3.putObject(bucket, key, in, metadata);
         }
+    }
+
+    /**
+     * CloudFront CDN이 설정되어 있으면 CDN URL을,
+     * 없으면 S3 직접 URL을 반환
+     */
+    private String getFileUrl(String key) {
+        if (cdnUrl != null && !cdnUrl.isEmpty()) {
+            return cdnUrl + "/" + key;
+        }
+        return amazonS3.getUrl(bucket, key).toString();
     }
 
     private String extractExt(String originalName) {
