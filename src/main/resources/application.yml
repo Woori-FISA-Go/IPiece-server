@@ -45,26 +45,31 @@ management:
     web:
       exposure:
         include: prometheus, metrics, health, info
+
   observations:
     enable:
       http: true
+
   metrics:
     distribution:
       percentiles-histogram:
         http.server.requests: true
-    export:
-      otlp:
+    enable:
+      http: true
+      jvm: true
+      process: true
+      system: true
+
+  otlp:
+    metrics:
+      export:
         enabled: true
         step: 5s
         endpoint: http://ipiece-monitoring-otel.monitoring.svc.cluster.local:4318/v1/metrics
         resourceAttributes:
           service.name: IPiece
           service.namespace: default
-    enable:
-      http: true
-      jvm: true
-      process: true
-      system: true
+
 
 
 jwt:
