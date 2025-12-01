@@ -123,9 +123,10 @@ jobs:
           ADMIN_PRIVATE_KEY: ${{ secrets.ADMIN_PRIVATE_KEY }}
           BESU_RPC_URL: ${{ secrets.BESU_RPC_URL }}
           KRWT_CONTRACT_ADDRESS: ${{ secrets.KRWT_CONTRACT_ADDRESS }}
-          TOKENFACTORY_CONTRACT_ADDRESS: ${{ secrets.TOKENFACTORY_CONTRACT_ADDRESS }}
+          TOKEN_FACTORY_CONTRACT_ADDRESS: ${{ secrets.TOKENFACTORY_CONTRACT_ADDRESS }}
           BLOCKCHAIN_ADMIN_ADDRESS: ${{ secrets.BLOCKCHAIN_ADMIN_ADDRESS }}
           BLOCKCHAIN_CHAIN_ID: ${{ secrets.BLOCKCHAIN_CHAIN_ID }}
+
 
         run: |
           echo "🔐 Syncing GitHub Secrets to EKS..."
@@ -149,7 +150,7 @@ jobs:
             --from-literal=ADMIN_PRIVATE_KEY="$ADMIN_PRIVATE_KEY" \
             --from-literal=BESU_RPC_URL="$BESU_RPC_URL" \
             --from-literal=KRWT_CONTRACT_ADDRESS="$KRWT_CONTRACT_ADDRESS" \
-            --from-literal=TOKENFACTORY_CONTRACT_ADDRESS="$TOKENFACTORY_CONTRACT_ADDRESS" \
+            --from-literal=TOKEN_FACTORY_CONTRACT_ADDRESS="$TOKEN_FACTORY_CONTRACT_ADDRESS" \
             --from-literal=BLOCKCHAIN_ADMIN_ADDRESS="$BLOCKCHAIN_ADMIN_ADDRESS" \
             --from-literal=BLOCKCHAIN_CHAIN_ID="$BLOCKCHAIN_CHAIN_ID" 
           echo "✅ Kubernetes Secret updated successfully."
