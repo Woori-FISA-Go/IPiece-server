@@ -13,10 +13,15 @@ import com.masterpiece.IPiece.offering.domain.OfferingSubscriptions;
 import com.masterpiece.IPiece.offering.domain.ProductOfferingInfo;
 import com.masterpiece.IPiece.offering.infra.OfferingSubscriptionsRepository;
 import com.masterpiece.IPiece.offering.infra.ProductOfferingInfoRepository;
+import com.masterpiece.IPiece.blockchain.application.BlockchainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -29,6 +34,7 @@ public class OfferingPurchaseService {
     private final OfferingSubscriptionsRepository subscriptionsRepository;
     private final VirtualAccountRepository virtualAccountRepository;
     private final VirtualAccountJournalRepository virtualAccountJournalRepository;
+    private final BlockchainService blockchainService;
 
     // 구매 전 사전 검증
     public void validatePurchase(Long productId, Long userId, long quantity) {
@@ -116,6 +122,22 @@ public class OfferingPurchaseService {
         virtualAccountJournalRepository.save(journal);
 
         updateProgressRate(productId);
+
+        // 온체인 KRWT 집금은 트랜잭션 커밋 후 비동기로 처리
+        scheduleOfferingKrwtTransfer(account, offeringInfo.getProduct(), totalPrice);
+    }
+
+    private void scheduleOfferingKrwtTransfer(VirtualAccount account, Product product, long totalPrice) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            CompletableFuture.runAsync(() -> blockchainService.transferKrwtForOffering(account, product, totalPrice));
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                CompletableFuture.runAsync(() -> blockchainService.transferKrwtForOffering(account, product, totalPrice));
+            }
+        });
     }
 
 

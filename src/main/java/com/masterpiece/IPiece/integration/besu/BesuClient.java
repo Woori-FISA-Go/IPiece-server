@@ -797,6 +797,11 @@ public class BesuClient {
         }
     }
 
+    // 외부 서비스에서 receipt 대기 필요 시 사용
+    public TransactionReceipt waitForReceipt(String txHash) {
+        return waitForTransactionReceipt(txHash);
+    }
+
     private void validateAddress(String addr, String label) {
         if (!StringUtils.hasText(addr) || !addr.matches("^0x[0-9a-fA-F]{40}$")) {
             throw new IllegalArgumentException("Invalid " + label + " address: " + addr);

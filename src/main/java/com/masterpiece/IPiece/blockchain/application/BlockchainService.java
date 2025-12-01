@@ -20,6 +20,8 @@ import com.masterpiece.IPiece.blockchain.domain.TransactionType;
 import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTokenRepository;
 import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTransactionRepository;
 import com.masterpiece.IPiece.blockchain.infra.jpa.WalletRepository;
+import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
+import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.exception.BlockchainException;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
@@ -37,6 +39,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 import java.math.BigDecimal;
@@ -390,6 +393,47 @@ public class BlockchainService {
             log.error("On-chain settlement failed for buyOrder {} and sellOrder {}: {}", buyOrder.getOrderId(), sellOrder.getOrderId(), e.getMessage(), e);
             // Re-throw to ensure the entire off-chain transaction is rolled back
             throw new BlockchainException("On-chain settlement failed", e);
+        }
+    }
+
+    /**
+     * 공모 참여 이후 KRWT를 사용자 지갑에서 관리자 지갑으로 이동시킨다.
+     * - DB 트랜잭션과 분리된 비동기 흐름에서 호출할 것.
+     * - 실패 시 예외를 외부로 던지지 않고 로그만 남긴다.
+     */
+    public void transferKrwtForOffering(VirtualAccount account,
+                                        Product product,
+                                        long totalPrice) {
+        String from = account.getWalletAddress();
+        String to = besuClient.getAdminAddress();
+        try {
+            String txHash = besuClient.transferKrwtFrom(from, to, totalPrice);
+            log.info("Offering KRWT transfer sent: from={} to={} amount={} txHash={}", from, to, totalPrice, txHash);
+
+            TransactionReceipt receipt = besuClient.waitForReceipt(txHash);
+            if (receipt == null || !receipt.isStatusOK()) {
+                log.warn("Offering KRWT transfer receipt not successful: txHash={} status={}", txHash,
+                        receipt != null ? receipt.getStatus() : "null");
+                return;
+            }
+
+            BlockchainTransaction tx = BlockchainTransaction.builder()
+                    .txHash(txHash)
+                    .fromAddress(from)
+                    .toAddress(to)
+                    .tokenAddress(besuClient.getKrwtContractAddress())
+                    .amount(BigDecimal.valueOf(totalPrice))
+                    .transactionType(TransactionType.TRANSFER)
+                    .transactionStatus(TransactionStatus.SUCCESS)
+                    .blockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null)
+                    .blockHash(receipt.getBlockHash())
+                    .gasUsed(receipt.getGasUsed() != null ? receipt.getGasUsed().longValue() : null)
+                    .user(account.getUser())
+                    .build();
+            blockchainTransactionRepository.save(tx);
+            log.info("Offering KRWT transfer confirmed and recorded. txId={}, txHash={}", tx.getTxId(), txHash);
+        } catch (Exception e) {
+            log.error("Offering KRWT transfer failed (async): userId={} amount={}", account.getUser().getUserId(), totalPrice, e);
         }
     }
 }
