@@ -55,7 +55,8 @@ management:
     export:
       otlp:
         enabled: true
-        endpoint: http://ipiece-monitoring-otel-collector.monitoring:4318/v1/metrics
+        step: 5s
+        endpoint: http://ipiece-monitoring-otel.monitoring.svc.cluster.local:4318/v1/metrics
         resourceAttributes:
           service.name: IPiece
           service.namespace: default
