@@ -20,8 +20,6 @@ import com.masterpiece.IPiece.blockchain.domain.TransactionType;
 import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTokenRepository;
 import com.masterpiece.IPiece.blockchain.infra.jpa.BlockchainTransactionRepository;
 import com.masterpiece.IPiece.blockchain.infra.jpa.WalletRepository;
-import com.masterpiece.IPiece.common.domain.account.VirtualAccount;
-import com.masterpiece.IPiece.common.domain.product.Product;
 import com.masterpiece.IPiece.common.exception.BlockchainException;
 import com.masterpiece.IPiece.common.exception.BusinessException;
 import com.masterpiece.IPiece.common.exception.ErrorCode;
@@ -401,10 +399,11 @@ public class BlockchainService {
      * - DB 트랜잭션과 분리된 비동기 흐름에서 호출할 것.
      * - 실패 시 예외를 외부로 던지지 않고 로그만 남긴다.
      */
-    public void transferKrwtForOffering(VirtualAccount account,
-                                        Product product,
+    @Transactional
+    public void transferKrwtForOffering(Long userId,
+                                        String walletAddress,
                                         long totalPrice) {
-        String from = account.getWalletAddress();
+        String from = walletAddress;
         String to = besuClient.getAdminAddress();
         try {
             String txHash = besuClient.transferKrwtFrom(from, to, totalPrice);
@@ -428,12 +427,12 @@ public class BlockchainService {
                     .blockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null)
                     .blockHash(receipt.getBlockHash())
                     .gasUsed(receipt.getGasUsed() != null ? receipt.getGasUsed().longValue() : null)
-                    .user(account.getUser())
+                    .user(userRepository.findById(userId).orElse(null))
                     .build();
             blockchainTransactionRepository.save(tx);
             log.info("Offering KRWT transfer confirmed and recorded. txId={}, txHash={}", tx.getTxId(), txHash);
         } catch (Exception e) {
-            log.error("Offering KRWT transfer failed (async): userId={} amount={}", account.getUser().getUserId(), totalPrice, e);
+            log.error("Offering KRWT transfer failed (async): userId={} amount={}", userId, totalPrice, e);
         }
     }
 }

@@ -124,18 +124,21 @@ public class OfferingPurchaseService {
         updateProgressRate(productId);
 
         // 온체인 KRWT 집금은 트랜잭션 커밋 후 비동기로 처리
-        scheduleOfferingKrwtTransfer(account, offeringInfo.getProduct(), totalPrice);
+        scheduleOfferingKrwtTransfer(account, totalPrice);
     }
 
-    private void scheduleOfferingKrwtTransfer(VirtualAccount account, Product product, long totalPrice) {
+    private void scheduleOfferingKrwtTransfer(VirtualAccount account, long totalPrice) {
+        Long userId = account.getUser().getUserId();
+        String walletAddress = account.getWalletAddress();
+
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            CompletableFuture.runAsync(() -> blockchainService.transferKrwtForOffering(account, product, totalPrice));
+            CompletableFuture.runAsync(() -> blockchainService.transferKrwtForOffering(userId, walletAddress, totalPrice));
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                CompletableFuture.runAsync(() -> blockchainService.transferKrwtForOffering(account, product, totalPrice));
+                CompletableFuture.runAsync(() -> blockchainService.transferKrwtForOffering(userId, walletAddress, totalPrice));
             }
         });
     }
