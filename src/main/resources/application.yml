@@ -44,7 +44,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: prometheus,metrics
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
 
 jwt:
   secret: ${JWT_SECRET}
