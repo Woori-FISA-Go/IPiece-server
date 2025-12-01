@@ -44,7 +44,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus,metrics
+        include: "prometheus,metrics"
+  observations:
+    enable:
+      http: true
   metrics:
     distribution:
       percentiles-histogram:
