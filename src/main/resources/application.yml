@@ -65,7 +65,7 @@ management:
       export:
         enabled: true
         step: 5s
-        endpoint: http://ipiece-monitoring-otel-collector-gateway.monitoring.svc.cluster.local:4318/v1/metrics
+        url: http://ipiece-monitoring-otel-collector-gateway.monitoring.svc.cluster.local:4318/v1/metrics
         resourceAttributes:
           service.name: IPiece
           service.namespace: default
