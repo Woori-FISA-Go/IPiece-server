@@ -52,6 +52,13 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+    export:
+      otlp:
+        enabled: true
+        endpoint: http://ipiece-monitoring-otel-collector.monitoring:4318/v1/metrics
+        resourceAttributes:
+          service.name: IPiece
+          service.namespace: default
     enable:
       http: true
       jvm: true
