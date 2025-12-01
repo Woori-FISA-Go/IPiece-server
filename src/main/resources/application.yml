@@ -69,7 +69,7 @@ management:
         resource-attributes:
           service.name: IPiece
           service.namespace: default
-          k8s.node.name: ${KUBERNETES_NODE_NAME}
+          "k8s_node_name": "${KUBERNETES_NODE_NAME}"
 
 
 
