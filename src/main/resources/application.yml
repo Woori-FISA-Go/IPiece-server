@@ -51,6 +51,8 @@ management:
       http: true
 
   metrics:
+    tags:
+      k8s_node_name: "${KUBERNETES_NODE_NAME}"
     distribution:
       percentiles-histogram:
         http.server.requests: true
@@ -66,10 +68,10 @@ management:
         enabled: true
         step: 5s
         url: http://ipiece-monitoring-otel-collector-gateway.monitoring.svc.cluster.local:4318/v1/metrics
-        resource-attributes:
-          service.name: IPiece
-          service.namespace: default
-          "k8s_node_name": "${KUBERNETES_NODE_NAME}"
+        #resource-attributes:
+          #service.name: IPiece
+          #service.namespace: default
+          #"k8s_node_name": "${KUBERNETES_NODE_NAME}"
 
 
 
