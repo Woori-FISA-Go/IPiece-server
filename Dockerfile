@@ -63,4 +63,5 @@ ENV SPRING_PROFILES_ACTIVE=prod \
 EXPOSE 8080
 
 # 실행
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["java"]
+CMD ["-jar", "app.jar"]
