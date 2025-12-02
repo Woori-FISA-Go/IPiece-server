@@ -126,6 +126,8 @@ cloud:
       secret-key: ${AWS_SECRET_KEY}
     s3:
       bucket: ipiece-image
+    cdn:
+      url: ${CDN_URL:}
     region:
       static: ap-northeast-2
     stack:

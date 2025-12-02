@@ -126,6 +126,7 @@ jobs:
           TOKENFACTORY_CONTRACT_ADDRESS: ${{ secrets.TOKENFACTORY_CONTRACT_ADDRESS }}
           BLOCKCHAIN_ADMIN_ADDRESS: ${{ secrets.BLOCKCHAIN_ADMIN_ADDRESS }}
           BLOCKCHAIN_CHAIN_ID: ${{ secrets.BLOCKCHAIN_CHAIN_ID }}
+          CDN_URL: ${{ secrets.CDN_URL }}
 
 
         run: |
@@ -152,7 +153,8 @@ jobs:
             --from-literal=KRWT_CONTRACT_ADDRESS="$KRWT_CONTRACT_ADDRESS" \
             --from-literal=TOKENFACTORY_CONTRACT_ADDRESS="$TOKENFACTORY_CONTRACT_ADDRESS" \
             --from-literal=BLOCKCHAIN_ADMIN_ADDRESS="$BLOCKCHAIN_ADMIN_ADDRESS" \
-            --from-literal=BLOCKCHAIN_CHAIN_ID="$BLOCKCHAIN_CHAIN_ID" 
+            --from-literal=BLOCKCHAIN_CHAIN_ID="$BLOCKCHAIN_CHAIN_ID" \
+            --from-literal=CDN_URL="$CDN_URL"
           echo "✅ Kubernetes Secret updated successfully."
 
       - name: Setup Kustomize
