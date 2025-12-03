@@ -112,9 +112,18 @@ public class MarketService {
         List<Disclosure> disclosures = tradingInfoPort.findDisclosures(productId, 10);
 
         long currentPrice = product.getCurrentPrice();
-        long prevClose = prevCloseQueryPort
-                .findPrevCloseSingle(productId, ZoneId.of("Asia/Seoul"))
-                .orElse(0L);
+        Map<Long, Long> prevCloseMap = prevCloseQueryPort
+                .findPrevCloseMap(List.of(productId), ZoneId.of("Asia/Seoul"));
+
+        long prevClose = prevCloseMap.getOrDefault(
+                productId,
+                product.getLastPrice() != null ? product.getLastPrice() : product.getCurrentPrice()
+        );
+        if (prevClose <= 0) {
+            prevClose = (product.getLastPrice() != null && product.getLastPrice() > 0)
+                    ? product.getLastPrice()
+                    : product.getCurrentPrice();
+        }
         double changeRate = PriceChangePolicy.changeRate(currentPrice, prevClose);
 
         boolean isFavorited = (userId != null)
@@ -225,18 +234,25 @@ public class MarketService {
         List<TradeExecution> executions =
                 tradeExecutionRepository.findInWindow(productId, start, end);
 
-        List<ChartResponse.Point> points = aggregateByInterval(executions, interval, timezone).stream()
-                .map(p -> {
-                    OffsetDateTime displayTs = "1d".equals(interval)
-                            ? (p.lastMatch() != null ? p.lastMatch() : p.ts())
-                            : p.ts();
-                    return ChartResponse.Point.builder()
-                            .ts(formatTimestamp(displayTs, interval))
-                        .price(p.price())
-                        .volume(p.volume())
-                            .build();
-                })
-                .toList();
+        List<ChartResponse.Point> points;
+        if ("1d".equals(interval)) {
+            // 일 단위 조회에서는 실제 체결 시각 단위로 그대로 노출
+            points = executions.stream()
+                    .map(exec -> ChartResponse.Point.builder()
+                            .ts(exec.getMatchTime().toString())
+                            .price(exec.getTradePrice())
+                            .volume(exec.getTradeQuantity())
+                            .build())
+                    .toList();
+        } else {
+            points = aggregateByInterval(executions, interval, timezone).stream()
+                    .map(p -> ChartResponse.Point.builder()
+                            .ts(formatTimestamp(p.ts(), interval))
+                            .price(p.price())
+                            .volume(p.volume())
+                            .build())
+                    .toList();
+        }
 
         ZonedDateTime prevLastDayStartZoned = lastDayStartZoned.minusDays(windowDays);
         long epochCursor = prevLastDayStartZoned.toEpochSecond();
@@ -289,9 +305,7 @@ public class MarketService {
                     OffsetDateTime bucketStart;
                     switch (interval) {
                         case "1d" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
-                        case "1w" -> bucketStart = zoned.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                                .truncatedTo(ChronoUnit.DAYS)
-                                .toOffsetDateTime();
+                        case "1w" -> bucketStart = zoned.truncatedTo(ChronoUnit.DAYS).toOffsetDateTime();
                         case "1m" -> bucketStart = zoned
                                 .with(TemporalAdjusters.firstDayOfMonth())
                                 .truncatedTo(ChronoUnit.DAYS)

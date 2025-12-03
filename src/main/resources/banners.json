@@ -2,13 +2,19 @@
   {
     "bannerId": 1,
     "imageUrl": "/images/banners/banner1.png",
-    "title": "dinotang banner",
-    "description": "다이노탱 토큰을 소개합니다."
+    "title": "banner1",
+    "description": "다이노탱 IP를 소개합니다."
   },
   {
     "bannerId": 2,
     "imageUrl": "/images/banners/banner2.png",
-    "title": "mang_gom banner",
-    "description": "망곰이 토큰을 소개합니다."
+    "title": "banner2",
+    "description": "위비 IP를 소개합니다."
+  },
+  {
+    "bannerId": 3,
+    "imageUrl": "/images/banners/banner3.png",
+    "title": "banner3",
+    "description": " 스누피 IP를 소개합니다."
   }
 ]

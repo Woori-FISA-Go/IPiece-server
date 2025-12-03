@@ -49,15 +49,15 @@ public interface TradeExecutionRepository extends JpaRepository<TradeExecution, 
             SELECT te.product.productId AS productId,
                    te.tradePrice        AS price
               FROM TradeExecution te
-             WHERE te.product.productId IN :productIds
-               AND te.matchTime >= :startAt
-               AND te.matchTime <  :endAt
-               AND te.matchTime = (
-                   SELECT MAX(te2.matchTime)
-                     FROM TradeExecution te2
-                    WHERE te2.product.productId = te.product.productId
-                      AND te2.matchTime >= :startAt
-                      AND te2.matchTime <  :endAt
+            WHERE te.product.productId IN :productIds
+              AND te.matchTime >= :startAt
+              AND te.matchTime <  :endAt
+              AND te.matchTime = (
+                  SELECT MAX(te2.matchTime)
+                    FROM TradeExecution te2
+                  WHERE te2.product.productId = te.product.productId
+                     AND te2.matchTime >= :startAt
+                     AND te2.matchTime <  :endAt
                )
              ORDER BY te.tradeId DESC
              LIMIT 1

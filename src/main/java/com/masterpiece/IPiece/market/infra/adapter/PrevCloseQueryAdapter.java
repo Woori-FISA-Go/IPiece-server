@@ -30,14 +30,14 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
         ZoneId effectiveZone = (zoneId != null) ? zoneId : ZoneId.of("Asia/Seoul");
 
         LocalDate today = LocalDate.now(effectiveZone);
-        ZonedDateTime todayNine = today.atTime(9, 0, 0).atZone(effectiveZone);
-        ZonedDateTime yesterdayNine = todayNine.minusDays(1);
-        ZonedDateTime windowStart = yesterdayNine;
+        ZonedDateTime todayStart = today.atStartOfDay(effectiveZone);
+        ZonedDateTime yesterdayStart = todayStart.minusDays(1);
+        ZonedDateTime windowStart = yesterdayStart;
 
         var rows = tradeExecutionRepository.findAllPrevClosePrices(
                 productIds,
                 windowStart.toOffsetDateTime(),
-                todayNine.toOffsetDateTime()
+                todayStart.toOffsetDateTime()
         );
 
         Map<Long, Long> map = rows.stream()
@@ -67,17 +67,17 @@ public class PrevCloseQueryAdapter implements PrevCloseQueryPort {
 
         ZoneId effectiveZone = (zoneId != null) ? zoneId : ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(effectiveZone);
-        ZonedDateTime todayNine = today.atTime(9, 0, 0).atZone(effectiveZone);
-        ZonedDateTime yesterdayNine = todayNine.minusDays(1);
+        ZonedDateTime todayStart = today.atStartOfDay(effectiveZone);
+        ZonedDateTime yesterdayStart = todayStart.minusDays(1);
 
         Long price = tradeExecutionRepository.findPrevClosePrice(
                 productId,
-                yesterdayNine.toOffsetDateTime(),
-                todayNine.toOffsetDateTime()
+                yesterdayStart.toOffsetDateTime(),
+                todayStart.toOffsetDateTime()
         );
 
         if (price == null) {
-            price = fallbackPrevClose(productId, yesterdayNine.toOffsetDateTime());
+            price = fallbackPrevClose(productId, yesterdayStart.toOffsetDateTime());
         }
 
         return Optional.ofNullable(price);
